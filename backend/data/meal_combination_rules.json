@@ -1,0 +1,85 @@
+{
+  "meal_templates": {
+    "breakfast": {
+      "structure": ["1 tiffin", "1 accompaniment (chutney/sambar)"],
+      "slots": [{"category": "tiffin", "count": 1}, {"category": "accompaniment", "count": 1, "optional": true}],
+      "nutrition_target": {"kcal": [300, 450], "protein_g_min": 8}
+    },
+    "lunch_full": {
+      "structure": ["rice + 1 kuzhambu + 1 poriyal + 1 kootu + 1 rasam (optional) + curd"],
+      "slots": [
+        {"item": "plain_rice", "qty_g": 130, "nutrition": {"kcal": 170, "protein_g": 3.5, "carbs_g": 37, "fat_g": 0.4, "fiber_g": 0.6}},
+        {"category": "kuzhambu", "count": 1},
+        {"category": "poriyal", "count": 1},
+        {"category": "kootu", "count": 1, "optional": true},
+        {"category": "rasam", "count": 1, "optional": true},
+        {"item": "curd_serving", "qty_g": 100, "nutrition": {"kcal": 60, "protein_g": 3, "carbs_g": 5, "fat_g": 3, "fiber_g": 0}}
+      ],
+      "nutrition_target": {"kcal": [550, 750], "protein_g_min": 18}
+    },
+    "lunch_onepot": {
+      "structure": ["1 variety rice + 1 poriyal or accompaniment"],
+      "slots": [{"category": "variety_rice", "count": 1}, {"category": ["poriyal", "accompaniment"], "count": 1}],
+      "nutrition_target": {"kcal": [400, 600], "protein_g_min": 12}
+    },
+    "dinner_tiffin": {
+      "structure": ["1 tiffin + 1 accompaniment (lighter than breakfast)"],
+      "slots": [{"category": "tiffin", "count": 1}, {"category": "accompaniment", "count": 1, "optional": true}],
+      "nutrition_target": {"kcal": [300, 500], "protein_g_min": 8}
+    },
+    "dinner_light_rice": {
+      "structure": ["rice + rasam/kuzhambu + 1 poriyal, or kanji"],
+      "slots": [
+        {"item": "plain_rice", "qty_g": 100},
+        {"category": ["rasam", "kuzhambu"], "count": 1},
+        {"category": "poriyal", "count": 1, "optional": true}
+      ],
+      "nutrition_target": {"kcal": [350, 550], "protein_g_min": 10}
+    }
+  },
+
+  "nonveg_rule": "For nonveg users: replace kuzhambu slot with a nonveg gravy (category=nonveg, name contains kuzhambu) max 3-4 times/week, or add egg dish as poriyal-slot substitute. Fish 2x/week is heart-healthy pattern.",
+
+  "pairing_rules": [
+    {"if": "kz_vatha", "then_prefer": ["tg_paruppu", "pr_keerai", "pr_potato"], "reason": "Spicy-sour kuzhambu needs a mild dal-based side; paruppu thogayal is the classic protein partner"},
+    {"if": "kz_mor", "then_prefer": ["pr_potato", "pr_vazhakkai", "pr_beetroot"], "reason": "Mild curd gravy pairs with hearty roasted vegetables"},
+    {"if": "kz_sambar", "then_prefer": ["pr_beans", "pr_cabbage", "pr_vendakkai"], "reason": "Classic everyday combination"},
+    {"if": "category:tiffin", "then_prefer": ["ac_coconut_chutney", "ac_tomato_chutney", "kz_sambar"], "reason": "Tiffin always served with chutney or sambar"},
+    {"if": "vr_thayir", "position": "meal_closer", "reason": "Curd rice traditionally ends the meal (cooling, aids digestion)"}
+  ],
+
+  "avoid_rules": [
+    {"rule": "max_sour_dishes_per_meal", "value": 1, "sour_ids": ["kz_vatha", "kz_puli", "kz_kara", "kz_ennai", "rs_tomato", "rs_milagu", "rs_lemon", "rs_poondu", "vr_puliyodarai", "vr_lemon", "kz_poondu"], "exception": "sambar + rasam together is allowed (mildly sour)", "reason": "Two strongly tamarind-based dishes clash and over-acidify the meal"},
+    {"rule": "max_coconut_heavy_per_meal", "value": 2, "coconut_ids": ["ac_coconut_chutney", "vr_coconut", "kz_mor"], "reason": "Limit saturated fat load; poriyal/kootu coconut garnish doesn't count"},
+    {"rule": "no_curd_with_fish", "ids": ["vr_thayir + nv_meen_kuzhambu", "vr_thayir + nv_meen_varuval"], "reason": "Traditional avoidance"},
+    {"rule": "same_main_vegetable_once_per_day", "reason": "Variety across meals; don't suggest cabbage poriyal and cabbage kootu same day"},
+    {"rule": "same_dish_max_twice_per_week", "reason": "Weekly variety"}
+  ],
+
+  "protein_guard": {
+    "rule": "If a generated day's total protein < target (0.83 g per kg body weight, default 50g if weight unknown), the planner MUST upgrade: swap a low-protein poriyal for kootu (adds dal), add paruppu thogayal, choose adai/pongal over plain dosa for tiffin, or add egg for nonveg users.",
+    "context": "Indian diets are documented protein-deficient (majority of both veg and nonveg households); rice-heavy Tamil meals need deliberate dal/legume pairing. Dal + rice = complete amino acid profile."
+  },
+
+  "daily_nutrition_targets_icmr": {
+    "note": "ICMR-NIN guidelines, sedentary adult defaults; personalize by BMI/goal",
+    "adult_male": {"kcal": 2110, "protein_g": 54, "fiber_g": 30},
+    "adult_female": {"kcal": 1660, "protein_g": 46, "fiber_g": 25},
+    "goal_modifiers": {
+      "weight_loss": {"kcal_multiplier": 0.85, "prefer_tags": ["weight_loss", "light", "high_fiber"], "prefer_dinner": "dinner_tiffin with ragi/kanji options"},
+      "diabetic_friendly": {"prefer_tags": ["diabetic_friendly", "high_fiber"], "avoid_ids": ["vr_puliyodarai", "tf_idiyappam"], "note": "Favor millets (ragi dosa, ragi kanji), adai; watch white-rice portion"},
+      "high_protein": {"protein_g_min": 70, "prefer_tags": ["high_protein"], "note": "Kootu + thogayal + egg/adai emphasis"},
+      "bp_friendly": {"note": "Reduce added salt flag on vatha kuzhambu/pickles; prefer heart_healthy tags"}
+    }
+  },
+
+  "balance_advice_display": {
+    "per_meal": "Show meal card totals: kcal, protein, fiber with 3 status chips: ✅ Balanced / ⚠️ Low protein / ⚠️ Heavy",
+    "per_day": "Day ring chart: kcal vs target, protein vs target, fiber vs target",
+    "advice_examples": [
+      "Today's plan is 12g short on protein — add paruppu thogayal at lunch?",
+      "Nice! High-fiber day (32g) — great for digestion.",
+      "Two tamarind dishes today — swapped dinner rasam to milagu rasam for balance."
+    ]
+  }
+}

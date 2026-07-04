@@ -1,0 +1,40 @@
+name: Build AmmiAI APK
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      # ⚠️ REPLACE with your deployed Emergent backend URL (from the Deploy panel)
+      EXPO_PUBLIC_BACKEND_URL: https://YOUR-DEPLOYED-BACKEND-URL
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate native Android project (Expo prebuild)
+        run: npx expo prebuild --platform android --no-install
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build release APK (debug-signed, installable)
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AmmiAI-apk
+          path: frontend/android/app/build/outputs/apk/release/*.apk

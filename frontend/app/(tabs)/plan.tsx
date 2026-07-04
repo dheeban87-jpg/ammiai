@@ -395,11 +395,11 @@ function DailyRings({ plan }: { plan: Plan }) {
     <View style={styles.ringsCard} testID="daily-rings">
       <Text style={styles.ringsTitle}>Today&apos;s balance</Text>
       <View style={styles.ringsRow}>
-        <NutritionRing testID="ring-kcal" progress={r.kcal} color={colors.bananaLeaf}
+        <NutritionRing delay={0} testID="ring-kcal" progress={r.kcal} color={colors.bananaLeaf}
           label="Calories" value={`${Math.round(totals.kcal)}`} hint={`/ ${Math.round(t.kcal)}`} />
-        <NutritionRing testID="ring-protein" progress={r.protein_g} color={colors.chili}
+        <NutritionRing delay={140} testID="ring-protein" progress={r.protein_g} color={colors.chili}
           label="Protein" value={`${Math.round(totals.protein_g)}g`} hint={`/ ${Math.round(t.protein_g)}g`} />
-        <NutritionRing testID="ring-fiber" progress={r.fiber_g} color={colors.turmeric}
+        <NutritionRing delay={280} testID="ring-fiber" progress={r.fiber_g} color={colors.turmeric}
           label="Fiber" value={`${Math.round(totals.fiber_g)}g`} hint={`/ ${Math.round(t.fiber_g)}g`} />
       </View>
     </View>

@@ -20,6 +20,7 @@ import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { GROUP_ORDER, groupFor, iconFor } from "@/src/ingredient-icons";
 import { FoodAvatar } from "@/src/food-visual";
+import { PressableScale } from "@/src/components/pressable-scale";
 import type { PantryItem } from "@/src/types";
 
 const FRESHNESS_COLOR: Record<string, string> = {
@@ -355,7 +356,7 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
         ? "expired"
         : `${item.days_left}d left`;
   return (
-    <TouchableOpacity
+    <PressableScale
       style={styles.row}
       onPress={onPress}
       testID={`pantry-row-${item.id}`}
@@ -382,7 +383,7 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
         </View>
         <Text style={styles.daysText}>{daysText}</Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 

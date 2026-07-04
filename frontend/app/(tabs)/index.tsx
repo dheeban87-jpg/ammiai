@@ -123,7 +123,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.ringsRow}>
-              <NutritionRing
+              <NutritionRing delay={0}
                 testID="home-ring-kcal"
                 size={82}
                 strokeWidth={9}
@@ -133,7 +133,7 @@ export default function HomeScreen() {
                 value={`${Math.round(plan.day_totals.kcal)}`}
                 hint={`/ ${Math.round(plan.day_targets.kcal)}`}
               />
-              <NutritionRing
+              <NutritionRing delay={140}
                 testID="home-ring-protein"
                 size={82}
                 strokeWidth={9}
@@ -143,7 +143,7 @@ export default function HomeScreen() {
                 value={`${Math.round(plan.day_totals.protein_g)}g`}
                 hint={`/ ${Math.round(plan.day_targets.protein_g)}g`}
               />
-              <NutritionRing
+              <NutritionRing delay={280}
                 testID="home-ring-fiber"
                 size={82}
                 strokeWidth={9}

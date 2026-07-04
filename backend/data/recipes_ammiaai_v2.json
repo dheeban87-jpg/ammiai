@@ -3635,5 +3635,140 @@
   ],
   "combo_partners": [],
   "notes": ""
+ },
+ {
+  "id": "ac_idli_podi",
+  "name_en": "Idli Podi (Gunpowder)",
+  "name_ta": "Milagai Podi",
+  "category": "accompaniment",
+  "diet": "veg",
+  "spice_level": "medium",
+  "prep_time_min": 10,
+  "ingredients": [
+   {
+    "ingredient_id": "urad_dal",
+    "qty": 15,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "chana_dal",
+    "qty": 10,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "cooking_oil",
+    "qty": 5,
+    "unit": "ml"
+   }
+  ],
+  "staple_spices": [
+   "red_chilli",
+   "sesame_seeds",
+   "asafoetida",
+   "salt"
+  ],
+  "nutrition": {
+   "kcal": 95,
+   "protein_g": 4,
+   "carbs_g": 10,
+   "fat_g": 4,
+   "fiber_g": 3
+  },
+  "health_tags": [
+   "high_protein"
+  ],
+  "combo_partners": [],
+  "notes": "Classic dry chutney powder for idli/dosa with gingelly oil; keeps for weeks"
+ },
+ {
+  "id": "ac_ellu_podi",
+  "name_en": "Ellu Podi (Sesame)",
+  "name_ta": "Ellu Podi",
+  "category": "accompaniment",
+  "diet": "veg",
+  "spice_level": "medium",
+  "prep_time_min": 10,
+  "ingredients": [
+   {
+    "ingredient_id": "urad_dal",
+    "qty": 10,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "cooking_oil",
+    "qty": 4,
+    "unit": "ml"
+   }
+  ],
+  "staple_spices": [
+   "sesame_seeds",
+   "red_chilli",
+   "salt"
+  ],
+  "nutrition": {
+   "kcal": 110,
+   "protein_g": 4,
+   "carbs_g": 7,
+   "fat_g": 8,
+   "fiber_g": 2
+  },
+  "health_tags": [
+   "heart_healthy"
+  ],
+  "combo_partners": [],
+  "notes": "Sesame-rich podi; iron and calcium dense"
+ },
+ {
+  "id": "ac_mint_chutney",
+  "name_en": "Mint Chutney",
+  "name_ta": "Pudina Chutney",
+  "category": "accompaniment",
+  "diet": "veg",
+  "spice_level": "medium",
+  "prep_time_min": 10,
+  "ingredients": [
+   {
+    "ingredient_id": "mint_leaves",
+    "qty": 25,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "coconut_grated",
+    "qty": 12,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "green_chilli",
+    "qty": 3,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "tamarind",
+    "qty": 3,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "cooking_oil",
+    "qty": 4,
+    "unit": "ml"
+   }
+  ],
+  "staple_spices": [
+   "urad_dal_tsp",
+   "mustard_seeds",
+   "salt"
+  ],
+  "nutrition": {
+   "kcal": 85,
+   "protein_g": 2,
+   "carbs_g": 6,
+   "fat_g": 6,
+   "fiber_g": 2
+  },
+  "health_tags": [
+   "light"
+  ],
+  "combo_partners": [],
+  "notes": "Cooling; rescue dish for wilting mint"
  }
 ]

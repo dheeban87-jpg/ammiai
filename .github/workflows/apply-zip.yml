@@ -1,0 +1,20 @@
+name: Apply uploaded zip
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract zip over repo
+        run: |
+          unzip -o AmmiAI_visual_upgrade*.zip
+          rm -f AmmiAI_visual_upgrade*.zip
+      - name: Commit and push
+        run: |
+          git config user.name "ammiai-bot"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -m "Apply visual upgrade v2 (fonts, FoodAvatar, animated rings)" || echo "nothing to commit"
+          git push

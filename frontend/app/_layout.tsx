@@ -3,6 +3,8 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { LogBox, View } from "react-native";
 import { useFonts } from "expo-font";
+import { Baloo2_600SemiBold, Baloo2_800ExtraBold } from "@expo-google-fonts/baloo-2";
+import { NotoSansTamil_700Bold } from "@expo-google-fonts/noto-sans-tamil";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
@@ -64,6 +66,9 @@ export default function RootLayout() {
   const [appFontsLoaded, appFontsError] = useFonts({
     "NotoSansTamil-Regular": require("../assets/fonts/NotoSansTamil-Regular.ttf"),
     "Baloo2-Regular": require("../assets/fonts/Baloo2-Regular.ttf"),
+    Baloo2_600SemiBold,
+    Baloo2_800ExtraBold,
+    NotoSansTamil_700Bold,
   });
 
   const ready = (iconsLoaded || iconsError) && (appFontsLoaded || appFontsError);

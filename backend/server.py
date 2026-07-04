@@ -13,6 +13,16 @@ from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import httpx
 
+from meal_engine import (
+    PantrySnapshot,
+    PlannerContext,
+    cook_now as engine_cook_now,
+    daily_targets,
+    plan_day as engine_plan_day,
+    rescue_dishes as engine_rescue,
+    swap_options as engine_swap_options,
+)
+
 
 ROOT_DIR = Path(__file__).parent
 DATA_DIR = ROOT_DIR / "data"
@@ -79,6 +89,7 @@ async def _ensure_indexes() -> None:
     await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)
     await db.pantry_items.create_index("user_id")
     await db.waste_log.create_index("user_id")
+    await db.meal_plans.create_index([("user_id", 1), ("date", 1)], unique=True)
     await db.otp_codes.create_index(
         "created_at", expireAfterSeconds=600
     )  # 10 min
@@ -601,6 +612,226 @@ async def get_waste_log(current=Depends(get_current_user)):
     ).sort("discarded_at", -1).to_list(500)
     total = sum((d.get("estimated_inr") or 0) for d in docs)
     return {"items": docs, "total_estimated_inr": round(total, 2)}
+
+
+# ------------------------- Meal Plan Engine ------------------------- #
+async def _build_context(user_id: str, seed: Optional[int] = None) -> PlannerContext:
+    profile = await db.profiles.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(1000)
+    pantry_raw = await db.pantry_items.find(
+        {"user_id": user_id}, {"_id": 0}
+    ).to_list(1000)
+    pantry_items = [await _enrich_item(dict(it)) for it in pantry_raw]
+    pantry = PantrySnapshot.from_items(pantry_items)
+    # 7-day rolling history of dish IDs for variety
+    week_docs = await db.meal_plans.find(
+        {"user_id": user_id}
+    ).sort("date", -1).limit(7).to_list(7)
+    week_ids: List[str] = []
+    for doc in week_docs:
+        for m in ("breakfast", "lunch", "dinner"):
+            for it in doc.get(m, {}).get("items", []):
+                rid = it.get("id")
+                if rid and not it.get("static"):
+                    week_ids.append(rid)
+    return PlannerContext(
+        rules=rules_doc,
+        recipes=recipes,
+        profile=profile,
+        pantry=pantry,
+        week_ids=week_ids,
+        seed=seed,
+    )
+
+
+def _sanitize_plan(plan: Dict[str, Any]) -> Dict[str, Any]:
+    """Convert set() etc to JSON-serializable primitives; strip Mongo _id."""
+    def _walk(v):
+        if isinstance(v, dict):
+            return {k: _walk(x) for k, x in v.items() if k != "_id"}
+        if isinstance(v, list):
+            return [_walk(x) for x in v]
+        if isinstance(v, set):
+            return list(v)
+        return v
+    return _walk(plan)
+
+
+class GenerateIn(BaseModel):
+    date: Optional[str] = None  # yyyy-mm-dd; default today
+    seed: Optional[int] = None
+    force: bool = False
+
+
+@api_router.post("/plan/generate")
+async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
+    date = payload.date or _now().date().isoformat()
+    if not payload.force:
+        existing = await db.meal_plans.find_one(
+            {"user_id": current["user_id"], "date": date}, {"_id": 0}
+        )
+        if existing:
+            return existing
+    seed = payload.seed if payload.seed is not None else int(_now().timestamp())
+    ctx = await _build_context(current["user_id"], seed=seed)
+    plan = engine_plan_day(ctx)
+    plan = _sanitize_plan(plan)
+    plan["user_id"] = current["user_id"]
+    plan["date"] = date
+    plan["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": date}, plan, upsert=True
+    )
+    return _clean(await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}
+    ))
+
+
+@api_router.get("/plan/today")
+async def plan_today(current=Depends(get_current_user)):
+    date = _now().date().isoformat()
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    if doc:
+        return doc
+    # Auto-generate a fresh plan on first read
+    ctx = await _build_context(current["user_id"], seed=int(_now().timestamp()))
+    plan = engine_plan_day(ctx)
+    plan = _sanitize_plan(plan)
+    plan["user_id"] = current["user_id"]
+    plan["date"] = date
+    plan["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": date}, plan, upsert=True
+    )
+    return _clean(await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}
+    ))
+
+
+@api_router.get("/plan/week")
+async def plan_week(current=Depends(get_current_user)):
+    """Return today + next 6 days. Missing days are generated on the fly."""
+    from datetime import date as _dt_date
+    today = _now().date()
+    out: List[Dict[str, Any]] = []
+    for i in range(7):
+        d = (today + timedelta(days=i)).isoformat()
+        doc = await db.meal_plans.find_one(
+            {"user_id": current["user_id"], "date": d}, {"_id": 0}
+        )
+        if not doc:
+            ctx = await _build_context(current["user_id"], seed=int(_now().timestamp()) + i)
+            plan = engine_plan_day(ctx)
+            plan = _sanitize_plan(plan)
+            plan["user_id"] = current["user_id"]
+            plan["date"] = d
+            plan["updated_at"] = _now()
+            await db.meal_plans.replace_one(
+                {"user_id": current["user_id"], "date": d}, plan, upsert=True
+            )
+            doc = await db.meal_plans.find_one(
+                {"user_id": current["user_id"], "date": d}, {"_id": 0}
+            )
+        out.append(doc)
+    return {"days": out}
+
+
+class SwapIn(BaseModel):
+    date: str
+    meal: str  # breakfast | lunch | dinner
+    current_recipe_id: str
+    new_recipe_id: str
+
+
+@api_router.post("/plan/swap")
+async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    if payload.meal not in doc:
+        raise HTTPException(status_code=400, detail="Unknown meal")
+    recipes = {r["id"]: r for r in await db.recipes.find({}, {"_id": 0}).to_list(1000)}
+    new_recipe = recipes.get(payload.new_recipe_id)
+    if not new_recipe:
+        raise HTTPException(status_code=404, detail="New recipe not found")
+    meal = doc[payload.meal]
+    items = meal.get("items", [])
+    found = False
+    for i, it in enumerate(items):
+        if it.get("id") == payload.current_recipe_id:
+            items[i] = new_recipe
+            found = True
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail="Current dish not in meal")
+    meal["items"] = items
+    # Recompute status + day totals
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    from meal_engine import meal_status, sum_nutrition
+
+    tpl = meal.get("template", payload.meal)
+    meal.update(meal_status(items, tpl, rules))
+    doc[payload.meal] = meal
+
+    all_items = doc["breakfast"]["items"] + doc["lunch"]["items"] + doc["dinner"]["items"]
+    totals = sum_nutrition(all_items)
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    targets = daily_targets(rules, profile)
+    doc["day_totals"] = totals
+    doc["day_targets"] = targets
+    doc["rings"] = {
+        "kcal": min(1.0, round(totals["kcal"] / max(1, targets["kcal"]), 3)),
+        "protein_g": min(1.0, round(totals["protein_g"] / max(1, targets["protein_g"]), 3)),
+        "fiber_g": min(1.0, round(totals["fiber_g"] / max(1, targets["fiber_g"]), 3)),
+    }
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": payload.date}, doc, upsert=True
+    )
+    return _clean(await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}
+    ))
+
+
+@api_router.get("/plan/swap-options")
+async def plan_swap_options(
+    date: str,
+    meal: str,
+    recipe_id: str,
+    current=Depends(get_current_user),
+):
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    ctx = await _build_context(current["user_id"])
+    opts = engine_swap_options(ctx, doc, meal, recipe_id, limit=3)
+    return {"options": opts}
+
+
+@api_router.get("/plan/nutrition-targets")
+async def plan_targets(current=Depends(get_current_user)):
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    return daily_targets(rules, profile)
+
+
+@api_router.get("/rescue-dishes")
+async def get_rescue(current=Depends(get_current_user)):
+    ctx = await _build_context(current["user_id"])
+    return {"items": engine_rescue(ctx, limit=8)}
+
+
+@api_router.get("/cook-now")
+async def get_cook_now(current=Depends(get_current_user)):
+    ctx = await _build_context(current["user_id"])
+    return {"items": engine_cook_now(ctx, limit=8)}
 
 
 # ------------------------- Mount ------------------------- #

@@ -1,21 +1,58 @@
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { LogBox } from "react-native";
+import { LogBox, View } from "react-native";
 import { useFonts } from "expo-font";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
+import { AuthProvider, useAuth } from "@/src/auth-context";
+import { colors } from "@/src/theme";
 
-// Disable logbox errors etc so that users can see the app
-// and agent works as expected.
 LogBox.ignoreAllLogs(true);
-
-// Keep the native splash visible from cold start until icon fonts register.
-// Required because @expo/vector-icons' componentDidMount fallback fires
-// Font.loadAsync against a broken vendor path if any <Icon> mounts before
-// the family is registered — which throws on Android Expo Go.
 SplashScreen.preventAutoHideAsync();
+
+function RouteGuard() {
+  const { status, profile } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === "loading") return;
+    const first = segments[0] as string | undefined;
+    const inAuth = first === "sign-in";
+    const inOnboarding = first === "onboarding";
+
+    if (status === "unauth" && !inAuth) {
+      router.replace("/sign-in");
+      return;
+    }
+    if (status === "authed") {
+      const onboarded = !!profile?.onboarding_complete;
+      if (!onboarded && !inOnboarding) {
+        router.replace("/onboarding");
+        return;
+      }
+      if (onboarded && (inAuth || inOnboarding)) {
+        router.replace("/(tabs)");
+        return;
+      }
+    }
+  }, [status, profile?.onboarding_complete, segments, router]);
+
+  return null;
+}
+
+function RootStack() {
+  return (
+    <>
+      <RouteGuard />
+      <StatusBar style="light" backgroundColor={colors.bananaLeafDark} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.riceWhite } }} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [iconsLoaded, iconsError] = useIconFonts();
@@ -27,18 +64,18 @@ export default function RootLayout() {
   const ready = (iconsLoaded || iconsError) && (appFontsLoaded || appFontsError);
 
   useEffect(() => {
-    if (ready) {
-      SplashScreen.hideAsync();
-    }
+    if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
-  // If the CDN is unreachable we fall through on error rather than wedging
-  // the app — icons will tofu, but the app still boots.
   if (!ready) return null;
 
   return (
     <SafeAreaProvider>
-      <Stack screenOptions={{ headerShown: false }} />
+      <View style={{ flex: 1, backgroundColor: colors.riceWhite }}>
+        <AuthProvider>
+          <RootStack />
+        </AuthProvider>
+      </View>
     </SafeAreaProvider>
   );
 }

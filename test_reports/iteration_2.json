@@ -1,0 +1,44 @@
+{
+  "summary": "AmmiAI Slice 2 (auth + onboarding + pantry) tested end-to-end. Backend: 22/22 pytest cases pass in test_ammiai_slice2.py — phone OTP send/verify (mock 123456 + any 6-digit), auth/me, invalid-phone + verify-without-send + bad-code = 400 (edge cases), profile PUT/GET full payload roundtrip, pantry/bundle adds exactly 8 items and is idempotent on second call, pantry POST with tomato 0.5kg fridge today returns days_left=8 freshness green shelf_days=8, freshness matrix verified (6d ago→yellow, 7d ago→red), PATCH qty + DELETE + 404, discard writes waste_log with estimated_inr=15.0 for 0.5kg tomato (0.5 * ₹30/kg), waste-log total ≥15, profile/reset clears profile+pantry, logout invalidates token (subsequent /auth/me → 401). Frontend: fresh session lands on /sign-in with both Google + Phone buttons; phone OTP with +91xxxxxxxxxx & any 6-digit + name → onboarding step 1/6; walkthrough covers all 6 steps (name, diet chips, household stepper (default 2 → +2 = 4) + spice, favorites (15 curated + See all showing 68 = 67 recipes + See all button, allergies + custom-avoid text on same step), health with height 165 / weight 60 → BMI 22.0 + goal chips + disclaimer, pantry bundle Add). Post-onboarding lands on /(tabs) home with 'Good morning, TEST_Full', profile card showing Vegetarian / 4 People / Medium, 8 pantry items counter. Pantry tab renders filter chips (All/Expiring/Pantry/Fridge), add-pantry-screen search 'keerai' returns 1 ingredient, add flow (qty+unit+storage+date+submit) grows pantry to 9 rows. Home settings icon opens /dev-menu with dev-reset-onboarding + dev-logout testIDs and correct signed-in + profile summaries.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "dev-menu.tsx dev-reset-onboarding & dev-logout", "issue": "Both actions are wrapped in Alert.alert(...) with Cancel + destructive buttons. On React Native Web (Expo web preview) multi-button Alert.alert renders as a no-op / non-interactive dialog, so tapping Reset or Log out in the web preview never fires doReset()/doLogout(). Verified: after clicking dev-logout URL stayed at /dev-menu and sign-in-screen never appeared. Native (Expo Go) will show the Alert correctly.", "testID": "dev-logout", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "src/theme.ts shadow.card style tokens (still)", "issue": "React Native Web console: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Non-blocking on native but noisy on web. Reference: /app/frontend/src/theme.ts (shadow.card used in dev-menu.tsx:163,185 and multiple screens)."},
+      {"component": "expo-router Tabs (vendor)", "issue": "React Native Web console: 'props.pointerEvents is deprecated. Use style.pointerEvents.' Comes from vendor tab-bar code. Non-blocking."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ammiai_slice1.py",
+    "/app/backend/tests/test_ammiai_slice2.py",
+    "/app/test_reports/pytest/pytest_slice2.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (medium): make dev-menu Reset + Log out cross-platform. Wrap the confirm in a helper like `Platform.OS === 'web' ? (window.confirm(msg) && doAction()) : Alert.alert(...)`, OR just call doReset()/doLogout() directly on web. Currently the web preview cannot exercise these dev actions.",
+    "OPTIONAL (low): silence RN-Web shadow* warning via Platform.select emitting boxShadow on web in src/theme.ts.",
+    "No functional backend fixes needed — proceed to Slice 3."
+  ],
+  "critical_code_review_comments": [
+    "server.py phone auth: MOCK send stores 123456 in db.otp_codes with 10-min TTL index — verify accepts any 6-digit code as long as a send was recorded. Clean design, easy to swap to Twilio later.",
+    "_create_session correctly deletes previous sessions for the user before inserting a new one — enforces single active session and matches test_credentials.md.",
+    "PUT /api/profile uses model_dump(exclude_none=True) — good, but note it means POSTing {favorites: []} will NOT clear favorites (empty list is truthy for exclude_none). If a user needs to clear an array via API, backend should switch to exclude_unset. Not blocking Slice 1.",
+    "_enrich_item freshness math is date-only (uses .date()), matches spec: green > alert_before_days left, yellow ≤ alert_before_days & >1, red ≤ 1.",
+    "waste_log discard flow: item is deleted from pantry_items AFTER log insert — correct ordering.",
+    "onboarding.tsx step-index vs display: display shows 1/6..6/6 while internal `step` is 0..5. Step 3 (display 4/6) holds Favorites + Allergies + Custom-avoid together; step 4 is Health; step 5 is Pantry. Matches PRD but the review-request test description put 'allergy+custom_avoid' next to health — testers should look for them on the favorites screen (step 4/6)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ammiai_slice2.py",
+    "/app/test_reports/iteration_2.json",
+    "/app/test_reports/pytest/pytest_slice2.xml"
+  ],
+  "success_rate": {"backend": "100% (22/22)", "frontend": "94% (17/18 checks pass — dev-menu Reset/Logout non-actionable on web preview only)"},
+  "seed_data_creation": "Tests use unique phone numbers per module (uuid-derived) so backend accumulates a handful of TEST_ users; profile-reset + logout at end of each test module cleans out that user's profile + pantry + session. No manual seed created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Slice 2 backend is fully green. Reuse /app/backend/tests/test_ammiai_slice1.py (data) + test_ammiai_slice2.py (auth/profile/pantry/waste-log/reset) as regression. When Slice 3 lands (meal planning?), keep a per-module unique phone fixture pattern to avoid session collisions since /auth/phone/verify deletes prior sessions for the same user. Frontend testIDs mostly identical to review-request list. Note: step layout has allergies + custom-avoid on the Favorites screen (step 4/6), not the Health screen (5/6) — search for allergy chips there.",
+  "rca_of_issue": "Dev-menu Reset/Logout non-actionable on web: React Native Web's Alert.alert doesn't render multi-option prompt UI; the destructive-button onPress never fires. Fix: on web, either call doReset/doLogout directly (dev-only UX is fine to skip confirmation) or use `if (Platform.OS === 'web') { if (window.confirm('Reset?')) doReset(); } else { Alert.alert(...); }`. This is a known Expo Web limitation, not a business-logic bug."
+}

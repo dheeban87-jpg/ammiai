@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, fonts, spacing } from "@/src/theme";
@@ -8,9 +8,10 @@ type Props = {
   title: string;
   subtitleTa?: string;
   right?: React.ReactNode;
+  onLongPress?: () => void;
 };
 
-export function AppHeader({ title, subtitleTa, right }: Props) {
+export function AppHeader({ title, subtitleTa, right, onLongPress }: Props) {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -21,7 +22,12 @@ export function AppHeader({ title, subtitleTa, right }: Props) {
       testID="app-header"
     >
       <View style={styles.headerRow}>
-        <View style={styles.headerTextWrap}>
+        <Pressable
+          onLongPress={onLongPress}
+          delayLongPress={800}
+          style={styles.headerTextWrap}
+          testID="app-header-touchable"
+        >
           <Text style={styles.title} testID="app-header-title">
             {title}
           </Text>
@@ -30,7 +36,7 @@ export function AppHeader({ title, subtitleTa, right }: Props) {
               {subtitleTa}
             </Text>
           ) : null}
-        </View>
+        </Pressable>
         {right ? <View style={styles.headerRight}>{right}</View> : null}
       </View>
     </View>

@@ -1,150 +1,205 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
+import { api } from "@/src/api";
+import { useAuth } from "@/src/auth-context";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
-
-type Stats = {
-  ingredients: number;
-  recipes: number;
-  meal_rule_docs: number;
-  recipe_categories: Record<string, number>;
-};
-
-const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
-
-const CATEGORY_LABELS: Record<string, string> = {
-  kuzhambu: "Kuzhambu",
-  poriyal: "Poriyal",
-  kootu: "Kootu",
-  rasam: "Rasam",
-  tiffin: "Tiffin",
-  variety_rice: "Variety Rice",
-  nonveg: "Non-Veg",
-  accompaniment: "Accompaniment",
-};
+import { iconFor } from "@/src/ingredient-icons";
+import type { PantryItem } from "@/src/types";
 
 export default function HomeScreen() {
-  const [stats, setStats] = useState<Stats | null>(null);
+  const router = useRouter();
+  const { user, profile } = useAuth();
+  const [items, setItems] = useState<PantryItem[] | null>(null);
+  const [waste, setWaste] = useState<{ total_estimated_inr: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const res = await fetch(`${BASE}/api/stats`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as Stats;
-        if (alive) setStats(data);
-      } catch (e: any) {
-        if (alive) setError(e?.message ?? "Failed to load");
-      }
-    })();
-    return () => {
-      alive = false;
-    };
+  const load = useCallback(async () => {
+    try {
+      const [pantry, wasteResp] = await Promise.all([
+        api.get<PantryItem[]>("/api/pantry"),
+        api.get<{ total_estimated_inr: number }>("/api/waste-log"),
+      ]);
+      setItems(pantry);
+      setWaste(wasteResp);
+    } catch (e: any) {
+      setError(e?.message ?? "Failed to load");
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const greeting = new Date().getHours();
+  const timeLabel =
+    greeting < 12 ? "Good morning" : greeting < 17 ? "Good afternoon" : "Good evening";
+  const name = user?.name?.split(" ")[0] ?? "there";
+
+  const expiring = (items ?? []).filter(
+    (i) => i.freshness === "red" || i.freshness === "yellow",
+  );
 
   return (
     <View style={styles.screen} testID="home-screen">
-      <AppHeader title="AmmiAI" subtitleTa="வணக்கம், சமையல் தொடங்கலாம்" />
+      <AppHeader
+        title="AmmiAI"
+        subtitleTa={`${timeLabel}, ${name}`}
+        onLongPress={() => router.push("/dev-menu")}
+        right={
+          <TouchableOpacity
+            testID="home-dev-menu"
+            onPress={() => router.push("/dev-menu")}
+            style={styles.iconBtn}
+            hitSlop={10}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.riceWhite} />
+          </TouchableOpacity>
+        }
+      />
+
       <ScrollView
-        contentContainerStyle={styles.scrollBody}
+        contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.welcome} testID="home-welcome">
-          Welcome to AmmiAI
+          {timeLabel}, {name}
         </Text>
         <Text style={styles.welcomeTa} testID="home-welcome-ta">
           உங்கள் தமிழ் சமையலறை உதவியாளர்
         </Text>
 
-        <Text style={styles.sectionLabel}>Data loaded</Text>
-
-        {error ? (
-          <View style={[styles.card, styles.errorCard]} testID="home-error">
-            <Ionicons
-              name="alert-circle"
-              size={22}
-              color={colors.chili}
-              style={{ marginRight: spacing.s }}
-            />
-            <Text style={styles.errorText}>Couldn&apos;t reach backend: {error}</Text>
+        {/* Quick stat pills */}
+        <View style={styles.pillsRow}>
+          <View style={styles.pillCard}>
+            <Ionicons name="cube-outline" size={16} color={colors.bananaLeaf} />
+            <Text style={styles.pillValue}>{items?.length ?? "—"}</Text>
+            <Text style={styles.pillLabel}>Pantry items</Text>
           </View>
-        ) : !stats ? (
-          <View style={styles.card} testID="home-loading">
+          <View style={styles.pillCard}>
+            <Ionicons name="alarm" size={16} color={colors.turmeric} />
+            <Text style={[styles.pillValue, { color: colors.turmeric }]}>
+              {expiring.length}
+            </Text>
+            <Text style={styles.pillLabel}>Expiring soon</Text>
+          </View>
+          <View style={styles.pillCard}>
+            <Ionicons name="trash-bin-outline" size={16} color={colors.chili} />
+            <Text style={[styles.pillValue, { color: colors.chili }]}>
+              ₹{waste?.total_estimated_inr?.toFixed(0) ?? "0"}
+            </Text>
+            <Text style={styles.pillLabel}>Waste so far</Text>
+          </View>
+        </View>
+
+        {/* Expiring highlight */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Expiring soon</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/pantry")} testID="see-all-expiring">
+            <Text style={styles.linkText}>See all</Text>
+          </TouchableOpacity>
+        </View>
+
+        {items === null && !error ? (
+          <View style={styles.center}>
             <ActivityIndicator color={colors.bananaLeaf} />
-            <Text style={styles.loadingText}>Loading kitchen data…</Text>
+          </View>
+        ) : expiring.length === 0 ? (
+          <View style={styles.emptyCard} testID="home-no-expiring">
+            <Ionicons name="checkmark-circle" size={22} color={colors.bananaLeaf} />
+            <Text style={styles.emptyCardText}>
+              {items && items.length > 0
+                ? "Nothing expiring — your pantry looks fresh."
+                : "Add items to your pantry to see freshness alerts."}
+            </Text>
           </View>
         ) : (
+          expiring.slice(0, 5).map((item) => (
+            <View
+              key={item.id}
+              style={[
+                styles.expRow,
+                { borderLeftColor: item.freshness === "red" ? colors.chili : colors.turmeric },
+              ]}
+              testID={`home-expiring-${item.id}`}
+            >
+              <MaterialCommunityIcons
+                name={iconFor(item.ingredient_id, item.category)}
+                size={22}
+                color={colors.bananaLeaf}
+              />
+              <View style={{ flex: 1, marginLeft: spacing.m }}>
+                <Text style={styles.expTitle}>{item.ingredient_name}</Text>
+                <Text style={styles.expSub}>
+                  {item.qty} {item.unit} · {item.storage}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.expDays,
+                  { color: item.freshness === "red" ? colors.chili : colors.turmeric },
+                ]}
+              >
+                {item.days_left != null && item.days_left <= 0
+                  ? "expired"
+                  : `${item.days_left ?? "?"}d`}
+              </Text>
+            </View>
+          ))
+        )}
+
+        {/* Profile summary */}
+        {profile ? (
           <>
-            <View style={styles.counterRow}>
-              <CounterCard
-                testID="counter-ingredients"
-                icon="leaf"
-                value={stats.ingredients}
-                label="Ingredients"
-                sublabel="பொருட்கள்"
-                tone="green"
-              />
-              <CounterCard
-                testID="counter-recipes"
-                icon="restaurant"
-                value={stats.recipes}
-                label="Recipes"
-                sublabel="ரெசிபிகள்"
-                tone="turmeric"
-              />
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Your kitchen</Text>
             </View>
-
-            <View style={styles.counterRow}>
-              <CounterCard
-                testID="counter-rules"
-                icon="book"
-                value={stats.meal_rule_docs}
-                label="Meal Rules"
-                sublabel="உணவு விதிகள்"
-                tone="green"
+            <View style={styles.profileCard} testID="home-profile-card">
+              <ProfileRow
+                icon="restaurant-outline"
+                label="Diet"
+                value={
+                  profile.diet === "veg"
+                    ? "Vegetarian"
+                    : profile.diet === "nonveg"
+                      ? "Non-veg"
+                      : profile.diet === "eggetarian"
+                        ? "Eggetarian"
+                        : "—"
+                }
               />
-              <CounterCard
-                testID="counter-categories"
-                icon="grid"
-                value={Object.keys(stats.recipe_categories).length}
-                label="Categories"
-                sublabel="வகைகள்"
-                tone="turmeric"
+              <ProfileRow
+                icon="people-outline"
+                label="Household"
+                value={`${profile.household_size ?? "—"} people`}
               />
-            </View>
-
-            <Text style={styles.sectionLabel}>Recipe categories</Text>
-            <View style={styles.categoryCard} testID="category-breakdown">
-              {Object.entries(stats.recipe_categories)
-                .sort((a, b) => b[1] - a[1])
-                .map(([cat, count], idx, arr) => (
-                  <View
-                    key={cat}
-                    style={[
-                      styles.categoryRow,
-                      idx === arr.length - 1 && { borderBottomWidth: 0 },
-                    ]}
-                    testID={`category-row-${cat}`}
-                  >
-                    <Text style={styles.categoryName}>
-                      {CATEGORY_LABELS[cat] ?? cat}
-                    </Text>
-                    <Text style={styles.categoryCount}>{count}</Text>
-                  </View>
-                ))}
+              <ProfileRow
+                icon="flame-outline"
+                label="Spice"
+                value={profile.spice_level ?? "—"}
+              />
+              {profile.favorites?.length ? (
+                <ProfileRow
+                  icon="heart-outline"
+                  label="Favorites"
+                  value={`${profile.favorites.length} dishes`}
+                />
+              ) : null}
             </View>
           </>
-        )}
+        ) : null}
 
         <View style={styles.footerHint}>
           <Ionicons
@@ -154,7 +209,7 @@ export default function HomeScreen() {
             style={{ marginRight: 6 }}
           />
           <Text style={styles.footerHintText}>
-            Slice 1 ready · shell + data loaded
+            Slice 1 ready · onboarding + pantry
           </Text>
         </View>
       </ScrollView>
@@ -162,42 +217,34 @@ export default function HomeScreen() {
   );
 }
 
-function CounterCard({
+function ProfileRow({
   icon,
-  value,
   label,
-  sublabel,
-  tone,
-  testID,
+  value,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
-  value: number;
   label: string;
-  sublabel: string;
-  tone: "green" | "turmeric";
-  testID?: string;
+  value: string;
 }) {
-  const accent = tone === "green" ? colors.bananaLeaf : colors.turmeric;
   return (
-    <View style={styles.counterCard} testID={testID}>
-      <View style={[styles.counterIconWrap, { backgroundColor: `${accent}18` }]}>
-        <Ionicons name={icon} size={18} color={accent} />
-      </View>
-      <Text style={styles.counterValue}>{value}</Text>
-      <Text style={styles.counterLabel}>{label}</Text>
-      <Text style={styles.counterSub}>{sublabel}</Text>
+    <View style={styles.profileRow}>
+      <Ionicons name={icon} size={18} color={colors.bananaLeaf} />
+      <Text style={styles.profileLabel}>{label}</Text>
+      <Text style={styles.profileValue}>{value}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.riceWhite,
-  },
-  scrollBody: {
-    padding: spacing.m,
-    paddingBottom: spacing.xl,
+  screen: { flex: 1, backgroundColor: colors.riceWhite },
+  body: { padding: spacing.m, paddingBottom: spacing.xl },
+  iconBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   welcome: {
     fontFamily: fonts.headingEn,
@@ -207,9 +254,40 @@ const styles = StyleSheet.create({
   },
   welcomeTa: {
     fontFamily: fonts.bodyTa,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  pillsRow: {
+    flexDirection: "row",
+    gap: spacing.s,
+    marginTop: spacing.l,
+  },
+  pillCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    alignItems: "flex-start",
+    ...shadow.card,
+  },
+  pillValue: {
+    fontFamily: fonts.headingEn,
+    fontSize: 24,
+    color: colors.textPrimary,
+    marginTop: 6,
+  },
+  pillLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.l,
+    marginBottom: spacing.s,
   },
   sectionLabel: {
     fontFamily: fonts.headingEn,
@@ -217,92 +295,58 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     color: colors.textSecondary,
     textTransform: "uppercase",
-    marginTop: spacing.l,
-    marginBottom: spacing.s,
   },
-  card: {
+  linkText: {
+    fontSize: 12,
+    color: colors.bananaLeaf,
+    fontWeight: "700",
+  },
+  center: { alignItems: "center", padding: spacing.l },
+  emptyCard: {
     backgroundColor: colors.surface,
-    borderRadius: radius.l,
+    borderRadius: radius.m,
     padding: spacing.m,
     flexDirection: "row",
     alignItems: "center",
+    gap: spacing.s,
     ...shadow.card,
   },
-  loadingText: {
-    marginLeft: spacing.s,
-    color: colors.textSecondary,
+  emptyCardText: { color: colors.textSecondary, flex: 1, fontSize: 13 },
+  expRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    ...shadow.card,
   },
-  errorCard: {
-    borderWidth: 1,
-    borderColor: `${colors.chili}55`,
-    backgroundColor: "#FBECE4",
+  expTitle: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
+  expSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  expDays: { fontSize: 13, fontWeight: "700" },
+  profileCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    ...shadow.card,
   },
-  errorText: {
-    color: colors.chili,
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  profileLabel: {
     flex: 1,
+    marginLeft: spacing.m,
+    color: colors.textSecondary,
     fontSize: 13,
   },
-  counterRow: {
-    flexDirection: "row",
-    gap: spacing.m,
-    marginBottom: spacing.m,
-  },
-  counterCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderRadius: radius.l,
-    padding: spacing.m,
-    ...shadow.card,
-  },
-  counterIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.s,
-  },
-  counterValue: {
-    fontFamily: fonts.headingEn,
-    fontSize: 30,
-    lineHeight: 34,
-    color: colors.textPrimary,
-  },
-  counterLabel: {
+  profileValue: {
     fontSize: 14,
     fontWeight: "600",
     color: colors.textPrimary,
-    marginTop: 2,
-  },
-  counterSub: {
-    fontFamily: fonts.bodyTa,
-    fontSize: 12,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  categoryCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.l,
-    paddingHorizontal: spacing.m,
-    ...shadow.card,
-  },
-  categoryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  categoryName: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    fontWeight: "500",
-  },
-  categoryCount: {
-    fontFamily: fonts.headingEn,
-    fontSize: 16,
-    color: colors.bananaLeaf,
+    textTransform: "capitalize",
   },
   footerHint: {
     marginTop: spacing.l,
@@ -310,8 +354,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
   },
-  footerHintText: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
+  footerHintText: { fontSize: 12, color: colors.textMuted },
 });

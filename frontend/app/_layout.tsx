@@ -23,6 +23,11 @@ function RouteGuard() {
     const first = segments[0] as string | undefined;
     const inAuth = first === "sign-in";
     const inOnboarding = first === "onboarding";
+    const inAuthCallback = first === "auth-callback";
+
+    // Never bounce out of the OAuth callback screen — it needs to complete
+    // the session_id → token exchange before RouteGuard should act.
+    if (inAuthCallback) return;
 
     if (status === "unauth" && !inAuth) {
       router.replace("/sign-in");

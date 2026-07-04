@@ -25,6 +25,7 @@ type AuthState = {
 
 type AuthContextValue = AuthState & {
   signInWithGoogle: () => Promise<void>;
+  processGoogleSessionId: (sessionId: string) => Promise<void>;
   sendPhoneOtp: (phone: string) => Promise<{ hint?: string }>;
   verifyPhoneOtp: (phone: string, code: string, name?: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -53,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         "/api/auth/me",
       );
       setState({ status: "authed", user: data.user, profile: data.profile });
-    } catch (e: any) {
+    } catch {
       await clearToken();
       setState({ status: "unauth", user: null, profile: null });
     }
@@ -86,7 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === "web") {
       redirectUrl = window.location.origin + "/";
     } else {
-      redirectUrl = Linking.createURL("auth");
+      // Use the concrete route we ship (`/auth-callback`) so if Android
+      // deep-links back into the app instead of returning to
+      // openAuthSessionAsync (happens on some OEMs / cold launches), the
+      // route exists and can complete the flow.
+      redirectUrl = Linking.createURL("auth-callback");
     }
     const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
 
@@ -95,12 +100,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
-    if (result.type !== "success" || !result.url) return;
+    if (result.type !== "success" || !result.url) {
+      // If the user cancels or the OS routes via deep link, /auth-callback
+      // will pick it up. Just bail here.
+      return;
+    }
     const url = new URL(result.url);
     const params = new URLSearchParams(url.hash.replace(/^#/, "") || url.search);
     const sid = params.get("session_id");
     if (!sid) return;
     await processGoogleSessionId(sid);
+  }, [processGoogleSessionId]);
+
+  // Native: handle deep links delivered while the app is alive OR at cold
+  // start. When Emergent Google Auth redirects to `ammiai://auth-callback`
+  // and Android launches (or foregrounds) the app with the URL, we parse
+  // the session_id here as a safety net.
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const handleUrl = async (url: string | null) => {
+      if (!url) return;
+      try {
+        const parsed = new URL(url);
+        const q = new URLSearchParams(
+          parsed.hash.replace(/^#/, "") || parsed.search.replace(/^\?/, ""),
+        );
+        const sid = q.get("session_id");
+        if (sid) await processGoogleSessionId(sid);
+      } catch {
+        /* ignore malformed deep-link */
+      }
+    };
+    // Cold-start URL (app not running when link tapped).
+    Linking.getInitialURL().then(handleUrl).catch(() => {
+      /* ignore */
+    });
+    // Warm listener (app already running).
+    const sub = Linking.addEventListener("url", (evt) => handleUrl(evt.url));
+    return () => sub.remove();
   }, [processGoogleSessionId]);
 
   // Web-only: handle redirect return with #session_id / ?session_id on mount.
@@ -175,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       ...state,
       signInWithGoogle,
+      processGoogleSessionId,
       sendPhoneOtp,
       verifyPhoneOtp,
       refreshProfile,
@@ -185,6 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [
       state,
       signInWithGoogle,
+      processGoogleSessionId,
       sendPhoneOtp,
       verifyPhoneOtp,
       refreshProfile,

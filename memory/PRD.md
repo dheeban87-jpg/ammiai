@@ -14,8 +14,8 @@ AmmiAI is a Tamil home-kitchen manager (Expo + FastAPI + MongoDB). Smart pantry,
 - **Setup (done)**: 3 JSON data files loaded, app shell with bottom nav.
 - **Slice 1 (done)**: Onboarding (auth + profile) + Pantry.
 - **Slice 2 (done)**: Deterministic meal plan engine + Plan tab + Home rings/rescue/cook-now.
-- Slice 3 (next): Weekly calendar with drag/rearrange + saved plan editing.
-- Slice 4: Grocery list generation from Plan minus Pantry.
+- **Slice 3 (done)**: Calendar tab (month grid + day edit + bulk-generate + share as image).
+- Slice 4 (next): Grocery list generation from Plan minus Pantry.
 - Slice 5: Analytics & insights.
 
 ## Auth
@@ -100,5 +100,16 @@ Waste: `GET /api/waste-log`.
 - `/(tabs)/index` — Home with rings + rescue + cook-now
 - `/(tabs)/plan` — Today/Week plan with swap + regenerate
 - `/(tabs)/pantry` — existing
-- `/(tabs)/calendar | grocery` — later slices
+- `/(tabs)/calendar` — month grid with day cells (3-meal preview), today turmeric-highlighted, tap empty → plan day, tap planned → day edit, "Plan rest of month" CTA, "Share as image" export
+- `/(tabs)/grocery` — later slice
 - `/pantry/add`, `/sign-in`, `/onboarding`, `/dev-menu` — unchanged
+- `/plan/day/[date]` — full-day edit panel with 3 rings, 3 meal cards + swap sheet with per-rule violation warnings (allowed to keep). Reuses `MealCard` + `SwapSheet` shared components (`src/components/`).
+
+## Calendar backend endpoints (Slice 3)
+- `GET /api/plan/month?year=&month=` — returns `{year, month, days_in_month, plans:{iso_date: plan_doc}}`
+- `POST /api/plan/bulk-generate {start_date, end_date, only_empty:true}` — plans missing days in the range (max 45 days), returns `{created:[...], skipped:[...]}`
+- `POST /api/plan/swap` — now returns `{...updated_plan, violations:[{rule, message, suggested_fix}]}`. `_detect_swap_violations` checks max_sour, max_coconut_heavy, same_veggie_once_per_day, no_curd_with_fish. Manual swap is applied regardless — user retains override, warning surfaced in UI.
+- `manual_edits` counter on `meal_plans` doc increments per manual swap.
+
+## Image export (Slice 3)
+- `react-native-view-shot` wraps the month grid; on web `captureRef` returns a data URI (triggered as a PNG download); on native uses `Sharing.shareAsync` with `image/png` mime.

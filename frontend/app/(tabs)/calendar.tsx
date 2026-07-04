@@ -193,10 +193,11 @@ export default function CalendarScreen() {
     let cnt = 0;
     for (let d = 1; d <= data.days_in_month; d++) {
       const iso = isoDate(data.year, data.month, d);
+      if (iso < todayIso) continue; // don't count past days
       if (!data.plans[iso]) cnt++;
     }
     return cnt;
-  }, [data]);
+  }, [data, todayIso]);
 
   return (
     <View style={styles.screen} testID="calendar-screen">
@@ -230,7 +231,9 @@ export default function CalendarScreen() {
             {MONTH_NAMES[month - 1]} {year}
           </Text>
           <Text style={styles.monthStats}>
-            {data ? `${data.days_in_month - emptyDaysCount}/${data.days_in_month} days planned` : "…"}
+            {data
+              ? `${Object.keys(data.plans).length}/${data.days_in_month} days planned`
+              : "…"}
           </Text>
         </View>
         <TouchableOpacity onPress={nextMonth} style={styles.monthBtn} testID="month-next" hitSlop={10}>

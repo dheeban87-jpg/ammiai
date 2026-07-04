@@ -746,6 +746,94 @@ class SwapIn(BaseModel):
     new_recipe_id: str
 
 
+def _detect_swap_violations(
+    doc: Dict[str, Any],
+    meal_key: str,
+    current_recipe_id: str,
+    new_recipe: Dict[str, Any],
+    rules: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    """Return list of {rule, message, suggested_fix} for a manual swap.
+
+    The user is allowed to keep the swap; violations are surfaced as warnings.
+    """
+    from meal_engine import _dish_veggie, _rules_lookup
+
+    violations: List[Dict[str, Any]] = []
+    meal = doc.get(meal_key, {})
+    items = [it for it in meal.get("items", []) if it.get("id") != current_recipe_id]
+    nid = new_recipe["id"]
+
+    # sour
+    sour = _rules_lookup(rules, "max_sour_dishes_per_meal")
+    sour_ids = set(sour.get("sour_ids", []))
+    max_sour = int(sour.get("value", 1))
+    if nid in sour_ids:
+        cur = sum(1 for c in items if c.get("id") in sour_ids)
+        if cur >= max_sour:
+            violations.append(
+                {
+                    "rule": "max_sour_dishes_per_meal",
+                    "message": "Too many sour dishes in this meal.",
+                    "suggested_fix": "Pick a non-sour alternative (e.g., a mor kuzhambu or paruppu kuzhambu).",
+                }
+            )
+
+    # coconut
+    coco = _rules_lookup(rules, "max_coconut_heavy_per_meal")
+    coco_ids = set(coco.get("coconut_ids", []))
+    max_coco = int(coco.get("value", 2))
+    if nid in coco_ids:
+        cur = sum(1 for c in items if c.get("id") in coco_ids)
+        if cur >= max_coco:
+            violations.append(
+                {
+                    "rule": "max_coconut_heavy_per_meal",
+                    "message": "Too many coconut-heavy dishes in this meal.",
+                    "suggested_fix": "Swap one coconut-heavy dish for a rasam or a plain poriyal.",
+                }
+            )
+
+    # same veg once per day
+    new_veg = _dish_veggie(new_recipe)
+    if new_veg:
+        day_veggies: set[str] = set()
+        for mk in ("breakfast", "lunch", "dinner"):
+            for it in doc.get(mk, {}).get("items", []):
+                if it.get("id") == current_recipe_id and mk == meal_key:
+                    continue
+                v = _dish_veggie(it)
+                if v:
+                    day_veggies.add(v)
+        if new_veg in day_veggies:
+            violations.append(
+                {
+                    "rule": "same_veggie_once_per_day",
+                    "message": f"{new_veg.replace('_',' ').title()} already appears elsewhere today.",
+                    "suggested_fix": "Choose a dish featuring a different vegetable.",
+                }
+            )
+
+    # curd with fish
+    fish_ids = {"nv_meen_kuzhambu", "nv_meen_varuval", "nv_era_thokku"}
+    has_curd = any(
+        c.get("id") == "static_curd"
+        for mk in ("breakfast", "lunch", "dinner")
+        for c in doc.get(mk, {}).get("items", [])
+        if not (c.get("id") == current_recipe_id and mk == meal_key)
+    )
+    if nid in fish_ids and has_curd:
+        violations.append(
+            {
+                "rule": "no_curd_with_fish",
+                "message": "Curd + fish is discouraged in Tamil cuisine.",
+                "suggested_fix": "Remove the curd side or pick a non-fish gravy.",
+            }
+        )
+
+    return violations
+
+
 @api_router.post("/plan/swap")
 async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
     doc = await db.meal_plans.find_one(
@@ -759,6 +847,12 @@ async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
     new_recipe = recipes.get(payload.new_recipe_id)
     if not new_recipe:
         raise HTTPException(status_code=404, detail="New recipe not found")
+
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    violations = _detect_swap_violations(
+        doc, payload.meal, payload.current_recipe_id, new_recipe, rules
+    )
+
     meal = doc[payload.meal]
     items = meal.get("items", [])
     found = False
@@ -770,8 +864,6 @@ async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
     if not found:
         raise HTTPException(status_code=404, detail="Current dish not in meal")
     meal["items"] = items
-    # Recompute status + day totals
-    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
     from meal_engine import meal_status, sum_nutrition
 
     tpl = meal.get("template", payload.meal)
@@ -789,13 +881,88 @@ async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
         "protein_g": min(1.0, round(totals["protein_g"] / max(1, targets["protein_g"]), 3)),
         "fiber_g": min(1.0, round(totals["fiber_g"] / max(1, targets["fiber_g"]), 3)),
     }
+    doc["manual_edits"] = doc.get("manual_edits", 0) + 1
     doc["updated_at"] = _now()
     await db.meal_plans.replace_one(
         {"user_id": current["user_id"], "date": payload.date}, doc, upsert=True
     )
-    return _clean(await db.meal_plans.find_one(
+    saved = _clean(await db.meal_plans.find_one(
         {"user_id": current["user_id"], "date": payload.date}
     ))
+    if isinstance(saved, dict):
+        saved["violations"] = violations
+    return saved
+
+
+class BulkGenerateIn(BaseModel):
+    start_date: str  # yyyy-mm-dd
+    end_date: str    # yyyy-mm-dd (inclusive)
+    only_empty: bool = True
+
+
+@api_router.post("/plan/bulk-generate")
+async def plan_bulk_generate(payload: BulkGenerateIn, current=Depends(get_current_user)):
+    from datetime import date as _dt_date
+    try:
+        start = _dt_date.fromisoformat(payload.start_date)
+        end = _dt_date.fromisoformat(payload.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date")
+    if end < start:
+        raise HTTPException(status_code=400, detail="end < start")
+    if (end - start).days > 45:
+        raise HTTPException(status_code=400, detail="Range too large (max 45 days)")
+
+    created: List[str] = []
+    skipped: List[str] = []
+    cursor = start
+    seed_base = int(_now().timestamp())
+    while cursor <= end:
+        d = cursor.isoformat()
+        existing = await db.meal_plans.find_one(
+            {"user_id": current["user_id"], "date": d}, {"_id": 0}
+        )
+        if existing and payload.only_empty:
+            skipped.append(d)
+            cursor = cursor + timedelta(days=1)
+            continue
+        seed = seed_base + (cursor - start).days
+        ctx = await _build_context(current["user_id"], seed=seed)
+        plan = engine_plan_day(ctx)
+        plan = _sanitize_plan(plan)
+        plan["user_id"] = current["user_id"]
+        plan["date"] = d
+        plan["updated_at"] = _now()
+        await db.meal_plans.replace_one(
+            {"user_id": current["user_id"], "date": d}, plan, upsert=True
+        )
+        created.append(d)
+        cursor = cursor + timedelta(days=1)
+    return {"created": created, "skipped": skipped}
+
+
+@api_router.get("/plan/month")
+async def plan_month(
+    year: int,
+    month: int,
+    current=Depends(get_current_user),
+):
+    """Return every existing plan doc for the given calendar month."""
+    if month < 1 or month > 12:
+        raise HTTPException(status_code=400, detail="Invalid month")
+    from calendar import monthrange
+    days_in = monthrange(year, month)[1]
+    start = f"{year:04d}-{month:02d}-01"
+    end = f"{year:04d}-{month:02d}-{days_in:02d}"
+    docs = await db.meal_plans.find(
+        {
+            "user_id": current["user_id"],
+            "date": {"$gte": start, "$lte": end},
+        },
+        {"_id": 0},
+    ).sort("date", 1).to_list(50)
+    plans: Dict[str, Any] = {d["date"]: d for d in docs}
+    return {"year": year, "month": month, "days_in_month": days_in, "plans": plans}
 
 
 @api_router.get("/plan/swap-options")

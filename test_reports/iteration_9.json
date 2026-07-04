@@ -1,0 +1,34 @@
+{
+  "summary": "APK auth-fix regression (frontend-only, Playwright on http://localhost:3000). All 4 verification points PASS. (1) Sign-in screen renders with testIDs sign-in-screen, sign-in-google-btn, sign-in-phone-btn. (2) Phone-OTP end-to-end works: +919000023456 -> phone-send-btn -> otp-input -> otp-verify-btn routed cleanly into /onboarding with no 'Couldn't send code' error, confirming api.ts EXPO_PUBLIC_BACKEND_URL is being read and _fetch does not throw. (3) New /auth-callback route renders (testID auth-callback-screen) when navigating directly with ?session_id=DUMMY_TEST_ID; Emergent rejects the dummy id (network fetch fails), the error state activates ('Sign-in couldn't complete', 'Failed to fetch'), auth-callback-retry becomes visible and clicking it routes back to /sign-in. Missing-route bug from the APK is fixed. (4) sign-in-google-btn on web redirects to https://auth.emergentagent.com/?redirect=... confirmed via page.wait_for_url. Deep-link scheme resolution (ammiai://auth-callback) deferred to real APK on device -- CANNOT be reproduced on web/Playwright. Backend regression skipped per request (no backend changes this round).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_9.json"
+  ],
+  "action_items": [
+    "Deep-link scheme resolution (ammiai://auth-callback) deferred to real APK on device -- surface this to the user; web preview cannot exercise Android intent filters.",
+    "Minor console warnings observed (non-blocking): 'shadow*' style props deprecated -> use boxShadow; props.pointerEvents deprecated -> use style.pointerEvents; expo-notifications push token listener no-op on web. Consider addressing in a future cleanup pass."
+  ],
+  "critical_code_review_comments": [
+    "auth-callback.tsx correctly parses session_id from expo-router params first, then falls back to Linking.getInitialURL(). Uses a done ref to avoid double-processing. Error state renders auth-callback-retry that router.replace('/sign-in')s. Looks solid.",
+    "sign-in.tsx phone/OTP flow surfaces backend errors via the sign-in-error banner; on the preview EXPO_PUBLIC_BACKEND_URL is set so the flow completes."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (skipped per request)",
+    "frontend": "100% (4/4 verification points)"
+  },
+  "seed_data_creation": "None. Phone-OTP creates a mock user via +919000023456 / 123456; onboarding not completed (route landing was sufficient to verify auth).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "APK auth-fix round (frontend-only) all verified on web. If a fresh device APK ships, validate the ammiai://auth-callback intent filter on a real Android device (adb logcat should show the deep link resolving to the /auth-callback route). Backend suites remain green from iteration_6/7/8.",
+  "rca_of_issue": "N/A -- verification round only, no bugs found. The original APK bug (Google OAuth redirect landing on 'Unmatched Route') is fixed by: (a) scheme=ammiai in app.json, (b) new /auth-callback expo-router route, (c) RouteGuard exemption for /auth-callback, (d) processGoogleSessionId exposed on auth context, (e) Linking.getInitialURL + addEventListener safety net for warm/cold deep links, (f) api.ts hard-validates EXPO_PUBLIC_BACKEND_URL and wraps fetch errors clearly. All web-observable pieces of this fix pass."
+}

@@ -242,17 +242,116 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 6
+  test_sequence: 7
   run_ui: true
 
 test_plan:
   current_focus:
-    - "AI weekly personalisation — Anthropic Claude Sonnet"
-    - "AI plan cache + fallback"
-    - "AI reason on Plan screen (Today + Week + Day detail)"
+    - "APK auth-bug fix: Google OAuth callback route + deep-link scheme"
+    - "APK auth-bug fix: Phone OTP + api.ts hard-fail on missing BASE"
+    - "Web regression — sign-in flow still fully functional"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      APK AUTH FIXES — please regression-test.
+
+      User reported that the installed Android APK broke auth:
+        1. "Continue with Google" → browser redirected to `frontend://auth`
+           and the app showed "Unmatched Route — Page could not be found."
+        2. Phone OTP also silently failed in the standalone APK.
+
+      Root causes + fixes (applied — do NOT modify code this round, verify
+      only):
+        a) `app.json` scheme was `"frontend"`. Changed to `"ammiai"`.
+        b) Added `android.intentFilters` block for `ammiai://` in app.json
+           so Android routes deep-links back into the app cleanly.
+        c) Google redirect URL changed from `Linking.createURL("auth")` to
+           `Linking.createURL("auth-callback")` — i.e., `ammiai://auth-callback`.
+        d) Created `/app/frontend/app/auth-callback.tsx` — new expo-router
+           route with testID `auth-callback-screen`. Parses `session_id`
+           from URL hash/query (or expo-router params), calls
+           `processGoogleSessionId`, then `router.replace("/")`.
+        e) Exposed `processGoogleSessionId` on the auth context.
+        f) Added a native deep-link safety net in `auth-context.tsx` —
+           `Linking.getInitialURL()` on cold start + `Linking.addEventListener`
+           for warm links. Ensures the session_id is caught even when
+           WebBrowser.openAuthSessionAsync doesn't intercept the redirect.
+        g) `_layout.tsx` RouteGuard now exempts `/auth-callback` from the
+           unauth → /sign-in bounce, so the callback can finish the
+           token exchange before RouteGuard acts.
+        h) `api.ts` — hard-validates `EXPO_PUBLIC_BACKEND_URL` at module
+           import; `console.error` when empty (surfaces in adb logcat);
+           `_fetch` now wraps `fetch()` in try/catch and throws a clear
+           `Network error reaching {url}: ...` message instead of a
+           generic "TypeError: Network request failed" that the sign-in
+           screen was swallowing.
+
+      Testing needed:
+        BACKEND: none new — auth endpoints unchanged. Skip re-testing the
+        already-green Slice 5/6 suites unless something looks broken.
+        FRONTEND (Playwright, http://localhost:3000):
+          1) Sign-in screen renders (`sign-in-screen`, `sign-in-google-btn`,
+             `sign-in-phone-btn`).
+          2) Phone-OTP flow end-to-end: `+919000023456` / any 6-digit code
+             → onboarding OR tabs. Verify `phone-send-btn` → `otp-input`
+             visible → `otp-verify-btn` → routes to tabs / onboarding.
+          3) Route existence: navigate to `/auth-callback?session_id=DUMMY`
+             directly. Assert the screen shows `auth-callback-screen` and
+             either "Signing you in..." or the error state (an invalid
+             session_id will fail the Emergent API; that's expected —
+             the screen must render, not 404). Then tapping
+             `auth-callback-retry` should route to /sign-in.
+          4) Clicking `sign-in-google-btn` on WEB should redirect the
+             browser to auth.emergentagent.com (`window.location.href`
+             changes) — you can just check the request initiation, don't
+             need to complete Google OAuth.
+
+      NOTE — the actual `ammiai://auth-callback` deep-link resolution is
+      an Android-native behaviour that CANNOT be validated on web. That
+      only fires on a real APK build. So please explicitly note in the
+      report: "APK deep-link scheme validation deferred to real device
+      install." I will inform the user accordingly.
+
+backend:
+  - task: "No backend changes this round"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "No backend changes for the APK auth-fix round. Previous rounds' backend suites remain green."
+
+frontend:
+  - task: "Google OAuth deep-link scheme + auth-callback route"
+    implemented: true
+    working: "NA"
+    file: "frontend/app.json, frontend/app/auth-callback.tsx, frontend/src/auth-context.tsx, frontend/app/_layout.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Scheme changed frontend→ammiai. New /auth-callback route (testID auth-callback-screen) handles ammiai://auth-callback deep-link. RouteGuard exempts this path. Native deep-link listener added as safety net. Web regression: sign-in Google button still redirects to auth.emergentagent.com."
+  - task: "api.ts hard-validation of EXPO_PUBLIC_BACKEND_URL"
+    implemented: true
+    working: "NA"
+    file: "frontend/src/api.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Module-level check throws clear message if EXPO_PUBLIC_BACKEND_URL is missing at build time (root cause of the APK Phone-OTP silent-fail). fetch() wrapped in try/catch to surface network errors clearly. Phone-OTP flow on web preview still works end-to-end."
 
 agent_communication:
   - agent: "main"

@@ -88,6 +88,21 @@ Made with AmmiAI 🌿`
           dialogTitle: "Share your weekly report",
         });
       }
+    } catch {
+      // captureRef relies on findNodeHandle which is unsupported on RN Web.
+      // Fall back to copying the text report + surfacing a helpful toast.
+      if (Platform.OS === "web") {
+        try {
+          await Clipboard.setStringAsync(shareText);
+        } catch {
+          /* noop */
+        }
+        setToast("Image sharing works on your device. Text copied instead.");
+        setTimeout(() => setToast(null), 3500);
+      } else {
+        setToast("Couldn't share image. Try again.");
+        setTimeout(() => setToast(null), 2500);
+      }
     } finally {
       setSharing(false);
     }

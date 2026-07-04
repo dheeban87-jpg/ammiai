@@ -13,7 +13,7 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "@/src/api";
@@ -77,6 +77,12 @@ export default function Settings() {
   useEffect(() => {
     load();
   }, [load]);
+  // Refresh on focus so a fresh premium purchase reflects here immediately.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   const updatePref = async (patch: Partial<NotifPrefs>) => {
     if (!prefs) return;

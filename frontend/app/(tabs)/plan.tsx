@@ -97,7 +97,12 @@ export default function PlanScreen() {
       });
       setPlan(p);
     } catch (e: any) {
-      setError(e?.message ?? "Couldn't regenerate");
+      if (e?.status === 402) {
+        setError(e?.message ?? "Free plan quota reached");
+        router.push("/paywall");
+      } else {
+        setError(e?.message ?? "Couldn't regenerate");
+      }
     } finally {
       setRegenerating(false);
     }

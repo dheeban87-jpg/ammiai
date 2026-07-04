@@ -502,11 +502,29 @@ async def list_pantry(current=Depends(get_current_user)):
     return [await _enrich_item(d) for d in docs]
 
 
+async def _is_premium(user_id: str) -> bool:
+    p = await db.premium.find_one({"user_id": user_id}, {"_id": 0})
+    if not p or not p.get("is_premium"):
+        return False
+    exp = _norm_dt(p.get("expires_at"))
+    if exp and exp < _now():
+        await db.premium.update_one({"user_id": user_id}, {"$set": {"is_premium": False}})
+        return False
+    return True
+
+
 @api_router.post("/pantry")
 async def add_pantry(payload: PantryIn, current=Depends(get_current_user)):
     ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id})
     if not ing:
         raise HTTPException(status_code=404, detail="Unknown ingredient")
+    if not await _is_premium(current["user_id"]):
+        n = await db.pantry_items.count_documents({"user_id": current["user_id"]})
+        if n >= 25:
+            raise HTTPException(
+                status_code=402,
+                detail="Free plan limit: 25 pantry items. Upgrade to premium for unlimited.",
+            )
     item = {
         "id": uuid.uuid4().hex,
         "user_id": current["user_id"],
@@ -673,6 +691,17 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
         )
         if existing:
             return existing
+    # Quota check on new generations (force or new day)
+    if not await _is_premium(current["user_id"]):
+        start_month = _now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        n = await db.plan_gen_log.count_documents(
+            {"user_id": current["user_id"], "at": {"$gte": start_month}}
+        )
+        if n >= 4:
+            raise HTTPException(
+                status_code=402,
+                detail="Free plan limit: 4 plan generations per month. Upgrade to premium for unlimited.",
+            )
     seed = payload.seed if payload.seed is not None else int(_now().timestamp())
     ctx = await _build_context(current["user_id"], seed=seed)
     plan = engine_plan_day(ctx)
@@ -683,6 +712,7 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
     await db.meal_plans.replace_one(
         {"user_id": current["user_id"], "date": date}, plan, upsert=True
     )
+    await db.plan_gen_log.insert_one({"user_id": current["user_id"], "at": _now()})
     return _clean(await db.meal_plans.find_one(
         {"user_id": current["user_id"], "date": date}
     ))
@@ -1377,6 +1407,297 @@ async def get_streak(current=Depends(get_current_user)):
         "last_cooked_date": None,
     }
     return doc
+
+
+# ------------------------- Settings + Premium + Report ------------------------- #
+DEFAULT_NOTIF_PREFS = {
+    "pantry_alert_enabled": True,
+    "pantry_alert_time": "08:00",
+    "meal_reminders_enabled": True,
+    "breakfast_time": "08:00",
+    "lunch_time": "12:30",
+    "dinner_time": "20:00",
+    "cook_check_enabled": True,
+    "cook_check_time": "21:00",
+    "weekly_report_enabled": True,
+    "weekly_report_dow": 6,  # 0=Mon .. 6=Sun
+    "weekly_report_time": "18:00",
+}
+
+FREE_LIMITS = {"pantry_max": 25, "plan_generations_per_month": 4}
+
+
+@api_router.get("/settings/notifications")
+async def notif_get(current=Depends(get_current_user)):
+    doc = await db.notif_prefs.find_one({"user_id": current["user_id"]}, {"_id": 0})
+    if not doc:
+        doc = {"user_id": current["user_id"], **DEFAULT_NOTIF_PREFS}
+        await db.notif_prefs.insert_one(dict(doc))
+        doc.pop("_id", None)
+    return doc
+
+
+class NotifPrefsIn(BaseModel):
+    pantry_alert_enabled: Optional[bool] = None
+    pantry_alert_time: Optional[str] = None
+    meal_reminders_enabled: Optional[bool] = None
+    breakfast_time: Optional[str] = None
+    lunch_time: Optional[str] = None
+    dinner_time: Optional[str] = None
+    cook_check_enabled: Optional[bool] = None
+    cook_check_time: Optional[str] = None
+    weekly_report_enabled: Optional[bool] = None
+    weekly_report_dow: Optional[int] = None
+    weekly_report_time: Optional[str] = None
+
+
+@api_router.put("/settings/notifications")
+async def notif_put(payload: NotifPrefsIn, current=Depends(get_current_user)):
+    update = payload.model_dump(exclude_none=True)
+    await db.notif_prefs.update_one(
+        {"user_id": current["user_id"]},
+        {"$set": update, "$setOnInsert": {"user_id": current["user_id"]}},
+        upsert=True,
+    )
+    doc = await db.notif_prefs.find_one({"user_id": current["user_id"]}, {"_id": 0})
+    return doc
+
+
+@api_router.get("/premium/status")
+async def premium_status(current=Depends(get_current_user)):
+    doc = await db.premium.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {
+        "user_id": current["user_id"],
+        "is_premium": False,
+        "plan": None,
+        "started_at": None,
+        "expires_at": None,
+    }
+    # quotas
+    n_pantry = await db.pantry_items.count_documents({"user_id": current["user_id"]})
+    # plan generations this calendar month
+    now = _now()
+    start_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    n_plans_this_month = await db.plan_gen_log.count_documents(
+        {"user_id": current["user_id"], "at": {"$gte": start_month}}
+    )
+    return {
+        **doc,
+        "quota": {
+            "pantry_used": n_pantry,
+            "pantry_max": None if doc.get("is_premium") else FREE_LIMITS["pantry_max"],
+            "plan_generations_used": n_plans_this_month,
+            "plan_generations_max": None
+            if doc.get("is_premium")
+            else FREE_LIMITS["plan_generations_per_month"],
+        },
+        "free_limits": FREE_LIMITS,
+    }
+
+
+class PurchaseIn(BaseModel):
+    plan: str  # "monthly" | "yearly"
+    receipt: Optional[str] = None  # MOCKED: real IAP receipt goes here
+
+
+@api_router.post("/premium/purchase")
+async def premium_purchase(payload: PurchaseIn, current=Depends(get_current_user)):
+    """MOCKED purchase — real Google Play Billing wired at build time."""
+    if payload.plan not in ("monthly", "yearly"):
+        raise HTTPException(status_code=400, detail="Invalid plan")
+    now = _now()
+    expires = now + timedelta(days=30 if payload.plan == "monthly" else 365)
+    doc = {
+        "user_id": current["user_id"],
+        "is_premium": True,
+        "plan": payload.plan,
+        "started_at": now,
+        "expires_at": expires,
+        "mocked": True,
+    }
+    await db.premium.replace_one({"user_id": current["user_id"]}, doc, upsert=True)
+    return _clean(await db.premium.find_one({"user_id": current["user_id"]}))
+
+
+@api_router.post("/premium/cancel")
+async def premium_cancel(current=Depends(get_current_user)):
+    await db.premium.update_one(
+        {"user_id": current["user_id"]}, {"$set": {"is_premium": False, "cancelled_at": _now()}}
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/account")
+async def account_delete(current=Depends(get_current_user)):
+    """Hard-delete every document owned by this user + invalidate sessions."""
+    uid = current["user_id"]
+    email = current.get("email")
+    phone = current.get("phone")
+    for coll in (
+        "users",
+        "user_sessions",
+        "profiles",
+        "pantry_items",
+        "waste_log",
+        "meal_plans",
+        "notif_prefs",
+        "premium",
+        "user_streaks",
+        "plan_gen_log",
+    ):
+        await db[coll].delete_many({"user_id": uid})
+    # users doc keyed by user_id
+    await db.users.delete_many({"user_id": uid})
+    if email:
+        await db.users.delete_many({"email": email})
+    if phone:
+        await db.users.delete_many({"phone": phone})
+    return {"deleted": True, "user_id": uid}
+
+
+@api_router.get("/report/weekly")
+async def weekly_report(
+    end_date: Optional[str] = None,
+    current=Depends(get_current_user),
+):
+    """Weekly summary — money saved, waste, diet balance, badges."""
+    from datetime import date as _dt_date
+
+    end = _dt_date.fromisoformat(end_date) if end_date else _now().date()
+    start = end - timedelta(days=6)
+
+    # Waste log for the week
+    waste = await db.waste_log.find(
+        {
+            "user_id": current["user_id"],
+            "discarded_at": {
+                "$gte": datetime.combine(start, datetime.min.time()).replace(tzinfo=timezone.utc),
+                "$lte": datetime.combine(end, datetime.max.time()).replace(tzinfo=timezone.utc),
+            },
+        },
+        {"_id": 0},
+    ).to_list(500)
+    waste_count = len(waste)
+    waste_inr = round(sum((w.get("estimated_inr") or 0) for w in waste), 2)
+
+    # Consumed value: sum of ₹ estimates for dishes cooked in the range
+    plans_in = await db.meal_plans.find(
+        {
+            "user_id": current["user_id"],
+            "date": {"$gte": start.isoformat(), "$lte": end.isoformat()},
+        },
+        {"_id": 0},
+    ).to_list(30)
+    consumed_inr = 0.0
+    cooked_count = 0
+    balanced_meal_count = 0
+    total_meal_count = 0
+    for p in plans_in:
+        for mk in ("breakfast", "lunch", "dinner"):
+            meal = p.get(mk, {})
+            total_meal_count += 1
+            if meal.get("chip") == "balanced":
+                balanced_meal_count += 1
+            for it in meal.get("items", []):
+                if it.get("cooked"):
+                    cooked_count += 1
+                    # estimate ₹ from ingredient prices
+                    for ing in it.get("ingredients", []) or []:
+                        p_est = _price_for(
+                            ing.get("ingredient_id", ""),
+                            float(ing.get("qty", 0)) / 1000.0
+                            if ing.get("unit") == "g"
+                            else float(ing.get("qty", 0)),
+                            "kg" if ing.get("unit") == "g" else ing.get("unit", "kg"),
+                        )
+                        if p_est:
+                            consumed_inr += p_est
+
+    consumed_inr = round(consumed_inr, 2)
+    money_saved = max(0.0, round(consumed_inr - waste_inr, 2))
+
+    # Diet balance score 0-100
+    if total_meal_count == 0:
+        balance_score = 0
+    else:
+        balance_score = int(round(100 * balanced_meal_count / total_meal_count))
+
+    # Streak
+    streak = await db.user_streaks.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {
+        "current_streak": 0, "longest_streak": 0, "total_cooked": 0,
+    }
+
+    # Badges
+    badges: List[Dict[str, Any]] = []
+    if waste_count == 0 and cooked_count > 0:
+        badges.append({"key": "zero_waste_week", "label": "Zero-waste week", "icon": "leaf"})
+    if streak.get("current_streak", 0) >= 7:
+        badges.append({"key": "seven_day_streak", "label": "7-day streak", "icon": "flame"})
+    if balance_score >= 80:
+        badges.append({"key": "balanced_chef", "label": "Balanced chef", "icon": "medal"})
+    if cooked_count >= 15:
+        badges.append({"key": "home_cook_hero", "label": "Home cook hero", "icon": "restaurant"})
+
+    return {
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "waste_count": waste_count,
+        "waste_inr": waste_inr,
+        "consumed_inr": consumed_inr,
+        "money_saved_inr": money_saved,
+        "cooked_count": cooked_count,
+        "diet_balance_score": balance_score,
+        "balanced_meals": balanced_meal_count,
+        "total_meals": total_meal_count,
+        "current_streak": streak.get("current_streak", 0),
+        "longest_streak": streak.get("longest_streak", 0),
+        "badges": badges,
+    }
+
+
+# ------------------------- AI Layer (stub) ------------------------- #
+# Real Anthropic integration wires in Prompt 6.
+# Reads the key at request time from env — user will provide it later.
+ANTHROPIC_MODEL_DEFAULT = "claude-sonnet-4-5"
+
+
+def _ai_key() -> str:
+    return (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+
+
+@api_router.get("/ai/status")
+async def ai_status(current=Depends(get_current_user)):
+    """Reports whether the AI layer is configured. No key = disabled but healthy."""
+    return {
+        "configured": bool(_ai_key()),
+        "model": ANTHROPIC_MODEL_DEFAULT,
+        "capabilities": [
+            "meal_narration",
+            "smart_swap_rationale",
+            "grocery_summary",
+        ],
+    }
+
+
+class AIRequestIn(BaseModel):
+    kind: str  # meal_narration | smart_swap | grocery_summary
+    payload: Optional[Dict[str, Any]] = None
+
+
+@api_router.post("/ai/request")
+async def ai_request(payload: AIRequestIn, current=Depends(get_current_user)):
+    """Endpoint stub — returns 501 if no ANTHROPIC_API_KEY is configured."""
+    if not _ai_key():
+        raise HTTPException(
+            status_code=501,
+            detail="AI layer not configured. Set ANTHROPIC_API_KEY to enable.",
+        )
+    # Real Anthropic call is intentionally not wired here; Prompt 6 will do it.
+    return {
+        "kind": payload.kind,
+        "model": ANTHROPIC_MODEL_DEFAULT,
+        "status": "stub",
+        "message": "AI layer configured; real generation wires in Prompt 6.",
+    }
 
 
 # ------------------------- Mount ------------------------- #

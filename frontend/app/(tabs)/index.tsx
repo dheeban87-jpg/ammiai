@@ -86,11 +86,11 @@ export default function HomeScreen() {
       <AppHeader
         title="AmmiAI"
         subtitleTa={`${timeLabel}, ${name}`}
-        onLongPress={() => router.push("/dev-menu")}
+        onLongPress={() => router.push("/settings")}
         right={
           <TouchableOpacity
             testID="home-dev-menu"
-            onPress={() => router.push("/dev-menu")}
+            onPress={() => router.push("/settings")}
             style={styles.iconBtn}
             hitSlop={10}
           >

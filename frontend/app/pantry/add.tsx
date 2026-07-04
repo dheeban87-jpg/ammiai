@@ -99,7 +99,13 @@ export default function AddPantry() {
       });
       router.back();
     } catch (e: any) {
-      setError(e?.message ?? "Failed to add");
+      if (e?.status === 402) {
+        // Free-tier pantry quota — send them to paywall.
+        setError(e?.message ?? "Free plan limit reached");
+        router.push("/paywall");
+      } else {
+        setError(e?.message ?? "Failed to add");
+      }
     } finally {
       setBusy(false);
     }

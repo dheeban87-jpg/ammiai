@@ -1,0 +1,66 @@
+{
+  "summary": "AmmiAI Slice 5 (Notifications + Premium + Weekly Report + Delete Account + AI stub) E2E tested. Backend: 12/12 pytest cases PASS in test_ammiai_slice5_notif_premium.py — auth, GET/PUT /api/settings/notifications with partial patch persistence, /api/premium/status defaults (is_premium=false, quota.pantry_max=25, plan_generations_max=4, free_limits present), /api/premium/purchase yearly flip (is_premium=true, plan=yearly, expires_at set, quota.pantry_max=None, plan_generations_max=None), /api/premium/cancel reverts, pantry quota (25 succeeds via loop, 26th → HTTP 402 with detail 'Free plan limit: 25 pantry items…', purchase → succeeds again), /api/plan/generate quota (4 force generations succeed, 5th → HTTP 402 with 'Free plan limit: 4 plan generations…', purchase → succeeds), /api/report/weekly returns full shape (start_date, end_date, money_saved_inr, waste_count, waste_inr, consumed_inr, cooked_count, diet_balance_score 0-100, current_streak, longest_streak, badges[]) and respects ?end_date=2026-01-15 (returns start_date=2026-01-09), /api/ai/status returns configured=false + model=claude-sonnet-4-5 + capabilities list, /api/ai/request → HTTP 501 with detail containing 'AI layer not configured', DELETE /api/account returns {deleted:true} and same bearer immediately returns 401 on both /api/auth/me and /api/pantry. Frontend (390x844 mobile viewport, http://localhost:3000): phone-otp sign-in + onboarding + home OK. Settings screen renders with all testIDs (settings-screen, premium-card, settings-report, settings-name, settings-household-inc/dec/settings-household, settings-spice-mild/medium/hot, settings-goal-*, settings-save-profile, notif-pantry/meal/cook/weekly and their -test/-switch children, settings-privacy, settings-reset-onboarding, settings-logout, settings-delete-account). notif-meal-test tap does not throw. Profile edit (household inc + spice=hot) + settings-save-profile completes successfully. Paywall screen renders with plan-yearly selected (Save 41% badge), plan-monthly selectable, paywall-purchase + paywall-restore + paywall-close present; MOCK purchase completes and navigates back to Settings. Weekly report screen renders with report-copy (fires report-toast 'Report text copied'), report-whatsapp, report-share-image, badge-{key} placeholders. Two frontend BUGS found — see frontend_issues. Backend behaviour is fully correct; issues are frontend-only.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Weekly Report — Share Image (captureRef on web)",
+        "issue": "Tapping report-share-image throws an UNCAUGHT ERROR overlay: 'findNodeHandle is not supported on web. Use the ref property on the component instead.' Origin: react-native-view-shot's captureRef(shotRef, …) at app/report/weekly.tsx:75. Because the RN dev error overlay is modal, this ALSO blocks subsequent interactions in the same screen (e.g. clicking settings-delete-account after opening the report screen won't reach the button until the overlay is dismissed). Reference: frontend/app/report/weekly.tsx:71-93. Root cause: on web, captureRef needs to be given a raw DOM node (via ref.current), not an RN-web component ref. Fix: pass shotRef.current (or use html2canvas / dom-to-image directly on the ViewShot's underlying div) on web, or gate the whole share-image flow with Platform.OS !== 'web' and hide/disable report-share-image on web.",
+        "testID": "report-share-image",
+        "priority": "HIGH"
+      },
+      {
+        "component": "Settings — Premium banner does not refresh after purchase",
+        "issue": "After paywall-purchase completes and router.back() returns to Settings, the premium-card banner still reads 'Upgrade to Premium 0/25 pantry · 0/4 plans this month'. GET /api/premium/status is only called once from Settings' useEffect on mount, so returning via router.back() does not refetch. Users only see 'Premium active' after a manual reload/re-navigation. Reference: frontend/app/settings.tsx:65-79 (load() runs only on mount). Fix: use useFocusEffect from @react-navigation/native (or expo-router equivalent) so load() re-runs whenever the screen regains focus, or expose a global premium state via context that paywall.tsx also updates.",
+        "testID": "premium-card",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Delete account (from Settings)",
+        "issue": "In the first E2E run, tapping settings-delete-account after the previous report-share-image red-screen appeared did NOT route to /sign-in — URL stayed at /settings and sign-in was not visible. Root cause is very likely secondary: the RN Web red-error overlay from findNodeHandle (bug #1 above) intercepts the tap, so the confirm dialog never fires. Backend DELETE /api/account itself is verified to work (backend test passes and returns 401 on next /auth/me). Retest after fixing the share-image bug is recommended. If it still fails on a clean settings mount, then inspect whether api.del in frontend/src/api.ts propagates a rejected promise silently.",
+        "affected_testIDs": ["settings-delete-account", "report-share-image"]
+      }
+    ],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "react-native shadow style deprecation", "issue": "'shadow*' style props are deprecated. Use 'boxShadow'. Reference: frontend/src/theme.ts (open since iteration_2)."},
+      {"component": "react-native props.pointerEvents deprecation", "issue": "'props.pointerEvents is deprecated. Use style.pointerEvents.' (open since iteration_4)."},
+      {"component": "expo-notifications web listener", "issue": "'Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.' — informational only; expo-notifications only fully works on real Android/iOS builds, which is documented behaviour and already surfaced in the Settings preview banner. No action required beyond keeping the banner."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ammiai_slice5_notif_premium.py",
+    "/app/test_reports/pytest/pytest_slice5_notif.xml"
+  ],
+  "action_items": [
+    "HIGH: Fix report-share-image on web — captureRef throws 'findNodeHandle is not supported on web'. Replace with a web-safe path (e.g., use html-to-image on shotRef.current, or gate the button behind Platform.OS !== 'web').",
+    "MEDIUM: Refresh Settings premium banner after paywall-purchase — wrap load() in useFocusEffect (or refetch when the paywall unmounts) so 'Premium active' shows immediately without a manual reload.",
+    "LOW (retest): Once share-image is fixed, re-verify Delete account flow end-to-end — expected: confirm dialog fires, DELETE /api/account 200, logout clears token, router.replace('/sign-in') lands on sign-in screen.",
+    "OPTIONAL (open from prior slices): migrate shadow* → boxShadow in src/theme.ts, and props.pointerEvents → style.pointerEvents."
+  ],
+  "critical_code_review_comments": [
+    "server.py notification prefs: GET auto-creates defaults then reads back — good UX. PUT uses model_dump(exclude_none=True) so partial patches work. DEFAULT_NOTIF_PREFS covers all 11 fields exposed by NotifPrefsIn.",
+    "server.py premium/status: computes n_pantry via count_documents and n_plans_this_month from plan_gen_log with a datetime cutoff at month start — matches quotas exposed to frontend. is_premium=True clears both quota maxes to null. Cancel keeps the row but flips is_premium=False (does not clear plan/started_at/expires_at — acceptable for restore).",
+    "server.py pantry quota: hard-coded 25 (matches FREE_LIMITS.pantry_max but should reference the constant for DRY).",
+    "server.py plan/generate quota: hard-coded 4 (should reference FREE_LIMITS.plan_generations_per_month).",
+    "server.py DELETE /api/account: deletes across 10 collections + purges users by user_id/email/phone. Session invalidation is correct — /auth/me returns 401 next tick because user_sessions row is gone.",
+    "server.py AI stub: reads ANTHROPIC_API_KEY at request time (good — no server restart needed once the key is set) and returns 501 with a helpful detail. GET /ai/status returns configured=false when the key is empty.",
+    "frontend/app/report/weekly.tsx captureRef call is not web-safe. Currently the button is visible on web and clicking it raises an unhandled promise rejection which surfaces as an RN Web red-error overlay.",
+    "frontend/app/settings.tsx load() runs only once in useEffect(load, [load]) — should use useFocusEffect so the premium banner refreshes when the user returns from /paywall.",
+    "frontend/app/paywall.tsx uses router.back() after purchase (fine) but relies on the previous screen to refetch — see settings issue above.",
+    "frontend/app/settings.tsx delete flow: try { api.del; logout; router.replace; } finally { setBusy(null) } — if api.del or logout rejects, router.replace never runs. Consider catching + still routing to /sign-in as a safety net."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ammiai_slice5_notif_premium.py",
+    "/app/test_reports/iteration_6.json",
+    "/app/test_reports/pytest/pytest_slice5_notif.xml"
+  ],
+  "success_rate": {"backend": "100% (12/12 passed)", "frontend": "80% (Settings + Paywall + Notif Test + Report Copy verified; Report Share Image and follow-through Delete Account blocked by web-only captureRef bug)"},
+  "seed_data_creation": "Each pytest run creates one ephemeral phone-OTP user per module (phone based on time.time()), a separate user for the delete-account class, and uses onion (or first ingredient) for the 26x pantry quota loop. No cleanup of premium/pantry rows since accounts are per-run; the delete-account test hard-deletes its own user.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Slice 5 backend is 100% green — reuse /app/backend/tests/test_ammiai_slice5_notif_premium.py. Two frontend defects to re-verify: (1) app/report/weekly.tsx captureRef throws 'findNodeHandle is not supported on web' — needs a web-safe replacement or Platform.OS==='web' gate on report-share-image; the red-screen error overlay also blocks anything else on the report screen. (2) app/settings.tsx premium-card banner does not refresh when returning from /paywall — needs useFocusEffect. After both are fixed, re-run the Playwright suite that clicks premium-card → paywall-purchase → back → settings, expects 'Premium active' label, then settings-delete-account → confirms → lands on sign-in with phone-input visible. All testIDs used: settings-screen, premium-card, settings-report, settings-household-inc, settings-spice-hot, settings-save-profile, notif-pantry/meal/cook/weekly (+ -test/-switch), settings-delete-account, paywall-screen, plan-yearly, plan-monthly, paywall-purchase, report-screen, report-copy, report-whatsapp, report-share-image, report-toast, home-dev-menu, phone-input, phone-send-btn, otp-input, otp-name-input, otp-verify-btn.",
+  "rca_of_issue": "BUG 1 (report-share-image): react-native-view-shot's captureRef on web tries to call findNodeHandle() on the ref, which in React Native Web throws 'findNodeHandle is not supported on web'. The dev-mode overlay catches the rejection and shows a modal red screen. Reproduction: open Settings → Weekly report → tap Share image (report-share-image). Expected: PNG download starts on web. Actual: red-screen error overlay. Mitigation: on web, either (a) grab the actual DOM node via a plain HTMLDivElement ref and call html-to-image, or (b) hide/disable report-share-image on web (report-copy + report-whatsapp already work). BUG 2 (premium banner stale): Settings.load() is bound to the mount cycle, not screen focus. Reproduction: open Settings → tap Upgrade to Premium → Purchase → back. Expected: banner shows 'Premium active'. Actual: still shows 'Upgrade to Premium 0/25 pantry'. Mitigation: switch useEffect(load) to useFocusEffect(useCallback(() => { load(); }, [load]))."
+}

@@ -13,9 +13,9 @@ AmmiAI is a Tamil home-kitchen manager (Expo + FastAPI + MongoDB). Smart pantry,
 ## Slice roadmap
 - **Setup (done)**: 3 JSON data files loaded, app shell with bottom nav.
 - **Slice 1 (done)**: Onboarding (auth + profile) + Pantry.
-- Slice 2 (next): Meal planning with combo/pairing rules.
-- Slice 3: Weekly calendar.
-- Slice 4: Grocery list generation.
+- **Slice 2 (done)**: Deterministic meal plan engine + Plan tab + Home rings/rescue/cook-now.
+- Slice 3 (next): Weekly calendar with drag/rearrange + saved plan editing.
+- Slice 4: Grocery list generation from Plan minus Pantry.
 - Slice 5: Analytics & insights.
 
 ## Auth
@@ -62,11 +62,43 @@ Profile: `GET/PUT /api/profile`, `POST /api/profile/reset` (dev).
 Pantry: `GET/POST /api/pantry`, `POST /api/pantry/bundle`, `PATCH /api/pantry/{id}`, `DELETE /api/pantry/{id}`, `POST /api/pantry/{id}/discard`.
 Waste: `GET /api/waste-log`.
 
-## Frontend routes
-- `/sign-in` — Google + phone options
-- `/onboarding` — 6-step wizard
-- `/(tabs)/index` — Home (personalized, top expiring, profile card)
-- `/(tabs)/pantry` — pantry list
-- `/(tabs)/plan | calendar | grocery` — empty states (later slices)
-- `/pantry/add` — modal add flow
-- `/dev-menu` — reset onboarding + logout
+## Meal Plan Engine (Slice 2)
+- Deterministic engine in `/app/backend/meal_engine.py`. Loads `meal_combination_rules.json` templates + avoid_rules.
+- Scoring per recipe: `pantry_ratio + 0.25×expiring_hits + 0.20 favorite + 0.10×goal_tag_matches + 0.30 zero_shop - 0.15 week_variety_penalty` (non-staple ingredients only; `STAPLE_ALWAYS` set skips common spices).
+- Meal templates: `breakfast = tiffin + accompaniment/kuzhambu`; `lunch_full = plain_rice_130 + kuzhambu(or nonveg gravy for nonveg users, max 3×/week) + poriyal + optional kootu + optional rasam + curd_serving`; `dinner = dinner_tiffin(tiffin+accompaniment) OR dinner_light_rice(plain_rice_100 + rasam/kuzhambu + poriyal)`.
+- Avoid rules enforced: `max_sour_dishes_per_meal` (sambar excluded via `sour_ids`), `max_coconut_heavy_per_meal`, `same_veggie_once_per_day` (heuristic vegetable extractor), `same_dish_max_2x_per_week` (7-day rolling from `meal_plans`), `no_curd_with_fish` (fish ids: nv_meen_*, nv_era_*).
+- Protein guard: if day total < 0.83g × weight (default 60kg = 49.8g), add `tg_paruppu` to lunch (subject to allergy/rule checks); for eggetarian/nonveg, also add `nv_omelette` to breakfast. Falls back to a note-only guard if user's diet+allergy combo blocks both.
+- Static "slot fillers": `plain_rice_130`, `plain_rice_100`, `curd_serving` — flagged with `static=true` so UI marks them as Base.
+
+### Plan endpoints
+- `POST /api/plan/generate {date?, seed?, force?}` — idempotent by date (returns cached unless `force`).
+- `GET /api/plan/today` — auto-generates if missing.
+- `GET /api/plan/week` — 7 days from today, generating missing days.
+- `GET /api/plan/swap-options?date=&meal=&recipe_id=` — up to 3 alternates same category, obeying rules.
+- `POST /api/plan/swap {date, meal, current_recipe_id, new_recipe_id}` — updates in place + recomputes nutrition + rings.
+- `GET /api/plan/nutrition-targets` — daily targets adjusted for user weight + goals (weight_loss 0.85× kcal, high_protein ≥70g etc.).
+- `GET /api/rescue-dishes` — recipes using at least one expiring pantry item (sorted by hits count).
+- `GET /api/cook-now` — recipes with `pantry_ratio == 1.0` (zero-shopping).
+
+## Plan tab UI (Slice 2)
+- Today/Week segmented toggle.
+- **Today**: Daily rings card (Calories/Protein/Fiber vs targets), optional protein-guard banner, 3 meal cards each with:
+  - Meal icon + English + Tamil title, status chip (✅ Balanced / ⚠️ Low protein / ⚠️ Heavy) at right.
+  - Dish rows: English name (+ optional qty for static items) + Tamil subname + pantry meta (`60% in pantry` / `0 shopping` / `· uses expiring`).
+  - `Swap` button per non-static dish (opens bottom sheet with 3 alternates each showing pantry% + kcal + expiring/favorite chips). Static items show `Base`.
+  - Footer: kcal / P / Fiber chips per meal.
+- Regenerate FAB (bottom-right) — POST /plan/generate with `force=true` + new seed.
+- **Week**: FlatList of 7 day cards each with date, `X/3 balanced` badge, mini rows per meal (dish list + tiny chip), and day totals footer.
+
+## Home tab additions (Slice 2)
+- Today's balance card with 3 rings (svg-based, `NutritionRing` component in `src/components/nutrition-ring.tsx`).
+- Existing pantry stat pills + expiring row.
+- **Rescue dishes** horizontal scroll — shown inside the expiring block when at least one pantry item is yellow/red.
+- **Cook now from your kitchen** — horizontal scroll of zero-shopping dishes (green outline card + `0 shopping` tag).
+
+## Frontend routes (updated)
+- `/(tabs)/index` — Home with rings + rescue + cook-now
+- `/(tabs)/plan` — Today/Week plan with swap + regenerate
+- `/(tabs)/pantry` — existing
+- `/(tabs)/calendar | grocery` — later slices
+- `/pantry/add`, `/sign-in`, `/onboarding`, `/dev-menu` — unchanged

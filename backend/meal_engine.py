@@ -482,16 +482,23 @@ def enforce_protein_guard(
 
     # Strategy: try to add a paruppu thogayal to lunch if not there.
     lunch = plan["lunch"]
+    allergies = ctx.profile.get("allergies", []) or []
+    custom = ctx.profile.get("custom_avoid", []) or []
+    added = False
     if not any(c["id"] == "tg_paruppu" for c in lunch["items"]):
         for r in ctx.recipes:
-            if r["id"] == "tg_paruppu":
-                why = check_avoid_rules(r, lunch["items"], day_state, ctx.rules)
-                if not why:
-                    lunch["items"].append(r)
-                    plan.setdefault("protein_guard_actions", []).append(
-                        "Added paruppu thogayal to lunch for protein"
-                    )
-                    break
+            if r["id"] != "tg_paruppu":
+                continue
+            if not allergy_ok(r, allergies) or not custom_avoid_ok(r, custom):
+                break
+            if check_avoid_rules(r, lunch["items"], day_state, ctx.rules):
+                break
+            lunch["items"].append(r)
+            plan.setdefault("protein_guard_actions", []).append(
+                "Added paruppu thogayal to lunch for protein"
+            )
+            added = True
+            break
 
     # If still short, add egg omelette for eggetarian/nonveg users at breakfast
     diet = ctx.profile.get("diet", "veg")
@@ -499,12 +506,23 @@ def enforce_protein_guard(
         bf = plan["breakfast"]
         if not any(c["id"] == "nv_omelette" for c in bf["items"]):
             for r in ctx.recipes:
-                if r["id"] == "nv_omelette":
-                    bf["items"].append(r)
-                    plan.setdefault("protein_guard_actions", []).append(
-                        "Added omelette to breakfast for protein"
-                    )
+                if r["id"] != "nv_omelette":
+                    continue
+                if not allergy_ok(r, allergies) or not custom_avoid_ok(r, custom):
                     break
+                bf["items"].append(r)
+                plan.setdefault("protein_guard_actions", []).append(
+                    "Added omelette to breakfast for protein"
+                )
+                added = True
+                break
+
+    # If we couldn't add anything (e.g., no-coconut vegetarian), leave a note
+    # for the UI to render without silently violating an allergy.
+    if not added and not plan.get("protein_guard_actions"):
+        plan["protein_guard_actions"] = [
+            "Protein slightly below target — consider a protein-rich side later",
+        ]
 
     # Recompute statuses
     for m in ["breakfast", "lunch", "dinner"]:

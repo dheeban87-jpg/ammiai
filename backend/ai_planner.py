@@ -8,9 +8,9 @@ once. On second failure, silently falls back to the rule-based first candidate.
 Keys and models
 ---------------
 - Reads ANTHROPIC_API_KEY at call time from the environment.
-- Model: `claude-sonnet-4-6` (per emergentintegrations available_models).
-- Uses the internal `emergentintegrations` library so the same client works
-  transparently for BYO Anthropic keys.
+- Uses the official `anthropic` Python SDK (public PyPI) so the deploy is
+  fully self-contained — no private pip index required.
+- Model: `claude-sonnet-4-5` by default (override via ANTHROPIC_MODEL env).
 """
 
 from __future__ import annotations
@@ -22,11 +22,11 @@ import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from anthropic import AsyncAnthropic
 
 logger = logging.getLogger("ammiai.ai_planner")
 
-AI_MODEL = "claude-sonnet-4-6"
+AI_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
 MAX_RETRIES = 1  # one retry on JSON parse / validation failure → 2 attempts total
 
 
@@ -241,20 +241,22 @@ def _validate_response(
 
 # ---------------- Anthropic call ---------------- #
 async def _call_anthropic(session_id: str, user_prompt: str) -> str:
-    chat = LlmChat(
-        api_key=_key(),
-        session_id=session_id,
-        system_message=SYSTEM_PROMPT,
-    ).with_model("anthropic", AI_MODEL).with_params(max_tokens=3000)
-    reply = await chat.send_message(UserMessage(text=user_prompt))
-    if isinstance(reply, str):
-        return reply
-    # emergentintegrations may return a ChatResponse-like dataclass
-    for attr in ("text", "content", "message"):
-        val = getattr(reply, attr, None)
-        if isinstance(val, str):
-            return val
-    return str(reply)
+    """Non-streaming Messages API call. Returns concatenated text response."""
+    client = AsyncAnthropic(api_key=_key())
+    resp = await client.messages.create(
+        model=AI_MODEL,
+        max_tokens=3000,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_prompt}],
+    )
+    # session_id is retained only for logging / diagnostic parity.
+    logger.debug("anthropic call ok session=%s", session_id)
+    parts: List[str] = []
+    for block in resp.content or []:
+        text = getattr(block, "text", None)
+        if isinstance(text, str):
+            parts.append(text)
+    return "".join(parts)
 
 
 # ---------------- Fallback ---------------- #

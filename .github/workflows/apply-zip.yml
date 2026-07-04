@@ -7,14 +7,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Extract zip over repo
+      - name: Extract any uploaded zip over repo
         run: |
-          unzip -o AmmiAI_visual_upgrade*.zip
-          rm -f AmmiAI_visual_upgrade*.zip
+          shopt -s nullglob
+          zips=( *.zip )
+          if [ ${#zips[@]} -eq 0 ]; then
+            echo "No zip found in repo root — nothing to apply."
+            exit 1
+          fi
+          for z in "${zips[@]}"; do
+            echo "Applying: $z"
+            unzip -o "$z"
+            rm -f "$z"
+          done
       - name: Commit and push
         run: |
           git config user.name "ammiai-bot"
           git config user.email "actions@github.com"
           git add -A
-          git commit -m "Apply visual upgrade v2 (fonts, FoodAvatar, animated rings)" || echo "nothing to commit"
+          git commit -m "Apply update zip: ${{ github.run_number }}" || echo "nothing to commit"
           git push

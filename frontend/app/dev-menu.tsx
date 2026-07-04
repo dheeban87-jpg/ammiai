@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +16,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth-context";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
+
+function confirm(title: string, body: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (Platform.OS === "web") {
+      resolve(window.confirm(`${title}\n\n${body}`));
+      return;
+    }
+    Alert.alert(title, body, [
+      { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+      { text: "Confirm", style: "destructive", onPress: () => resolve(true) },
+    ]);
+  });
+}
 
 export default function DevMenu() {
   const insets = useSafeAreaInsets();
@@ -81,16 +95,13 @@ export default function DevMenu() {
         <TouchableOpacity
           testID="dev-reset-onboarding"
           style={styles.actionRow}
-          onPress={() =>
-            Alert.alert(
+          onPress={async () => {
+            const ok = await confirm(
               "Reset onboarding?",
               "This clears your profile and pantry so you can run onboarding again.",
-              [
-                { text: "Cancel", style: "cancel" },
-                { text: "Reset", style: "destructive", onPress: doReset },
-              ],
-            )
-          }
+            );
+            if (ok) doReset();
+          }}
           disabled={busy != null}
         >
           <Ionicons name="refresh" size={22} color={colors.turmeric} />
@@ -108,12 +119,10 @@ export default function DevMenu() {
         <TouchableOpacity
           testID="dev-logout"
           style={styles.actionRow}
-          onPress={() =>
-            Alert.alert("Log out?", "You'll need to sign in again.", [
-              { text: "Cancel", style: "cancel" },
-              { text: "Log out", style: "destructive", onPress: doLogout },
-            ])
-          }
+          onPress={async () => {
+            const ok = await confirm("Log out?", "You'll need to sign in again.");
+            if (ok) doLogout();
+          }}
           disabled={busy != null}
         >
           <Ionicons name="log-out-outline" size={22} color={colors.chili} />

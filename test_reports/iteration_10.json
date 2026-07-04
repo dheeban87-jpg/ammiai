@@ -1,0 +1,63 @@
+{
+  "summary": "Regression verified for APK Google-auth callback hardening (test_sequence 8). Frontend only, no code changes. All four assertions from the review request PASS on web preview: (1) sign-in screen + google/phone buttons render, (2) phone OTP end-to-end with +919000023457/123456 lands on /onboarding (api.ts healthy), (3) /auth-callback?session_id=DUMMY_TEST_ID renders auth-callback-screen, ends in error state with auth-callback-diag showing query=\"session_id=DUMMY_TEST_ID\" and fragment=\"<empty>\", and auth-callback-retry routes back to /sign-in, (4) /auth-callback#session_id=FRAG_TEST_ID renders auth-callback-screen, ends in error state with auth-callback-diag showing query=\"<empty>\" and fragment=\"session_id=FRAG_TEST_ID\" — proving the fragment-based parsing path works (critical for APK where Emergent's default redirect uses #). Console logs prefixed [auth-callback] fired 3 times per callback test (router_params + getInitialURL + processGoogleSessionId error), confirming loud-logging is wired for adb logcat. APK ammiai:// scheme resolution deferred to real device install; on-device diagnostic panel (auth-callback-diag) will reveal the actual URL Android delivers so main agent can patch any remaining edge case with a single targeted change.",
+  "test_matrix": {
+    "1_sign_in_renders": {"status": "PASS", "sign-in-screen": true, "sign-in-google-btn": true, "sign-in-phone-btn": true},
+    "2_phone_otp_e2e": {"status": "PASS", "phone": "+919000023457", "code": "123456", "final_url": "http://localhost:3000/onboarding", "reached_app": true},
+    "3_query_form_callback": {
+      "status": "PASS",
+      "url": "/auth-callback?session_id=DUMMY_TEST_ID",
+      "auth-callback-screen": true,
+      "error_state": true,
+      "auth-callback-diag_visible": true,
+      "diag_text_contains_query_session_id_DUMMY_TEST_ID": true,
+      "diag_text_contains_fragment_empty": true,
+      "auth-callback-retry_navigates_to_sign-in": true,
+      "console_logs_[auth-callback]_count": 3
+    },
+    "4_fragment_form_callback": {
+      "status": "PASS",
+      "url": "/auth-callback#session_id=FRAG_TEST_ID",
+      "auth-callback-screen": true,
+      "error_state": true,
+      "auth-callback-diag_visible": true,
+      "diag_text_contains_query_empty": true,
+      "diag_text_contains_fragment_session_id_FRAG_TEST_ID": true,
+      "console_logs_[auth-callback]_count": 3
+    }
+  },
+  "observed_diag_outputs": {
+    "query_form": "Callback URL received\n?session_id=DUM…ID\nquery=\"session_id=DUMMY_TEST_ID\"\nfragment=\"<empty>\"",
+    "fragment_form": "Callback URL received\nhttp://localhost:3000/auth-callback#session_id=FRA…ID\nquery=\"<empty>\"\nfragment=\"session_id=FRAG_TEST_ID\""
+  },
+  "observed_console_logs_prefix_auth_callback": [
+    "[auth-callback] source=router_params url=?session_id=DUM…ID parsed_key=session_id sid=DUMM…",
+    "[auth-callback] getInitialURL → http://localhost:3000/auth-callback?session_id=DUM…ID",
+    "[auth-callback] processGoogleSessionId failed: Failed to fetch",
+    "[auth-callback] getInitialURL → http://localhost:3000/auth-callback#session_id=FRA…ID",
+    "[auth-callback] source=initial_url url=http://localhost:3000/auth-callback#session_id=FRA…ID parsed_key=session_id sid=FRAG…"
+  ],
+  "notes": [
+    "On web preview the visible error text is 'Failed to fetch' (CORS block against demobackend.emergentagent.com/auth/v1/env/oauth/session-data) rather than the 3.5s timeout copy 'No session id found in callback URL'. This is expected on web — the parser IS finding the sid (parsed_key=session_id, sid=DUMM…/FRAG…), then processGoogleSessionId fails at the CORS layer. Because setDiagUrl/setRawParts run in attempt() BEFORE the network call, the diag panel still renders with the correct query/fragment breakdown, which is what the review asked us to verify.",
+    "Fragment (#) is preserved on same-origin navigation as expected; parseAuthCallbackUrl correctly routes it into raw_fragment while raw_query stays empty.",
+    "Redaction (redactCallbackUrl) is working — DUMMY_TEST_ID rendered as DUM…ID and FRAG_TEST_ID as FRA…ID in the URL line; raw q/f are intentionally unredacted for diagnosis, which matches the code."
+  ],
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_10.json"],
+  "action_items": [
+    "NONE — hardening verified on web. Deferred to real APK install: attach adb logcat, tap 'Sign in with Google', capture the exact URL logged by [auth-callback] source=initial_url / linking_event; the on-device auth-callback-diag panel will surface the exact raw_query / raw_fragment Android delivers so any remaining edge case can be patched with one targeted change in parse-callback.ts."
+  ],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (not tested per request)", "frontend": "100% (4/4 assertions pass)"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fragment-based OAuth callback parsing is verified on web. The only remaining unknown is APK-specific: what URL Android actually delivers via Linking.getInitialURL() / addEventListener('url') for the ammiai:// custom scheme. Diagnostic panel (auth-callback-diag) and console prefix [auth-callback] are in place to reveal that on-device. Do not modify parse-callback.ts or auth-callback.tsx without a real device log.",
+  "rca_of_issue": "Not applicable — verification pass. Prior report note: on web preview, the error copy in the header will read 'Failed to fetch' (CORS) instead of the 3.5s timeout copy, because the sid IS parsed and processGoogleSessionId is attempted. The diagnostic panel still renders correctly with query/fragment split, which is what the review asked for."
+}

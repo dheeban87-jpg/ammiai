@@ -1,9 +1,17 @@
 // Handles the ammiai://auth-callback deep link after Emergent Google Auth.
-// On Android, if openAuthSessionAsync doesn't intercept the redirect (some
-// OEMs / cold launches), the OS deep-links into the app with the session_id
-// on the hash or query. This route parses it, hands it to the auth context,
-// then routes home.
-import React, { useEffect, useRef, useState } from "react";
+//
+// APK-specific: when Android intent-filters the redirect back into the app,
+// the URL can arrive via several channels — Linking.getInitialURL() on cold
+// start, or Linking.addEventListener("url", …) if the app is already alive,
+// or (rarely) as query params on the expo-router route. This screen listens
+// to ALL THREE and uses a defensive string-based parser (see
+// src/utils/parse-callback.ts) that survives `ammiai:///path` triple-slash
+// deliveries and #fragment credentials.
+//
+// Loud console.log lines (prefix `[auth-callback]`) are intentional so
+// `adb logcat -s ReactNativeJS` on the standalone APK reveals exactly what
+// URL landed and where the parse succeeded.
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -17,56 +25,84 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth-context";
+import { parseAuthCallbackUrl, redactCallbackUrl } from "@/src/utils/parse-callback";
 import { colors, fonts, radius, spacing } from "@/src/theme";
-
-function extractSessionId(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    // Try hash first (Emergent auth uses fragment), then query.
-    const hash = parsed.hash.replace(/^#/, "");
-    const search = parsed.search.replace(/^\?/, "");
-    const q = new URLSearchParams(hash || search);
-    return q.get("session_id");
-  } catch {
-    return null;
-  }
-}
 
 export default function AuthCallback() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ session_id?: string }>();
+  const params = useLocalSearchParams<{ session_id?: string; code?: string; token?: string }>();
   const { processGoogleSessionId, status } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [diagUrl, setDiagUrl] = useState<string | null>(null);
+  const [rawParts, setRawParts] = useState<{ q: string; f: string } | null>(null);
   const done = useRef(false);
 
-  useEffect(() => {
-    if (done.current) return;
-
-    const run = async () => {
-      // 1) Try params from expo-router (works if params are on the query)
-      let sid: string | null = params?.session_id ?? null;
-      // 2) Otherwise pull the initial URL and parse hash/query manually.
-      if (!sid) {
-        const initial = await Linking.getInitialURL();
-        sid = extractSessionId(initial);
-      }
-      if (!sid) {
-        setError("No session id found in callback URL.");
-        return;
-      }
+  const attempt = useCallback(
+    async (source: string, url: string | null | undefined, sidFromRouter?: string | null) => {
+      if (done.current) return;
+      const parsed = parseAuthCallbackUrl(url);
+      const sid = sidFromRouter || parsed.sessionId;
+      // Loud, redacted log for adb logcat.
+      console.log(
+        `[auth-callback] source=${source} url=${redactCallbackUrl(url)} ` +
+          `parsed_key=${parsed.found_key} sid=${sid ? sid.slice(0, 4) + "…" : "<null>"}`,
+      );
+      setDiagUrl(redactCallbackUrl(url));
+      setRawParts({ q: parsed.raw_query, f: parsed.raw_fragment });
+      if (!sid) return;
+      done.current = true;
       try {
-        done.current = true;
         await processGoogleSessionId(sid);
-        // Auth state flips to `authed`; root layout will redirect.
         router.replace("/");
       } catch (e: any) {
+        console.error("[auth-callback] processGoogleSessionId failed:", e?.message);
         setError(e?.message ?? "Google sign-in failed to complete.");
+        done.current = false;
       }
-    };
-    run();
-  }, [params?.session_id, processGoogleSessionId, router]);
+    },
+    [processGoogleSessionId, router],
+  );
+
+  // 1) Try expo-router params (session_id could ride the query).
+  useEffect(() => {
+    const sid = params?.session_id || params?.code || params?.token || null;
+    if (sid) attempt("router_params", `?session_id=${sid}`, sid);
+  }, [params?.session_id, params?.code, params?.token, attempt]);
+
+  // 2) Cold-start URL (app was closed when the intent fired).
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then((url) => {
+        console.log(`[auth-callback] getInitialURL → ${redactCallbackUrl(url)}`);
+        attempt("initial_url", url);
+      })
+      .catch((err) => console.warn("[auth-callback] getInitialURL error:", err?.message));
+  }, [attempt]);
+
+  // 3) Warm-start URL (app was alive; intent-filter delivered a URL to us).
+  useEffect(() => {
+    const sub = Linking.addEventListener("url", (evt) => {
+      console.log(`[auth-callback] Linking event → ${redactCallbackUrl(evt.url)}`);
+      attempt("linking_event", evt.url);
+    });
+    return () => sub.remove();
+  }, [attempt]);
+
+  // 4) If none of the above yields a session_id after ~2s, surface a clear
+  //    error state instead of hanging on the spinner forever.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!done.current && !error) {
+        setError(
+          "No session id found in callback URL.\n" +
+            "The redirect from Google didn't include the credentials Android expected.\n" +
+            "Please try again, or use phone sign-in instead.",
+        );
+      }
+    }, 3500);
+    return () => clearTimeout(t);
+  }, [error]);
 
   // If somehow auth context already flipped to authed, just go home.
   useEffect(() => {
@@ -83,6 +119,20 @@ export default function AuthCallback() {
         <>
           <Text style={styles.title}>Sign-in couldn&apos;t complete</Text>
           <Text style={styles.body}>{error}</Text>
+          {diagUrl ? (
+            <View style={styles.diag} testID="auth-callback-diag">
+              <Text style={styles.diagLabel}>Callback URL received</Text>
+              <Text style={styles.diagValue} numberOfLines={4} selectable>
+                {diagUrl}
+              </Text>
+              {rawParts && (rawParts.q || rawParts.f) ? (
+                <Text style={styles.diagValue} selectable>
+                  query=&quot;{rawParts.q || "<empty>"}&quot;{"\n"}
+                  fragment=&quot;{rawParts.f || "<empty>"}&quot;
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
           <TouchableOpacity
             testID="auth-callback-retry"
             style={styles.btn}
@@ -136,6 +186,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 20,
+  },
+  diag: {
+    marginTop: spacing.l,
+    padding: spacing.m,
+    borderRadius: radius.m,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignSelf: "stretch",
+  },
+  diagLabel: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  diagValue: {
+    color: colors.textPrimary,
+    fontFamily: "monospace",
+    fontSize: 12,
+    lineHeight: 16,
   },
   btn: {
     marginTop: spacing.xl,

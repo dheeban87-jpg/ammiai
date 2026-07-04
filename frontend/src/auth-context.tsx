@@ -13,6 +13,7 @@ import * as Linking from "expo-linking";
 
 import { api, clearToken, getToken, setToken } from "@/src/api";
 import type { Profile, User } from "@/src/types";
+import { parseAuthCallbackUrl, redactCallbackUrl } from "@/src/utils/parse-callback";
 
 const EMERGENT_SESSION_API =
   "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data";
@@ -94,22 +95,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       redirectUrl = Linking.createURL("auth-callback");
     }
     const authUrl = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+    console.log(`[auth] signInWithGoogle redirectUrl=${redirectUrl}`);
+    console.log(`[auth] signInWithGoogle authUrl=${authUrl}`);
 
     if (Platform.OS === "web") {
       window.location.href = authUrl;
       return;
     }
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+    console.log(
+      `[auth] openAuthSessionAsync type=${result.type} url=${
+        (result as any).url ? redactCallbackUrl((result as any).url) : "<none>"
+      }`,
+    );
     if (result.type !== "success" || !result.url) {
       // If the user cancels or the OS routes via deep link, /auth-callback
       // will pick it up. Just bail here.
       return;
     }
-    const url = new URL(result.url);
-    const params = new URLSearchParams(url.hash.replace(/^#/, "") || url.search);
-    const sid = params.get("session_id");
-    if (!sid) return;
-    await processGoogleSessionId(sid);
+    const { sessionId } = parseAuthCallbackUrl(result.url);
+    if (!sessionId) {
+      console.warn("[auth] openAuthSessionAsync returned url without session id");
+      return;
+    }
+    await processGoogleSessionId(sessionId);
   }, [processGoogleSessionId]);
 
   // Native: handle deep links delivered while the app is alive OR at cold
@@ -118,25 +127,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // the session_id here as a safety net.
   useEffect(() => {
     if (Platform.OS === "web") return;
-    const handleUrl = async (url: string | null) => {
+    const handleUrl = async (url: string | null, source: string) => {
       if (!url) return;
-      try {
-        const parsed = new URL(url);
-        const q = new URLSearchParams(
-          parsed.hash.replace(/^#/, "") || parsed.search.replace(/^\?/, ""),
-        );
-        const sid = q.get("session_id");
-        if (sid) await processGoogleSessionId(sid);
-      } catch {
-        /* ignore malformed deep-link */
+      const { sessionId, found_key } = parseAuthCallbackUrl(url);
+      console.log(
+        `[auth] ${source} url=${redactCallbackUrl(url)} key=${found_key} ` +
+          `sid=${sessionId ? sessionId.slice(0, 4) + "…" : "<null>"}`,
+      );
+      if (sessionId) {
+        try {
+          await processGoogleSessionId(sessionId);
+        } catch (err: any) {
+          console.error("[auth] processGoogleSessionId in deep-link handler:", err?.message);
+        }
       }
     };
     // Cold-start URL (app not running when link tapped).
-    Linking.getInitialURL().then(handleUrl).catch(() => {
-      /* ignore */
-    });
+    Linking.getInitialURL()
+      .then((url) => handleUrl(url, "getInitialURL"))
+      .catch(() => {
+        /* ignore */
+      });
     // Warm listener (app already running).
-    const sub = Linking.addEventListener("url", (evt) => handleUrl(evt.url));
+    const sub = Linking.addEventListener("url", (evt) => handleUrl(evt.url, "url_event"));
     return () => sub.remove();
   }, [processGoogleSessionId]);
 

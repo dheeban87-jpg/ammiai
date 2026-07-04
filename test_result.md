@@ -242,17 +242,83 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 7
+  test_sequence: 8
   run_ui: true
 
 test_plan:
   current_focus:
-    - "APK auth-bug fix: Google OAuth callback route + deep-link scheme"
-    - "APK auth-bug fix: Phone OTP + api.ts hard-fail on missing BASE"
-    - "Web regression — sign-in flow still fully functional"
+    - "APK Google Auth: robust callback URL parser + warm-link listener + diag UI"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      APK GOOGLE-AUTH ROUND 2. User reports: previous fix routes to
+      /auth-callback correctly, but the screen shows "No session id found
+      in callback URL". Debug + hardening applied.
+
+      Changes made (please verify web regression only — the actual APK
+      deep-link behaviour cannot be reproduced on web):
+
+      1. New file `src/utils/parse-callback.ts` — a defensive string-based
+         parser (never uses `new URL()`; RN URL polyfill can misparse
+         custom-scheme URLs). Accepts EITHER `#fragment` or `?query`
+         credentials. Recognises multiple key names:
+         `session_id | sessionId | session_token | sessionToken | code | token`
+         (in that priority order). Also provides `redactCallbackUrl()`
+         that redacts values before logging so tokens don't leak into
+         adb logcat.
+
+      2. Refactored `app/auth-callback.tsx`:
+         a) Uses `parseAuthCallbackUrl` — handles all URL shapes.
+         b) Attempts session-id extraction from THREE sources:
+              - expo-router `useLocalSearchParams`
+              - `Linking.getInitialURL()` (cold start)
+              - `Linking.addEventListener("url", …)` (warm start —
+                this was missing before)
+         c) Loud `console.log("[auth-callback] ...")` at every stage so
+            `adb logcat -s ReactNativeJS` reveals exactly what URL
+            arrived + how it was parsed.
+         d) Renders a diagnostic panel in the error state showing the
+            (redacted) URL received + parsed `query="..."` and
+            `fragment="..."` strings. If the fix still fails on APK,
+            this UI reveals the root cause on-device.
+         e) 3.5-second timeout — no more infinite spinner.
+
+      3. Refactored `src/auth-context.tsx`:
+         - Uses same `parseAuthCallbackUrl` in `signInWithGoogle`'s
+           `openAuthSessionAsync` result handler AND in the native
+           deep-link listener.
+         - Loud logs the redirect URL sent to Emergent and the URL that
+           came back, so `adb logcat` shows the full chain.
+
+      4. Unit-tested the parser against 8 realistic URL shapes
+         (fragment, query, mixed, triple-slash, alt keys, no id) — all
+         resolved correctly (see main-agent shell smoke test).
+
+      Please verify on web (Playwright, http://localhost:3000):
+
+      A. Sign-in still renders (`sign-in-screen`, `sign-in-google-btn`).
+      B. Phone-OTP end-to-end still works (`+919000023457` / any
+         6-digit code → onboarding or /(tabs)).
+      C. `/auth-callback?session_id=DUMMY_TEST_ID` renders
+         `auth-callback-screen`. After ~2-3s, Emergent will reject the
+         dummy id → screen shows error state with the new diagnostic
+         panel testID `auth-callback-diag` showing query="session_id=
+         DUMMY_TEST_ID" and fragment="<empty>". Then `auth-callback-
+         retry` routes to /sign-in.
+      D. `/auth-callback#session_id=FRAG_ID` (fragment form) — web
+         browser DOES preserve `#` fragments on same-origin navigation.
+         Assert screen renders and diag panel shows the fragment value
+         parsed correctly. This is the exact shape we expect from
+         Emergent on standalone APK.
+
+      NOT TESTABLE ON WEB: The actual `ammiai://auth-callback#...` deep-
+      link resolution on a real Android device. That must be tested by
+      installing the fresh APK. Please explicitly call this out in the
+      report.
 
 agent_communication:
   - agent: "main"

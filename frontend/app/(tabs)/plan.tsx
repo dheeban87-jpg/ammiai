@@ -134,6 +134,25 @@ export default function PlanScreen() {
     }
   };
 
+  const [streakToast, setStreakToast] = useState<string | null>(null);
+  const onCooked = async (mealKey: Meal["key"], item: MealItem) => {
+    if (!plan) return;
+    try {
+      const resp = await api.post<{
+        streak: { current_streak: number; total_cooked: number };
+      }>(`/api/plan/${plan.date}/cooked`, { meal: mealKey, recipe_id: item.id });
+      // Refresh plan to reflect cooked flag & pantry deduction (also updates rings)
+      const fresh = await api.get<Plan>("/api/plan/today");
+      setPlan(fresh);
+      setStreakToast(
+        `${item.name_en} cooked! 🔥 ${resp.streak.current_streak}-day streak`,
+      );
+      setTimeout(() => setStreakToast(null), 3500);
+    } catch {
+      /* noop */
+    }
+  };
+
   return (
     <View style={styles.screen} testID="plan-screen">
       <AppHeader title="Plan" subtitleTa="இன்றைய உணவு திட்டம்" />
@@ -176,9 +195,9 @@ export default function PlanScreen() {
             </View>
           ) : null}
 
-          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} testIDPrefix="meal-breakfast" />
-          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} testIDPrefix="meal-lunch" />
-          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} testIDPrefix="meal-dinner" />
+          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} onCooked={(it) => onCooked("breakfast", it)} testIDPrefix="meal-breakfast" />
+          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} onCooked={(it) => onCooked("lunch", it)} testIDPrefix="meal-lunch" />
+          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} onCooked={(it) => onCooked("dinner", it)} testIDPrefix="meal-dinner" />
 
           {error ? (
             <View style={styles.errorBanner} testID="plan-error">
@@ -239,6 +258,13 @@ export default function PlanScreen() {
         busy={swapBusy}
         violations={plan?.violations ?? null}
       />
+
+      {streakToast ? (
+        <View style={[styles.toast, { bottom: insets.bottom + 100 }]} testID="streak-toast">
+          <Ionicons name="flame" size={18} color={colors.turmeric} />
+          <Text style={styles.toastText}>{streakToast}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -371,6 +397,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: { color: colors.chili, flex: 1, fontSize: 13 },
+  toast: {
+    position: "absolute",
+    left: spacing.m,
+    right: spacing.m,
+    padding: spacing.m,
+    backgroundColor: colors.bananaLeafDark,
+    borderRadius: radius.m,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    ...shadow.card,
+  },
+  toastText: { color: colors.riceWhite, flex: 1, fontSize: 13, fontWeight: "600" },
   weekCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.l,

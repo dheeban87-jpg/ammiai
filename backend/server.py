@@ -1001,6 +1001,384 @@ async def get_cook_now(current=Depends(get_current_user)):
     return {"items": engine_cook_now(ctx, limit=8)}
 
 
+# ------------------------- Grocery ------------------------- #
+# Ingredients marked as "always at home" — not added to shopping list even if
+# recipes reference them (mirror STAPLE_ALWAYS from meal_engine).
+_GROCERY_STAPLES = {
+    "salt", "sugar", "turmeric_powder", "mustard_seeds", "cumin_seeds",
+    "asafoetida", "fenugreek_seeds", "red_chili_powder", "coriander_powder",
+    "sambar_powder", "rasam_powder", "curry_leaves",
+}
+
+# Normalize any (qty, unit) pair to grams (mass), millilitres (volume) or piece.
+def _to_base(qty: float, unit: str) -> tuple[float, str]:
+    u = unit.lower().strip()
+    if u in ("g", "gm"):
+        return qty, "g"
+    if u == "kg":
+        return qty * 1000.0, "g"
+    if u == "ml":
+        return qty, "ml"
+    if u in ("l", "ltr"):
+        return qty * 1000.0, "ml"
+    if u in ("piece", "pc", "pcs", "no", "nos"):
+        return qty, "piece"
+    return qty, u  # unknown — leave as-is
+
+
+def _from_base(qty_base: float, base_unit: str) -> tuple[float, str]:
+    """Round-trip base -> friendly display unit."""
+    if base_unit == "g":
+        return (round(qty_base / 1000.0, 2), "kg") if qty_base >= 1000 else (round(qty_base), "g")
+    if base_unit == "ml":
+        return (round(qty_base / 1000.0, 2), "L") if qty_base >= 1000 else (round(qty_base), "ml")
+    return round(qty_base, 1), base_unit
+
+
+def _grocery_category(ing: Dict[str, Any]) -> str:
+    """Map shelf_life category → user-friendly bucket (matches pantry groups)."""
+    c = (ing.get("category") or "").lower()
+    if "leaf" in c or c == "herb":
+        return "Leafy & Herbs"
+    if c in ("vegetable", "fruit"):
+        return "Vegetables"
+    if c == "dairy":
+        return "Dairy"
+    if c in ("meat", "seafood", "egg"):
+        return "Protein"
+    if c in ("staple", "lentil"):
+        return "Staples"
+    if c in ("spice", "condiment", "oil"):
+        return "Spices & Oils"
+    return "Other"
+
+
+class GroceryQuery(BaseModel):
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    days: Optional[int] = 7  # convenience: if start/end omitted, next N days from today
+
+
+@api_router.get("/grocery/list")
+async def grocery_list(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    days: int = 7,
+    current=Depends(get_current_user),
+):
+    from datetime import date as _dt_date
+    today = _now().date()
+    if start_date:
+        start = _dt_date.fromisoformat(start_date)
+    else:
+        start = today
+    if end_date:
+        end = _dt_date.fromisoformat(end_date)
+    else:
+        end = start + timedelta(days=max(0, days - 1))
+    if end < start:
+        raise HTTPException(status_code=400, detail="end < start")
+
+    # Load plans in range
+    plans = await db.meal_plans.find(
+        {
+            "user_id": current["user_id"],
+            "date": {"$gte": start.isoformat(), "$lte": end.isoformat()},
+        },
+        {"_id": 0},
+    ).sort("date", 1).to_list(60)
+
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    household = max(1, int(profile.get("household_size", 1)))
+
+    # Sum required ingredients across all planned meals × household_size.
+    required: Dict[str, Dict[str, Any]] = {}  # ing_id -> {qty_base, unit_base}
+    for p in plans:
+        for mk in ("breakfast", "lunch", "dinner"):
+            for it in p.get(mk, {}).get("items", []):
+                if it.get("static"):
+                    continue
+                # Get recipe def with ingredients (plan doc includes ingredients as inserted)
+                for ing in it.get("ingredients", []) or []:
+                    iid = ing.get("ingredient_id")
+                    if not iid or iid in _GROCERY_STAPLES:
+                        continue
+                    q, u = _to_base(float(ing.get("qty", 0)) * household, ing.get("unit", "g"))
+                    if iid not in required:
+                        required[iid] = {"qty": 0.0, "unit_base": u}
+                    if required[iid]["unit_base"] != u:
+                        # unit mismatch (e.g., piece vs g) — skip conflict
+                        continue
+                    required[iid]["qty"] += q
+
+    # Current pantry stock per ingredient (converted to base)
+    pantry_rows = await db.pantry_items.find(
+        {"user_id": current["user_id"]}, {"_id": 0}
+    ).to_list(1000)
+    have: Dict[str, Dict[str, Any]] = {}
+    for row in pantry_rows:
+        iid = row["ingredient_id"]
+        q, u = _to_base(float(row.get("qty", 0)), row.get("unit", "g"))
+        if iid not in have:
+            have[iid] = {"qty": 0.0, "unit_base": u}
+        if have[iid]["unit_base"] == u:
+            have[iid]["qty"] += q
+
+    # Enrich with ingredient display data
+    ingredients = {
+        i["ingredient_id"]: i
+        for i in await db.ingredients.find({}, {"_id": 0}).to_list(1000)
+    }
+
+    items_by_cat: Dict[str, List[Dict[str, Any]]] = {}
+    total_estimated_inr = 0.0
+    for iid, need in sorted(required.items()):
+        pantry_q = have.get(iid, {}).get("qty", 0.0)
+        pantry_unit = have.get(iid, {}).get("unit_base")
+        deficit = need["qty"]
+        if pantry_unit == need["unit_base"]:
+            deficit = max(0.0, need["qty"] - pantry_q)
+        if deficit <= 0:
+            continue
+        disp_qty, disp_unit = _from_base(deficit, need["unit_base"])
+        # Nice rounding to shopping increments
+        if need["unit_base"] == "g":
+            # round up to nearest 100g (min 100g)
+            grams = deficit
+            grams = max(100, int(((grams + 99) // 100) * 100))
+            disp_qty, disp_unit = _from_base(grams, "g")
+        elif need["unit_base"] == "ml":
+            ml = deficit
+            ml = max(100, int(((ml + 99) // 100) * 100))
+            disp_qty, disp_unit = _from_base(ml, "ml")
+        ing = ingredients.get(iid, {})
+        price = _price_for(iid, disp_qty, disp_unit)
+        if price:
+            total_estimated_inr += price
+        cat = _grocery_category(ing)
+        items_by_cat.setdefault(cat, []).append(
+            {
+                "ingredient_id": iid,
+                "name": ing.get("name", iid.replace("_", " ").title()),
+                "category": cat,
+                "qty": disp_qty,
+                "unit": disp_unit,
+                "estimated_inr": round(price, 2) if price else None,
+                "need_base": round(need["qty"], 1),
+                "have_base": round(pantry_q, 1),
+                "base_unit": need["unit_base"],
+            }
+        )
+
+    # Category order
+    order = ["Leafy & Herbs", "Vegetables", "Protein", "Dairy", "Staples", "Spices & Oils", "Other"]
+    groups = [
+        {"category": c, "items": items_by_cat[c]}
+        for c in order
+        if c in items_by_cat
+    ]
+
+    return {
+        "start_date": start.isoformat(),
+        "end_date": end.isoformat(),
+        "household_size": household,
+        "days_covered": len(plans),
+        "groups": groups,
+        "total_items": sum(len(g["items"]) for g in groups),
+        "total_estimated_inr": round(total_estimated_inr, 2),
+    }
+
+
+class OrderPlacedIn(BaseModel):
+    items: List[Dict[str, Any]]  # each {ingredient_id, qty, unit, storage?}
+
+
+@api_router.post("/grocery/order-placed")
+async def grocery_order_placed(payload: OrderPlacedIn, current=Depends(get_current_user)):
+    today = _now().date().isoformat()
+    inserted = []
+    ingredients = {
+        i["ingredient_id"]: i
+        for i in await db.ingredients.find({}, {"_id": 0}).to_list(1000)
+    }
+    for it in payload.items:
+        iid = it.get("ingredient_id")
+        if not iid or iid not in ingredients:
+            continue
+        # Merge with any existing pantry row for the same ingredient (base-unit sum)
+        existing = await db.pantry_items.find_one(
+            {"user_id": current["user_id"], "ingredient_id": iid}
+        )
+        default_storage = it.get("storage")
+        if not default_storage:
+            ing = ingredients[iid]
+            # Heuristic: prefer pantry unless only fridge_days is defined
+            if ing.get("pantry_days") and not ing.get("fridge_days"):
+                default_storage = "pantry"
+            elif ing.get("fridge_days") and not ing.get("pantry_days"):
+                default_storage = "fridge"
+            else:
+                default_storage = "pantry"
+        if existing:
+            # Add qty in base units
+            eq, eu = _to_base(float(existing.get("qty", 0)), existing.get("unit", "g"))
+            nq, nu = _to_base(float(it.get("qty", 0)), it.get("unit", "g"))
+            if eu == nu:
+                total_qty, total_unit = _from_base(eq + nq, eu)
+                await db.pantry_items.update_one(
+                    {"id": existing["id"]},
+                    {
+                        "$set": {
+                            "qty": total_qty,
+                            "unit": total_unit,
+                            "storage": default_storage,
+                            "purchase_date": today,
+                        }
+                    },
+                )
+                inserted.append({"id": existing["id"], "merged": True})
+                continue
+        doc = {
+            "id": uuid.uuid4().hex,
+            "user_id": current["user_id"],
+            "ingredient_id": iid,
+            "qty": float(it.get("qty", 0)),
+            "unit": it.get("unit", "g"),
+            "storage": default_storage,
+            "purchase_date": today,
+            "created_at": _now(),
+        }
+        await db.pantry_items.insert_one(doc)
+        doc.pop("_id", None)
+        inserted.append({"id": doc["id"], "merged": False})
+    return {"added": len(inserted), "items": inserted}
+
+
+class CookedIn(BaseModel):
+    meal: str  # breakfast | lunch | dinner
+    recipe_id: str
+
+
+@api_router.post("/plan/{date}/cooked")
+async def plan_cooked(date: str, payload: CookedIn, current=Depends(get_current_user)):
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    meal = doc.get(payload.meal, {})
+    item = next(
+        (it for it in meal.get("items", []) if it.get("id") == payload.recipe_id),
+        None,
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Dish not in meal")
+
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    household = max(1, int(profile.get("household_size", 1)))
+
+    deducted: List[Dict[str, Any]] = []
+    for ing in item.get("ingredients", []) or []:
+        iid = ing.get("ingredient_id")
+        if not iid or iid in _GROCERY_STAPLES:
+            continue
+        need_base_qty, need_base_unit = _to_base(
+            float(ing.get("qty", 0)) * household, ing.get("unit", "g")
+        )
+        # Reduce from pantry rows for this ingredient (all rows summed in base)
+        rows = await db.pantry_items.find(
+            {"user_id": current["user_id"], "ingredient_id": iid}, {"_id": 0}
+        ).to_list(20)
+        remaining = need_base_qty
+        for row in rows:
+            if remaining <= 0:
+                break
+            rq, ru = _to_base(float(row.get("qty", 0)), row.get("unit", "g"))
+            if ru != need_base_unit:
+                continue
+            take = min(rq, remaining)
+            new_base = rq - take
+            if new_base <= 0.01:
+                await db.pantry_items.delete_one({"id": row["id"]})
+            else:
+                new_qty, new_unit = _from_base(new_base, ru)
+                await db.pantry_items.update_one(
+                    {"id": row["id"]},
+                    {"$set": {"qty": new_qty, "unit": new_unit}},
+                )
+            remaining -= take
+        deducted.append(
+            {
+                "ingredient_id": iid,
+                "requested_base": round(need_base_qty, 1),
+                "unmet_base": round(max(0, remaining), 1),
+                "base_unit": need_base_unit,
+            }
+        )
+
+    # Mark dish as cooked in the plan doc
+    for i, it in enumerate(meal.get("items", [])):
+        if it.get("id") == payload.recipe_id:
+            it["cooked"] = True
+            it["cooked_at"] = _now().isoformat()
+            meal["items"][i] = it
+            break
+    doc[payload.meal] = meal
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": date}, doc, upsert=True
+    )
+
+    # Streak update
+    streak_doc = await db.user_streaks.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {
+        "user_id": current["user_id"],
+        "current_streak": 0,
+        "longest_streak": 0,
+        "total_cooked": 0,
+        "last_cooked_date": None,
+    }
+    today = _now().date().isoformat()
+    last = streak_doc.get("last_cooked_date")
+    if last == today:
+        pass  # already counted today
+    else:
+        yesterday = (_now().date() - timedelta(days=1)).isoformat()
+        if last == yesterday:
+            streak_doc["current_streak"] = int(streak_doc.get("current_streak", 0)) + 1
+        else:
+            streak_doc["current_streak"] = 1
+        streak_doc["last_cooked_date"] = today
+    streak_doc["total_cooked"] = int(streak_doc.get("total_cooked", 0)) + 1
+    streak_doc["longest_streak"] = max(
+        int(streak_doc.get("longest_streak", 0)),
+        int(streak_doc["current_streak"]),
+    )
+    await db.user_streaks.replace_one(
+        {"user_id": current["user_id"]}, streak_doc, upsert=True
+    )
+
+    return {
+        "deducted": deducted,
+        "streak": {
+            "current_streak": streak_doc["current_streak"],
+            "longest_streak": streak_doc["longest_streak"],
+            "total_cooked": streak_doc["total_cooked"],
+        },
+    }
+
+
+@api_router.get("/streak")
+async def get_streak(current=Depends(get_current_user)):
+    doc = await db.user_streaks.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {
+        "user_id": current["user_id"],
+        "current_streak": 0,
+        "longest_streak": 0,
+        "total_cooked": 0,
+        "last_cooked_date": None,
+    }
+    return doc
+
+
 # ------------------------- Mount ------------------------- #
 app.include_router(api_router)
 

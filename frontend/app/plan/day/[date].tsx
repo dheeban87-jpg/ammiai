@@ -97,6 +97,18 @@ export default function DayEditScreen() {
     }
   };
 
+  const onCooked = async (mealKey: Meal["key"], item: MealItem) => {
+    if (!date) return;
+    try {
+      await api.post(`/api/plan/${date}/cooked`, { meal: mealKey, recipe_id: item.id });
+      // Refresh
+      const p = await api.post<Plan>("/api/plan/generate", { date, force: false });
+      setPlan(p);
+    } catch {
+      /* noop */
+    }
+  };
+
   const regenerate = async () => {
     if (!date) return;
     setRegenerating(true);
@@ -206,9 +218,9 @@ export default function DayEditScreen() {
             </View>
           ) : null}
 
-          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} testIDPrefix="day-breakfast" />
-          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} testIDPrefix="day-lunch" />
-          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} testIDPrefix="day-dinner" />
+          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} onCooked={(it) => onCooked("breakfast", it)} testIDPrefix="day-breakfast" />
+          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} onCooked={(it) => onCooked("lunch", it)} testIDPrefix="day-lunch" />
+          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} onCooked={(it) => onCooked("dinner", it)} testIDPrefix="day-dinner" />
 
           {error ? (
             <View style={styles.errorBanner}>

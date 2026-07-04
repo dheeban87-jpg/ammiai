@@ -13,6 +13,7 @@ export type MealItem = {
   nutrition?: { kcal?: number; protein_g?: number; fiber_g?: number };
   static?: boolean;
   qty_g?: number;
+  cooked?: boolean;
   _score?: {
     pantry_ratio?: number;
     expiring_hits?: string[];
@@ -66,10 +67,12 @@ export const MEAL_META: Record<Meal["key"], { title: string; ta: string; icon: k
 export function MealCard({
   meal,
   onSwap,
+  onCooked,
   testIDPrefix,
 }: {
   meal: Meal;
   onSwap: (item: MealItem) => void;
+  onCooked?: (item: MealItem) => void;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
@@ -102,10 +105,24 @@ export function MealCard({
           testID={`${testIDPrefix}-dish-${it.id}`}
         >
           <View style={{ flex: 1 }}>
-            <Text style={styles.dishEn} numberOfLines={1}>
-              {it.name_en}
-              {it.qty_g ? <Text style={styles.dishQty}>  {it.qty_g}g</Text> : null}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text
+                style={[
+                  styles.dishEn,
+                  it.cooked && { textDecorationLine: "line-through", color: colors.textMuted },
+                ]}
+                numberOfLines={1}
+              >
+                {it.name_en}
+                {it.qty_g ? <Text style={styles.dishQty}>  {it.qty_g}g</Text> : null}
+              </Text>
+              {it.cooked ? (
+                <View style={styles.cookedBadge} testID={`${testIDPrefix}-cooked-${it.id}`}>
+                  <Ionicons name="checkmark" size={10} color={colors.riceWhite} />
+                  <Text style={styles.cookedBadgeText}>Cooked</Text>
+                </View>
+              ) : null}
+            </View>
             {it.name_ta && it.name_ta !== it.name_en ? (
               <Text style={styles.dishTa} numberOfLines={1}>
                 {it.name_ta}
@@ -126,19 +143,32 @@ export function MealCard({
               </View>
             ) : null}
           </View>
-          {!it.static ? (
-            <TouchableOpacity
-              testID={`${testIDPrefix}-swap-${it.id}`}
-              style={styles.swapBtn}
-              onPress={() => onSwap(it)}
-              hitSlop={8}
-            >
-              <Ionicons name="swap-horizontal" size={16} color={colors.bananaLeaf} />
-              <Text style={styles.swapBtnText}>Swap</Text>
-            </TouchableOpacity>
-          ) : (
+          {it.static ? (
             <View style={styles.staticTag}>
               <Text style={styles.staticTagText}>Base</Text>
+            </View>
+          ) : (
+            <View style={styles.actionsCol}>
+              {onCooked && !it.cooked ? (
+                <TouchableOpacity
+                  testID={`${testIDPrefix}-cook-${it.id}`}
+                  style={styles.cookBtn}
+                  onPress={() => onCooked(it)}
+                  hitSlop={6}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={14} color={colors.chili} />
+                  <Text style={styles.cookBtnText}>Cooked</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                testID={`${testIDPrefix}-swap-${it.id}`}
+                style={styles.swapBtn}
+                onPress={() => onSwap(it)}
+                hitSlop={6}
+              >
+                <Ionicons name="swap-horizontal" size={14} color={colors.bananaLeaf} />
+                <Text style={styles.swapBtnText}>Swap</Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -221,6 +251,35 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.bananaLeaf}12`,
   },
   swapBtnText: { fontSize: 12, color: colors.bananaLeaf, fontWeight: "700" },
+  cookBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: radius.pill,
+    backgroundColor: `${colors.chili}12`,
+  },
+  cookBtnText: { fontSize: 12, color: colors.chili, fontWeight: "700" },
+  actionsCol: {
+    alignItems: "flex-end",
+    gap: 6,
+  },
+  cookedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    marginLeft: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bananaLeaf,
+  },
+  cookedBadgeText: {
+    color: colors.riceWhite,
+    fontSize: 9,
+    fontWeight: "700",
+  },
   staticTag: {
     paddingVertical: 4,
     paddingHorizontal: 8,

@@ -1,0 +1,43 @@
+{
+  "summary": "AmmiAI Slice 5 (Grocery tab + order-placed + cooked + streak) tested end-to-end. Backend: 12/12 pass in test_ammiai_slice5_grocery.py (pytest_slice5.xml). Verified GET /api/grocery/list?days=7 returns full shape {start_date, end_date, household_size, days_covered, groups[{category,items[]}], total_items, total_estimated_inr}; STAPLES (salt, sugar, turmeric_powder, mustard_seeds, cumin_seeds, curry_leaves, chili/coriander/sambar/rasam powders, asafoetida) excluded from every group even though recipes reference them. Verified pantry deduction: adding 5kg tomato caused tomato to disappear from grocery list (unit conversion g↔kg works). Verified household_size=4 produces >= items than hh=2 baseline. Verified end<start → 400. Verified POST /api/grocery/order-placed merges into existing pantry row (2 orders of 500g tomato → single 1kg row, no dup; purchase_date=today). Unknown ingredient IDs are skipped (added=0). Verified POST /api/plan/{date}/cooked returns {deducted:[{ingredient_id, requested_base, unmet_base, base_unit}], streak:{current_streak, longest_streak, total_cooked}} — deducted rows exclude staples, streak.current_streak>=1 and total_cooked increments. Idempotency: cooking a second dish on the same day KEEPS streak unchanged (verified s1==s2). cooked=true & cooked_at persist on plan.{meal}.items[i]. GET /api/streak returns full shape. Missing dish → 404. Frontend: On mobile viewport (390×844) after logging in as TEST_UI + Basic bundle + bulk-generating today+6 days: grocery-screen renders with header ₹648 badge, 'Next 7 days'/'Next 14 days' segmented toggle (both testIDs range-7, range-14 present & switch cleanly), grocery-summary shows '29 items / 7 days / 2 people / ₹648 est'. Groups rendered: Leafy & Herbs, Vegetables, Dairy, Staples (Protein absent — veg diet; Spices & Oils absent — all excluded as staples). 29 grocery-row-{ingredient_id} rows. Tapping first row toggled the checkbox and ₹ total in the header/summary updated (₹648 → ₹608, dropped by exactly the coriander_leaves price of ₹40). grocery-copy, grocery-whatsapp, order-blinkit, order-instamart, order-zepto sticky action bar all present. Tapping order-blinkit opens order-modal with order-all-btn CTA; clicking order-all-btn invoked window.open 29 times with correct blinkit.com/s/?q=... URLs for each unchecked item. After the tab-open loop, confirm-order dialog with confirm-yes appears; tapping confirm-yes calls /api/grocery/order-placed and pantry grows to 35 items (bundle 8 + 27 new/merged rows). grocery-toast shows briefly. On Plan tab, 8 meal-{meal}-cook-{recipeId} chili-colored Cooked buttons present; tapping one shows meal-{meal}-cooked-{recipeId} green badge, streak-toast visible, and dish strikes through. Regression: after order-placed + cook, grocery tab correctly shows the 'You're fully stocked' empty state with Tamil subtitle and checkmark-done icon. All backend contract fields, testIDs, category ordering, brand-colored vendor buttons, and empty state verified. Deprecated warnings still present: 'shadow*' style props deprecated (from src/theme.ts, open since slice 2) and 'props.pointerEvents deprecated' (open since slice 4).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React Native Web shadow deprecation", "issue": "Console emits '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Reference: src/theme.ts (carried from iteration_2)."},
+      {"component": "React Native Web pointerEvents deprecation", "issue": "Console emits 'props.pointerEvents is deprecated. Use style.pointerEvents.' Location likely a Pressable/View in a modal overlay (carried from iteration_4)."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ammiai_slice5_grocery.py",
+    "/app/test_reports/pytest/pytest_slice5.xml"
+  ],
+  "action_items": [
+    "OPTIONAL (open from prior slices): migrate shadow* → boxShadow in src/theme.ts and fix props.pointerEvents → style.pointerEvents.",
+    "OPTIONAL (open from iteration_4): exclude past dates from calendar plan-rest-month counter so ✓ All days planned banner is reachable.",
+    "OPTIONAL (open from iteration_3): enforce_protein_guard allergy leak."
+  ],
+  "critical_code_review_comments": [
+    "server.py _GROCERY_STAPLES set matches STAPLE_ALWAYS from meal_engine intent — staples excluded before summing. Good.",
+    "server.py _to_base/_from_base cover g↔kg and ml↔L; unknown units left as-is with a comment. grocery_list skips ingredient rows where pantry unit_base != required unit_base — safe fallback (would just count as no coverage instead of crashing).",
+    "grocery_list rounding: deficit rounded UP to nearest 100 g/ml (min 100). Realistic shopping increments; price computed on rounded qty so total_estimated_inr matches displayed line prices.",
+    "order_placed merges by (user_id, ingredient_id) — single row per ingredient, converts to base, sums, converts back for display. purchase_date=today. Storage inferred from ingredient's pantry_days vs fridge_days. Good — matches acceptance criteria.",
+    "plan_cooked deducts across all pantry rows of the same ingredient, deletes rows that drop to <=0.01. cooked/cooked_at flags set on the specific item by id. Streak logic: same-day cook keeps streak; consecutive day increments; skipped day resets to 1; longest_streak tracked. Idempotency verified.",
+    "grocery.tsx: correct testIDs (grocery-screen, grocery-summary, range-7/14, group-{Category}, grocery-row-{id}, grocery-copy, grocery-whatsapp, order-blinkit/instamart/zepto, order-modal, order-all-btn, confirm-order, confirm-yes, grocery-toast). Vendor colours (yellow/orange/purple) applied. Empty state 'You're fully stocked' with checkmark-done icon renders correctly.",
+    "MealCard: meal-{meal}-cook-{recipeId} and meal-{meal}-cooked-{recipeId} testIDs both exposed for automation. Non-static-only cook button — verified static dishes skipped.",
+    "Minor: per-item rows inside order-modal use Pressable icons (not <a>) — no external anchor tags, but that's fine because the sheet's 'Open N items' button invokes window.open per item on web (verified 29 opens for 29 items)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ammiai_slice5_grocery.py",
+    "/app/test_reports/iteration_5.json",
+    "/app/test_reports/pytest/pytest_slice5.xml"
+  ],
+  "success_rate": {"backend": "100% (12/12 passed)", "frontend": "100% (all grocery / order-placed / cooked / streak / empty-state flows verified)"},
+  "seed_data_creation": "test_ammiai_slice5_grocery.py creates one ephemeral phone-OTP user per module (household_size=2, veg), bulk-generates 7 days from today, and cleans up via /api/profile/reset + /api/auth/logout. Browser test does the same via in-page fetch (urllib was 403'd — Kubernetes ingress blocks non-browser UA; use page.evaluate to run fetch when needed).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Slice 5 fully working. Reuse /app/backend/tests/test_ammiai_slice5_grocery.py. Note: ingress returns 403 for python urllib/requests when Host resolves through the browser-preview domain — use in-page fetch (page.evaluate) or add a normal browser UA header if you need pure-python API calls beyond pytest (pytest uses requests default UA which works fine — only saw 403 with urllib). Existing testIDs verified for slice 5: grocery-screen, grocery-summary, range-7, range-14, group-{Leafy & Herbs|Vegetables|Protein|Dairy|Staples|Spices & Oils|Other}, grocery-row-{ingredient_id}, grocery-copy, grocery-whatsapp, order-blinkit/instamart/zepto, order-modal, order-all-btn, confirm-order, confirm-yes, grocery-toast, meal-{meal}-cook-{recipeId}, meal-{meal}-cooked-{recipeId}, streak-toast. Confirmed empty state 'You're fully stocked' when pantry covers all needs. Open items from prior slices unchanged.",
+  "rca_of_issue": "N/A — no new bugs found in slice 5. All acceptance criteria satisfied."
+}

@@ -27,6 +27,8 @@ type Plan = {
   day_targets: { kcal: number; protein_g: number; fiber_g: number };
   rings: { kcal: number; protein_g: number; fiber_g: number };
   violations?: Violation[];
+  ai_reason?: string;
+  ai_source?: "ai" | "fallback";
 };
 
 export default function DayEditScreen() {
@@ -200,6 +202,15 @@ export default function DayEditScreen() {
             </View>
           </View>
 
+          {plan.ai_reason ? (
+            <View style={styles.aiReasonCard} testID="day-ai-reason">
+              <Ionicons name="sparkles" size={14} color={colors.turmeric} />
+              <Text style={styles.aiReasonText} numberOfLines={4}>
+                {plan.ai_reason}
+              </Text>
+            </View>
+          ) : null}
+
           {/* Persistent violation banner (last swap) */}
           {violations.length > 0 ? (
             <View style={styles.violationsBanner} testID="day-violations">
@@ -249,6 +260,25 @@ export default function DayEditScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
+  aiReasonCard: {
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: `${colors.turmeric}0F`,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.turmeric,
+    borderRadius: radius.m,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.m,
+    marginBottom: spacing.m,
+    alignItems: "flex-start",
+  },
+  aiReasonText: {
+    flex: 1,
+    fontSize: 13,
+    fontStyle: "italic",
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
   header: {
     backgroundColor: colors.bananaLeafDark,
     paddingHorizontal: spacing.m,

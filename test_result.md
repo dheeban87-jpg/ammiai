@@ -242,22 +242,112 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 5
+  test_sequence: 6
   run_ui: true
 
 test_plan:
   current_focus:
-    - "Notification preferences GET/PUT"
-    - "Premium status + MOCKED purchase + cancel"
-    - "Free-tier quota enforcement (pantry + plan/generate)"
-    - "Weekly report"
-    - "Hard-delete account"
-    - "AI stub endpoints"
-    - "Settings screen — profile edit, notif toggles, danger actions"
-    - "Paywall (MOCKED)"
-    - "Weekly report — visual + Share image + WhatsApp"
-    - "Free-tier quota UX (402 → paywall)"
+    - "AI weekly personalisation — Anthropic Claude Sonnet"
+    - "AI plan cache + fallback"
+    - "AI reason on Plan screen (Today + Week + Day detail)"
   stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      NEW SLICE — AI PERSONALIZATION LAYER (Prompt 6). Backend AI planner is
+      live (real Anthropic call succeeded in a manual smoke test, meta.source=
+      "ai", 7 days with rich reasons like "Keerai Masiyal rescues red-flag
+      spinach; Coriander Thogayal uses expiring coriander leaves.").
+
+      Please regression-test the AI layer end-to-end:
+
+      BACKEND (all under Authorization: Bearer <token> obtained via
+      /api/auth/phone/verify with any 6-digit code):
+        * GET  /api/ai/status → { configured: true, model: "claude-sonnet-4-6",
+          capabilities: ["weekly_personalization"], week_cached: bool }
+        * POST /api/ai/plan/week → { week_start, days:[7], meta:{source:"ai"|
+          "fallback", model, attempts} }. Should be `"ai"` with the real key.
+          Each `days[i]` doc must carry `ai_reason` (non-empty string) and
+          `ai_source: "ai"`.
+        * GET  /api/ai/plan/week (after POST) → { cached: true, days:[7],
+          meta:{...} }. All 7 docs must have ai_reason.
+        * DELETE /api/ai/plan/week → { cleared: true }; subsequent GET has
+          cached:false.
+        * Fallback smoke: temporarily setting an invalid ANTHROPIC_API_KEY
+          (please do NOT edit .env; instead spin up a fresh user + monkey-
+          patch is fine, or skip if inconvenient — the fallback path is
+          exercised by the code path when the SDK raises).
+
+      FRONTEND (Playwright on http://localhost:3000):
+        * Phone-sign-in as +919000012345 / 123456. Complete onboarding if
+          shown (veg, 2, medium, skip allergies/favorites).
+        * Navigate to Plan tab → tap the "week" segment (`toggle-week`).
+          Assert `ai-week-header` and `ai-personalise-btn` visible.
+        * Tap `ai-personalise-btn`. Loading spinner appears then
+          `ai-toast` shows a message. After response, at least one
+          `week-ai-reason-<date>` row must be visible with italic text.
+        * Switch back to "today" (`toggle-today`). If today's plan was
+          overwritten by the AI run, `today-ai-reason` should show a
+          non-empty italic sentence. If it isn't shown that's acceptable
+          (today may already be cached before the AI run) — just don't
+          crash.
+        * Open a day-detail: tap any week day card. Assert `day-ai-reason`
+          renders with italic text.
+
+      Backend + frontend both need to be validated. Backend regression on
+      the earlier Slice 5 endpoints is NOT required this round (they were
+      100% in iteration_6 pytest suite; nothing changed there).
+
+backend:
+  - task: "AI weekly planner endpoint"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py, backend/ai_planner.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "POST /api/ai/plan/week generates 3 candidates/day×7 via the deterministic engine, sends profile+pantry+candidates to Anthropic claude-sonnet-4-6 via emergentintegrations, parses+validates strict JSON with a one-shot retry, silent fallback to candidate[0]+generic reason. Persists chosen candidate into meal_plans (each doc stamped with ai_reason + ai_source) and caches the pick set in ai_weekly_plans (unique per user_id+week_start). GET returns cached, DELETE clears cache. Manual smoke test in main-agent shell returned meta.source='ai' with 7 realistic Tamil-food reasons."
+  - task: "AI status endpoint (live)"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "GET /api/ai/status now returns configured=true when ANTHROPIC_API_KEY is set, and reports week_cached / week_start from ai_weekly_plans."
+  - task: "account_delete cascades ai_weekly_plans"
+    implemented: true
+    working: "NA"
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "ai_weekly_plans added to the hard-delete cascade list."
+
+frontend:
+  - task: "AI reason display on Plan / Day cards"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/plan.tsx, frontend/app/plan/day/[date].tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Week view has an AI header card with a Personalise/Re-run button (`ai-personalise-btn`). Each week day card shows `week-ai-reason-<date>` in italic turmeric-tinted style when ai_reason is present. Today view shows `today-ai-reason` at the top of the plan. Day detail shows `day-ai-reason`. Loading state uses an ActivityIndicator on the CTA; result surfaces via `ai-toast`."
   test_all: false
   test_priority: "high_first"
 

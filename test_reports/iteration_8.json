@@ -1,0 +1,44 @@
+{
+  "summary": "Slice 6 (AI personalisation via Anthropic claude-sonnet-4-6 through emergentintegrations) verified end-to-end. Backend: 6/6 pytest cases PASS (test_ammiai_slice6_ai.py) covering GET /api/ai/status, POST /api/ai/plan/week (live AI, meta.source='ai', 7 days sorted asc starting today UTC, every day carries non-empty ai_reason + ai_source='ai'), GET /api/ai/plan/week (cached:true), DELETE /api/ai/plan/week (cleared:true + cached:false + week_cached:false), and hard-delete /api/account cascading purge of ai_weekly_plans. Live AI call latency was ~15.6s. Frontend Playwright (390x844): sign-in with +919000012345 / 123456 succeeded, Plan tab reached, toggle-week reveals ai-week-header + ai-personalise-btn, tapping the button surfaces ai-toast 'Week personalised with AI ✨' after ~15s wait, all 7 week-ai-reason-YYYY-MM-DD rows render with rich italic Tamil reasons (first: 'Adai with Paruppu Kuzhambu gives balanced protein; Milagu Rasam suits medium spice well.'), tapping a week-day card opens Day Detail where day-ai-reason renders, and switching back to toggle-today shows today-ai-reason without crashing. No blocking issues found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "shadow* style deprecation", "issue": "'shadow*' style props still deprecated; use 'boxShadow'. Reference: frontend/src/theme.ts (open since iteration_2, informational only)."},
+      {"component": "props.pointerEvents deprecation", "issue": "'props.pointerEvents is deprecated. Use style.pointerEvents.' (open since iteration_4, informational only)."},
+      {"component": "expo-notifications web listener", "issue": "'Listening to push token changes is not yet fully supported on web.' — documented behaviour, no action required."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_ammiai_slice6_ai.py",
+    "/app/test_reports/pytest/pytest_slice6_ai.xml"
+  ],
+  "action_items": [
+    "None blocking. Slice 6 AI layer is green on backend and frontend. Optional: address the long-standing shadow*/pointerEvents deprecation warnings noted in prior iterations."
+  ],
+  "critical_code_review_comments": [
+    "backend/ai_planner.py cleanly separates prompt build → Anthropic call → strict JSON validation → 1-retry → silent fallback to candidate[0]. Validation checks date coverage, candidate_index in {0,1,2}, recipe_id membership per slot, and non-empty reason — solid guardrails.",
+    "server.py POST /api/ai/plan/week persists every chosen candidate to meal_plans (upsert per user_id+date) stamped with ai_reason + ai_source, and caches the pick set in ai_weekly_plans keyed by (user_id, week_start). GET rebuilds days from meal_plans so ai_reason is always fresh.",
+    "server.py GET /api/ai/status correctly derives week_cached and week_start from ai_weekly_plans; verified True after POST and False after DELETE.",
+    "Hard-delete cascade includes ai_weekly_plans — verified by re-signin with same phone returning week_cached=false."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_ammiai_slice6_ai.py (new)",
+    "/app/test_reports/pytest/pytest_slice6_ai.xml (new)",
+    "/app/test_reports/iteration_8.json (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (6/6 slice-6 AI tests passed)",
+    "frontend": "100% (all 7 requested assertions passed: toggle-week, ai-week-header, ai-personalise-btn, ai-toast, >=1 week-ai-reason (got 7), day-ai-reason, toggle-today no crash)"
+  },
+  "seed_data_creation": "Backend pytest: created a fresh mock user +9199XXXXXXXX per run, seeded profile (veg / household 2 / medium spice) + 3 pantry items from GET /api/ingredients (spinach_palak first), then ran the AI flow twice (once for AI-plan assertions and once inside the cascade test before DELETE /api/account which cleans up). Frontend Playwright reused shared +919000012345 / 123456 user — that account is intentionally NOT deleted at the end so subsequent testers can inspect a populated AI week without paying another 15s AI-latency.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "AI slice is GREEN. Test recipe used — Backend: pytest backend/tests/test_ammiai_slice6_ai.py, 6 tests, ~31s total (AI POST takes 15-20s so timeout ≥ 60s is essential). Endpoint payload notes: GET /api/ingredients returns objects keyed by 'ingredient_id' (NOT 'id'); phone-send validator requires +91 followed by exactly 10 digits, so use +9199XXXXXXXX format. Frontend: sign-in path is sign-in-phone-btn → phone-input '9000012345' → phone-send-btn → otp-input '123456' → optional otp-name-input → otp-verify-btn. Plan-tab testIDs verified live: plan-screen, toggle-today, toggle-week, ai-week-header, ai-personalise-btn, ai-toast, week-ai-reason-<YYYY-MM-DD>, week-day-<YYYY-MM-DD>, today-ai-reason, day-ai-reason. AI call latency 10-25s so give the ai-toast selector up to 60s. Anthropic model in use = claude-sonnet-4-6 (NOT 4-5). ANTHROPIC_API_KEY is present in /app/backend/.env and works.",
+  "rca_of_issue": "N/A — no issues found. All backend endpoints returned expected shapes/values with the live Anthropic call, and all frontend testIDs rendered as designed."
+}

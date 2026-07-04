@@ -30,6 +30,8 @@ type Plan = {
   rings: { kcal: number; protein_g: number; fiber_g: number };
   protein_guard_actions?: string[];
   violations?: Violation[];
+  ai_reason?: string;
+  ai_source?: "ai" | "fallback";
 };
 
 export default function PlanScreen() {
@@ -48,6 +50,13 @@ export default function PlanScreen() {
   >(null);
   const [swapOptions, setSwapOptions] = useState<MealItem[] | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMeta, setAiMeta] = useState<{
+    source?: "ai" | "fallback";
+    week_start?: string;
+    generated_at?: string;
+  } | null>(null);
+  const [aiToast, setAiToast] = useState<string | null>(null);
 
   const loadToday = useCallback(async () => {
     try {
@@ -65,6 +74,26 @@ export default function PlanScreen() {
     try {
       const w = await api.get<{ days: Plan[] }>("/api/plan/week");
       setWeek(w.days);
+      // Pull the AI-week cache (if any) — cheap read
+      try {
+        const cache = await api.get<{
+          cached: boolean;
+          week_start?: string;
+          generated_at?: string;
+          meta?: { source?: "ai" | "fallback" };
+        }>("/api/ai/plan/week");
+        if (cache.cached) {
+          setAiMeta({
+            source: cache.meta?.source,
+            week_start: cache.week_start,
+            generated_at: cache.generated_at,
+          });
+        } else {
+          setAiMeta(null);
+        }
+      } catch {
+        /* noop */
+      }
     } catch (e: any) {
       setError(e?.message ?? "Couldn't load week plan");
     } finally {
@@ -72,6 +101,34 @@ export default function PlanScreen() {
       setRefreshing(false);
     }
   }, []);
+
+  const personalizeWithAi = async () => {
+    setAiBusy(true);
+    setError(null);
+    try {
+      const resp = await api.post<{
+        week_start: string;
+        days: Plan[];
+        meta: { source?: "ai" | "fallback" };
+      }>("/api/ai/plan/week", {});
+      setWeek(resp.days);
+      setAiMeta({
+        source: resp.meta?.source,
+        week_start: resp.week_start,
+        generated_at: new Date().toISOString(),
+      });
+      setAiToast(
+        resp.meta?.source === "ai"
+          ? "Week personalised with AI ✨"
+          : "AI unreachable — used the rule-based plan.",
+      );
+      setTimeout(() => setAiToast(null), 3500);
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't personalise week");
+    } finally {
+      setAiBusy(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -193,6 +250,15 @@ export default function PlanScreen() {
         >
           <DailyRings plan={plan} />
 
+          {plan.ai_reason ? (
+            <View style={styles.aiReasonCard} testID="today-ai-reason">
+              <Ionicons name="sparkles" size={14} color={colors.turmeric} />
+              <Text style={styles.aiReasonText} numberOfLines={3}>
+                {plan.ai_reason}
+              </Text>
+            </View>
+          ) : null}
+
           {plan.protein_guard_actions && plan.protein_guard_actions.length > 0 ? (
             <View style={styles.guardBanner} testID="protein-guard-banner">
               <Ionicons name="fitness" size={16} color={colors.turmeric} />
@@ -218,6 +284,43 @@ export default function PlanScreen() {
           contentContainerStyle={{ padding: spacing.m, paddingBottom: insets.bottom + 96 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.bananaLeaf} />
+          }
+          ListHeaderComponent={
+            <View style={styles.aiHeader} testID="ai-week-header">
+              <View style={styles.aiHeaderTextWrap}>
+                <View style={styles.aiHeaderTitleRow}>
+                  <Ionicons name="sparkles" size={16} color={colors.turmeric} />
+                  <Text style={styles.aiHeaderTitle}>
+                    {aiMeta?.source === "ai"
+                      ? "AI-personalised week"
+                      : "Personalise this week"}
+                  </Text>
+                </View>
+                <Text style={styles.aiHeaderSub}>
+                  {aiMeta?.source === "ai"
+                    ? "Claude Sonnet picked and ordered your week from your pantry."
+                    : "Let AmmiAI pick the best week from your pantry + favourites."}
+                </Text>
+              </View>
+              <TouchableOpacity
+                testID="ai-personalise-btn"
+                onPress={personalizeWithAi}
+                style={[styles.aiHeaderBtn, aiBusy && { opacity: 0.6 }]}
+                disabled={aiBusy}
+                hitSlop={6}
+              >
+                {aiBusy ? (
+                  <ActivityIndicator color={colors.riceWhite} />
+                ) : (
+                  <>
+                    <Ionicons name="sparkles" size={14} color={colors.riceWhite} />
+                    <Text style={styles.aiHeaderBtnText}>
+                      {aiMeta?.source === "ai" ? "Re-run" : "Personalise"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -270,6 +373,16 @@ export default function PlanScreen() {
           <Text style={styles.toastText}>{streakToast}</Text>
         </View>
       ) : null}
+
+      {aiToast ? (
+        <View
+          style={[styles.toast, { bottom: insets.bottom + 100 }]}
+          testID="ai-toast"
+        >
+          <Ionicons name="sparkles" size={18} color={colors.turmeric} />
+          <Text style={styles.toastText}>{aiToast}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -308,6 +421,17 @@ function WeekDayCard({ plan }: { plan: Plan }) {
           <Text style={styles.weekBadgeText}>{balancedCount}/3 balanced</Text>
         </View>
       </View>
+      {plan.ai_reason ? (
+        <View
+          style={styles.weekAiReason}
+          testID={`week-ai-reason-${plan.date}`}
+        >
+          <Ionicons name="sparkles" size={12} color={colors.turmeric} />
+          <Text style={styles.weekAiReasonText} numberOfLines={2}>
+            {plan.ai_reason}
+          </Text>
+        </View>
+      ) : null}
       {(["breakfast", "lunch", "dinner"] as const).map((mk) => {
         const meal = (plan as any)[mk] as Meal;
         const names = meal.items.filter((i) => !i.static).map((i) => i.name_en).join(", ");
@@ -380,6 +504,73 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
   },
   guardText: { color: colors.turmeric, flex: 1, fontSize: 12, fontWeight: "600" },
+  aiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.s,
+    backgroundColor: `${colors.turmeric}12`,
+    borderColor: `${colors.turmeric}55`,
+    borderWidth: 1,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    marginBottom: spacing.m,
+  },
+  aiHeaderTextWrap: { flex: 1 },
+  aiHeaderTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  aiHeaderTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  aiHeaderSub: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  aiHeaderBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.bananaLeaf,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+  },
+  aiHeaderBtnText: { color: colors.riceWhite, fontWeight: "800", fontSize: 12 },
+  aiReasonCard: {
+    flexDirection: "row",
+    gap: 8,
+    backgroundColor: `${colors.turmeric}0F`,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.turmeric,
+    borderRadius: radius.m,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.m,
+    marginBottom: spacing.m,
+    alignItems: "flex-start",
+  },
+  aiReasonText: {
+    flex: 1,
+    fontSize: 13,
+    fontStyle: "italic",
+    color: colors.textPrimary,
+    lineHeight: 18,
+  },
+  weekAiReason: {
+    flexDirection: "row",
+    gap: 6,
+    alignItems: "flex-start",
+    marginBottom: spacing.s,
+    paddingLeft: 2,
+  },
+  weekAiReasonText: {
+    flex: 1,
+    fontSize: 12,
+    fontStyle: "italic",
+    color: colors.textSecondary,
+    lineHeight: 16,
+  },
   fab: { position: "absolute", right: spacing.m, zIndex: 5 },
   fabBtn: {
     flexDirection: "row",

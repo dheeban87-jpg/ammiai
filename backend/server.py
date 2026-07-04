@@ -93,6 +93,9 @@ async def _ensure_indexes() -> None:
     await db.otp_codes.create_index(
         "created_at", expireAfterSeconds=600
     )  # 10 min
+    await db.ai_weekly_plans.create_index(
+        [("user_id", 1), ("week_start", 1)], unique=True
+    )
 
 
 @app.on_event("startup")
@@ -1543,6 +1546,7 @@ async def account_delete(current=Depends(get_current_user)):
         "premium",
         "user_streaks",
         "plan_gen_log",
+        "ai_weekly_plans",
     ):
         await db[coll].delete_many({"user_id": uid})
     # users doc keyed by user_id
@@ -1654,10 +1658,9 @@ async def weekly_report(
     }
 
 
-# ------------------------- AI Layer (stub) ------------------------- #
-# Real Anthropic integration wires in Prompt 6.
-# Reads the key at request time from env — user will provide it later.
-ANTHROPIC_MODEL_DEFAULT = "claude-sonnet-4-5"
+# ------------------------- AI Layer ------------------------- #
+# Live Anthropic (BYO key) integration. Reads ANTHROPIC_API_KEY at call time.
+import ai_planner  # noqa: E402
 
 
 def _ai_key() -> str:
@@ -1666,38 +1669,133 @@ def _ai_key() -> str:
 
 @api_router.get("/ai/status")
 async def ai_status(current=Depends(get_current_user)):
-    """Reports whether the AI layer is configured. No key = disabled but healthy."""
+    """Reports whether the AI layer is configured."""
+    uid = current["user_id"]
+    cache = await db.ai_weekly_plans.find_one({"user_id": uid}, {"_id": 0})
     return {
         "configured": bool(_ai_key()),
-        "model": ANTHROPIC_MODEL_DEFAULT,
-        "capabilities": [
-            "meal_narration",
-            "smart_swap_rationale",
-            "grocery_summary",
-        ],
+        "model": ai_planner.AI_MODEL,
+        "capabilities": ["weekly_personalization"],
+        "week_cached": bool(cache),
+        "week_start": (cache or {}).get("week_start"),
     }
 
 
-class AIRequestIn(BaseModel):
-    kind: str  # meal_narration | smart_swap | grocery_summary
-    payload: Optional[Dict[str, Any]] = None
+async def _build_week_candidates(user_id: str) -> Dict[str, List[Dict[str, Any]]]:
+    """3 candidate day-plans per day for a 7-day window starting today."""
+    today = _now().date()
+    seeds = [1001, 2002, 3003]
+    out: Dict[str, List[Dict[str, Any]]] = {}
+    for i in range(7):
+        d = (today + timedelta(days=i)).isoformat()
+        cands = []
+        for s in seeds:
+            ctx = await _build_context(user_id, seed=s + i)
+            plan = _sanitize_plan(engine_plan_day(ctx))
+            plan["date"] = d
+            cands.append(plan)
+        out[d] = cands
+    return out
 
 
-@api_router.post("/ai/request")
-async def ai_request(payload: AIRequestIn, current=Depends(get_current_user)):
-    """Endpoint stub — returns 501 if no ANTHROPIC_API_KEY is configured."""
-    if not _ai_key():
-        raise HTTPException(
-            status_code=501,
-            detail="AI layer not configured. Set ANTHROPIC_API_KEY to enable.",
+async def _apply_ai_selection_to_plans(
+    user_id: str,
+    candidates: Dict[str, List[Dict[str, Any]]],
+    picks: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Persist chosen candidate as this user's meal_plan for each date and
+    stamp ai_reason on every doc. Returns the updated 7-day plan list."""
+    result: List[Dict[str, Any]] = []
+    for pick in picks:
+        d = pick["date"]
+        ci = int(pick.get("candidate_index", 0))
+        plan = dict(candidates[d][ci])
+        plan["user_id"] = user_id
+        plan["date"] = d
+        plan["updated_at"] = _now()
+        plan["ai_reason"] = pick.get("reason")
+        plan["ai_source"] = pick.get("ai_source", "ai")
+        await db.meal_plans.replace_one(
+            {"user_id": user_id, "date": d}, plan, upsert=True
         )
-    # Real Anthropic call is intentionally not wired here; Prompt 6 will do it.
-    return {
-        "kind": payload.kind,
-        "model": ANTHROPIC_MODEL_DEFAULT,
-        "status": "stub",
-        "message": "AI layer configured; real generation wires in Prompt 6.",
+        fresh = await db.meal_plans.find_one(
+            {"user_id": user_id, "date": d}, {"_id": 0}
+        )
+        result.append(fresh)
+    return result
+
+
+@api_router.post("/ai/plan/week")
+async def ai_plan_week(current=Depends(get_current_user)):
+    """One AI call generates the whole week; result is cached. Swaps and
+    manual regenerates within the week hit the local engine only.
+    Silent fallback to rule-based when Anthropic is unreachable/invalid."""
+    uid = current["user_id"]
+
+    # profile + pantry
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    pantry_raw = await db.pantry_items.find(
+        {"user_id": uid}, {"_id": 0}
+    ).to_list(1000)
+    pantry_items = [await _enrich_item(dict(it)) for it in pantry_raw]
+
+    # 3 candidates per day
+    candidates = await _build_week_candidates(uid)
+
+    picks, meta = await ai_planner.personalize_week(
+        profile=profile, pantry_items=pantry_items, candidates_by_date=candidates
+    )
+    for p in picks:
+        p["ai_source"] = meta.get("source", "ai")
+
+    days = await _apply_ai_selection_to_plans(uid, candidates, picks)
+    week_start = min(candidates.keys())
+    cache_doc = {
+        "user_id": uid,
+        "week_start": week_start,
+        "meta": meta,
+        "picks": picks,
+        "generated_at": _now(),
     }
+    await db.ai_weekly_plans.replace_one(
+        {"user_id": uid, "week_start": week_start}, cache_doc, upsert=True
+    )
+    return {
+        "week_start": week_start,
+        "days": days,
+        "meta": meta,
+    }
+
+
+@api_router.get("/ai/plan/week")
+async def ai_plan_week_get(current=Depends(get_current_user)):
+    """Return the cached AI weekly plan (or {days: [], cached: false})."""
+    uid = current["user_id"]
+    cache = await db.ai_weekly_plans.find_one({"user_id": uid}, {"_id": 0})
+    if not cache:
+        return {"cached": False, "days": []}
+    # rebuild days from meal_plans (they carry ai_reason)
+    days: List[Dict[str, Any]] = []
+    for p in cache.get("picks", []):
+        d = p.get("date")
+        doc = await db.meal_plans.find_one({"user_id": uid, "date": d}, {"_id": 0})
+        if doc:
+            days.append(doc)
+    return {
+        "cached": True,
+        "week_start": cache.get("week_start"),
+        "generated_at": cache.get("generated_at"),
+        "meta": cache.get("meta"),
+        "days": days,
+    }
+
+
+@api_router.delete("/ai/plan/week")
+async def ai_plan_week_clear(current=Depends(get_current_user)):
+    """Clear the cached AI weekly plan (does not touch meal_plans)."""
+    uid = current["user_id"]
+    await db.ai_weekly_plans.delete_many({"user_id": uid})
+    return {"cleared": True}
 
 
 # ------------------------- Mount ------------------------- #

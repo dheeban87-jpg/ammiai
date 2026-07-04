@@ -584,6 +584,13 @@ def swap_options(
         return []
     category = current["category"]
 
+    # --- Slot-role awareness (fix: no kara kuzhambu with idli!) ---
+    # If this meal is tiffin-style (contains a tiffin item), the non-tiffin
+    # slot is an ACCOMPANIMENT slot: only chutneys/thogayals/podis + sambar
+    # (the single kuzhambu exception) are valid alternates there.
+    meal_is_tiffin = any(it.get("category") == "tiffin" for it in meal["items"])
+    tiffin_side_slot = meal_is_tiffin and category in ("accompaniment", "kuzhambu")
+
     # Build a day-state minus the item being swapped
     day_state: Dict[str, Any] = {
         "veggies_used": set(),
@@ -602,7 +609,12 @@ def swap_options(
         it for it in meal["items"] if it["id"] != current_recipe_id and not it.get("static")
     ]
 
-    pool = eligible_pool(ctx, [category])
+    if tiffin_side_slot:
+        pool = eligible_pool(ctx, ["accompaniment", "kuzhambu"])
+        # Only sambar may ride as a tiffin side among kuzhambus.
+        pool = [r for r in pool if r.get("category") != "kuzhambu" or r.get("id") == "kz_sambar"]
+    else:
+        pool = eligible_pool(ctx, [category])
     ranked = rank(ctx, pool)
     out: List[Dict[str, Any]] = []
     for r, _, breakdown in ranked:

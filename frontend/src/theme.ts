@@ -44,7 +44,10 @@ export const radius = {
 
 export const fonts = {
   headingEn: "Baloo2-Regular",
+  headingSemi: "Baloo2_600SemiBold",
+  headingBold: "Baloo2_800ExtraBold",
   bodyTa: "NotoSansTamil-Regular",
+  bodyTaBold: "NotoSansTamil_700Bold",
   bodyEn: undefined, // system default for body
 } as const;
 

@@ -1,8 +1,17 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect } from "react";
+import { AccessibilityInfo, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import Animated, {
+  useAnimatedProps,
+  useSharedValue,
+  withDelay,
+  withTiming,
+  Easing,
+} from "react-native-reanimated";
 
 import { colors, fonts } from "@/src/theme";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 type Props = {
   progress: number; // 0..1
@@ -14,6 +23,8 @@ type Props = {
   value: string;
   hint?: string;
   testID?: string;
+  /** Stagger start (ms) so multiple rings sweep one after another. */
+  delay?: number;
 };
 
 export function NutritionRing({
@@ -26,11 +37,38 @@ export function NutritionRing({
   value,
   hint,
   testID,
+  delay = 0,
 }: Props) {
   const clamped = Math.max(0, Math.min(1, progress));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - clamped);
+
+  // Animated sweep: 0 → progress on mount and whenever progress changes.
+  const anim = useSharedValue(0);
+  useEffect(() => {
+    let reduced = false;
+    AccessibilityInfo.isReduceMotionEnabled?.()
+      .then((v) => {
+        reduced = !!v;
+        anim.value = reduced
+          ? clamped
+          : withDelay(
+              delay,
+              withTiming(clamped, { duration: 800, easing: Easing.out(Easing.cubic) }),
+            );
+      })
+      .catch(() => {
+        anim.value = withDelay(
+          delay,
+          withTiming(clamped, { duration: 800, easing: Easing.out(Easing.cubic) }),
+        );
+      });
+  }, [clamped, delay, anim]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: circumference * (1 - anim.value),
+  }));
+
   return (
     <View style={styles.wrap} testID={testID}>
       <View style={{ width: size, height: size }}>
@@ -43,7 +81,7 @@ export function NutritionRing({
             strokeWidth={strokeWidth}
             fill="none"
           />
-          <Circle
+          <AnimatedCircle
             cx={size / 2}
             cy={size / 2}
             r={radius}
@@ -51,7 +89,7 @@ export function NutritionRing({
             strokeWidth={strokeWidth}
             fill="none"
             strokeDasharray={circumference}
-            strokeDashoffset={offset}
+            animatedProps={animatedProps}
             strokeLinecap="round"
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
@@ -80,10 +118,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   centerValue: {
-    fontFamily: fonts.headingEn,
-    fontSize: 18,
+    fontFamily: fonts.headingSemi,
+    fontSize: 19,
     color: colors.textPrimary,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   centerHint: {
     fontSize: 10,
@@ -94,6 +132,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 6,
-    fontWeight: "600",
+    fontWeight: "700",
   },
 });

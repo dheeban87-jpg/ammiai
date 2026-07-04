@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.textOnPrimary,
-    fontFamily: fonts.headingEn,
+    fontFamily: fonts.headingBold,
     fontSize: 26,
     lineHeight: 30,
   },

@@ -8,6 +8,8 @@ import {
   View,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { dishEmoji } from "@/src/food-emoji";
+import { FoodAvatar } from "@/src/food-visual";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
@@ -75,6 +77,7 @@ export default function HomeScreen() {
   const greeting = new Date().getHours();
   const timeLabel =
     greeting < 12 ? "Good morning" : greeting < 17 ? "Good afternoon" : "Good evening";
+  const timeEmoji = greeting < 12 ? "🌅" : greeting < 17 ? "☀️" : "🌙";
   const name = user?.name?.split(" ")[0] ?? "there";
 
   const expiring = (items ?? []).filter(
@@ -104,7 +107,7 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.welcome} testID="home-welcome">
-          {timeLabel}, {name}
+          {timeLabel} {timeEmoji}{"\n"}{name}
         </Text>
         <Text style={styles.welcomeTa} testID="home-welcome-ta">
           உங்கள் தமிழ் சமையலறை உதவியாளர்
@@ -120,7 +123,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.ringsRow}>
-              <NutritionRing
+              <NutritionRing delay={0}
                 testID="home-ring-kcal"
                 size={82}
                 strokeWidth={9}
@@ -130,7 +133,7 @@ export default function HomeScreen() {
                 value={`${Math.round(plan.day_totals.kcal)}`}
                 hint={`/ ${Math.round(plan.day_targets.kcal)}`}
               />
-              <NutritionRing
+              <NutritionRing delay={140}
                 testID="home-ring-protein"
                 size={82}
                 strokeWidth={9}
@@ -140,7 +143,7 @@ export default function HomeScreen() {
                 value={`${Math.round(plan.day_totals.protein_g)}g`}
                 hint={`/ ${Math.round(plan.day_targets.protein_g)}g`}
               />
-              <NutritionRing
+              <NutritionRing delay={280}
                 testID="home-ring-fiber"
                 size={82}
                 strokeWidth={9}
@@ -278,6 +281,7 @@ export default function HomeScreen() {
                   <View style={styles.zeroTag}>
                     <Text style={styles.zeroTagText}>0 shopping</Text>
                   </View>
+                  <FoodAvatar kind="dish" id={r.id} category={r.category} size={44} style={{ marginTop: 6, marginBottom: 2 }} />
                   <Text style={styles.dishChipTitle} numberOfLines={1}>{r.name_en}</Text>
                   {r.name_ta && r.name_ta !== r.name_en ? (
                     <Text style={styles.dishChipTa} numberOfLines={1}>{r.name_ta}</Text>
@@ -371,8 +375,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   welcome: {
-    fontFamily: fonts.headingEn,
-    fontSize: 24,
+    fontFamily: fonts.headingBold,
+    fontSize: 28,
+    lineHeight: 34,
     color: colors.textPrimary,
     marginTop: spacing.s,
   },
@@ -486,7 +491,8 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   zeroTagText: { color: colors.riceWhite, fontSize: 10, fontWeight: "700" },
-  dishChipTitle: { fontSize: 13, fontWeight: "700", color: colors.textPrimary },
+  dishChipTitle: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  cookEmoji: { fontSize: 30, marginTop: 6, marginBottom: 2 },
   dishChipTa: {
     fontFamily: fonts.bodyTa,
     fontSize: 11,

@@ -291,6 +291,7 @@ export default function CalendarScreen() {
                   <TouchableOpacity
                     key={c.date}
                     onPress={() => {
+                      if (!c.date) return; // blank leading/trailing cell
                       if (plan) {
                         router.push(`/plan/day/${c.date}`);
                       } else {

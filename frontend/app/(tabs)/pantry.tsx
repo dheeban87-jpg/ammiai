@@ -19,6 +19,8 @@ import { AppHeader } from "@/src/components/app-header";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { GROUP_ORDER, groupFor, iconFor } from "@/src/ingredient-icons";
+import { FoodAvatar } from "@/src/food-visual";
+import { PressableScale } from "@/src/components/pressable-scale";
 import type { PantryItem } from "@/src/types";
 
 const FRESHNESS_COLOR: Record<string, string> = {
@@ -354,18 +356,18 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
         ? "expired"
         : `${item.days_left}d left`;
   return (
-    <TouchableOpacity
+    <PressableScale
       style={styles.row}
       onPress={onPress}
       testID={`pantry-row-${item.id}`}
     >
-      <View style={styles.rowIconWrap}>
-        <MaterialCommunityIcons
-          name={iconFor(item.ingredient_id, item.category)}
-          size={22}
-          color={colors.bananaLeaf}
-        />
-      </View>
+      <FoodAvatar
+        kind="ingredient"
+        id={item.ingredient_id}
+        category={item.category}
+        size={46}
+        style={{ marginRight: spacing.m }}
+      />
       <View style={{ flex: 1 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {item.ingredient_name}
@@ -381,7 +383,7 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
         </View>
         <Text style={styles.daysText}>{daysText}</Text>
       </View>
-    </TouchableOpacity>
+    </PressableScale>
   );
 }
 
@@ -487,15 +489,16 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   rowIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.pill,
+    width: 46,
+    height: 46,
+    borderRadius: radius.m,
     backgroundColor: `${colors.bananaLeaf}14`,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.m,
   },
-  rowTitle: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
+  rowTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
+  rowEmoji: { fontSize: 24 },
   rowSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   rowRight: { alignItems: "flex-end" },
   freshWrap: {

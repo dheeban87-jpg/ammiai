@@ -23,6 +23,8 @@
     "expo-constants": "18.0.13",
     "expo-file-system": "~19.0.23",
     "expo-font": "14.0.12",
+    "@expo-google-fonts/baloo-2": "^0.4.0",
+    "@expo-google-fonts/noto-sans-tamil": "^0.4.0",
     "expo-haptics": "15.0.8",
     "expo-image": "3.0.11",
     "expo-linear-gradient": "15.0.8",

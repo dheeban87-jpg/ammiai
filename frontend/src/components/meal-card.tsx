@@ -2,6 +2,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { FoodAvatar } from "@/src/food-visual";
 
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -104,6 +105,13 @@ export function MealCard({
           ]}
           testID={`${testIDPrefix}-dish-${it.id}`}
         >
+          <FoodAvatar
+            kind="dish"
+            id={it.id}
+            category={(it as any).category}
+            size={40}
+            style={{ marginRight: 10 }}
+          />
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Text
@@ -234,7 +242,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  dishEn: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
+  dishEn: { fontSize: 15.5, fontWeight: "700", color: colors.textPrimary },
+  dishAvatar: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 10 },
+  dishAvatarEmoji: { fontSize: 22 },
   dishQty: { fontSize: 11, color: colors.textMuted, fontWeight: "400" },
   dishTa: { fontFamily: fonts.bodyTa, fontSize: 12, color: colors.textMuted, marginTop: 2 },
   dishMetaRow: { flexDirection: "row", marginTop: 3 },

@@ -15,8 +15,17 @@ AmmiAI is a Tamil home-kitchen manager (Expo + FastAPI + MongoDB). Smart pantry,
 - **Slice 1 (done)**: Onboarding (auth + profile) + Pantry.
 - **Slice 2 (done)**: Deterministic meal plan engine + Plan tab + Home rings/rescue/cook-now.
 - **Slice 3 (done)**: Calendar tab (month grid + day edit + bulk-generate + share as image).
-- Slice 4 (next): Grocery list generation from Plan minus Pantry.
-- Slice 5: Analytics & insights.
+- **Slice 4 (done)**: Grocery tab (auto shopping list, order deep-links, order-placed bulk-add, cooked → pantry deduction + streak).
+- Slice 5 (next): Analytics & insights.
+
+## Grocery + Cooked flow (Slice 4)
+- `GET /api/grocery/list?days=N` — sums ingredients across planned meals in the window × household_size, minus current pantry stock (base-unit conversion), grouped into Leafy & Herbs / Vegetables / Protein / Dairy / Staples / Spices & Oils / Other, with ₹ estimates from `pricing.json`. Staples like salt / sugar / turmeric / spice powders / curry_leaves are excluded (`_GROCERY_STAPLES`).
+- Frontend: `/(tabs)/grocery` — sticky Next 7 / Next 14 toggle, per-item checkbox (already-have), summary bar (items/days/people/₹), category cards, sticky bottom action bar with:
+  - Copy list (Clipboard.setStringAsync) + WhatsApp (`wa.me/?text=…`)
+  - Blinkit / Instamart / Zepto brand-colored order buttons → sheet with per-item deep-links (`blinkit.com/s/?q=`, `swiggy.com/instamart/search?query=`, `zepto.co.in/search?query=`) + "Open N items" bulk action.
+- `POST /api/grocery/order-placed {items:[{ingredient_id, qty, unit}]}` — bulk-adds items to pantry with purchase_date=today. Merges existing pantry rows in base units (no duplicates). Default storage inferred from ingredient shelf_life (pantry_days vs fridge_days).
+- MealCard "Cooked" button (chili-colored, next to Swap) on non-static dishes. `POST /api/plan/{date}/cooked {meal, recipe_id}` deducts recipe ingredients (× household_size, excluding staples) from pantry rows in base units. Empties → deleted. Marks the plan item `cooked=true + cooked_at`. Increments streak (same-day idempotent, +1 for consecutive days, resets after gap).
+- `GET /api/streak` — `{current_streak, longest_streak, total_cooked, last_cooked_date}`.
 
 ## Auth
 - **Google**: Emergent-managed OAuth via `https://auth.emergentagent.com`, backend exchanges `session_token` via `/api/auth/google/session` → returns 7-day bearer token, user upserted by email.

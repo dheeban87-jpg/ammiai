@@ -19,7 +19,12 @@ const INGREDIENT_EMOJI: Record<string, string> = {
   curry_leaves: "🌿", mint_leaves: "🌿",
   milk: "🥛", curd: "🥛", paneer: "🧀", cheese: "🧀", butter: "🧈", ghee: "🧈",
   eggs: "🥚", chicken: "🍗", mutton: "🥩", fish: "🐟", prawns: "🦐",
-  cooking_oil: "🫗", mustard_seeds: "⚫", cumin_seeds: "🟤",
+  cooking_oil: "🫗", mustard_seeds: "⚫",
+  moringa_leaves: "🌿", sundakkai: "🫒", kovakkai: "🥒", banana_stem: "🎋",
+  banana_flower: "🌺", taro_seppankizhangu: "🥔", elephant_yam: "🍠", broad_beans_avarai: "🫛",
+  raw_papaya: "🥭", cumin_seeds: "🟤", turmeric_powder: "🟡", red_chilli_powder: "🌶️",
+  sesame_seeds: "⚪", peanuts: "🥜", millet_foxtail: "🌾", dates: "🌴", dried_figs: "🟤",
+  raisins: "🍇", cashew_nuts: "🥜", almonds: "🌰", walnuts: "🌰", pistachios: "🥜", nutmeg: "🟤",
 };
 
 const CATEGORY_EMOJI: Record<string, string> = {

@@ -3770,5 +3770,117 @@
   ],
   "combo_partners": [],
   "notes": "Cooling; rescue dish for wilting mint"
+ },
+ {
+  "id": "tf_sakkarai_pongal",
+  "name_en": "Sakkarai Pongal (Sweet)",
+  "name_ta": "சர்க்கரை பொங்கல்",
+  "category": "tiffin",
+  "diet": "veg",
+  "spice_level": "mild",
+  "prep_time_min": 35,
+  "ingredients": [
+   {
+    "ingredient_id": "rice",
+    "qty": 55,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "moong_dal",
+    "qty": 20,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "jaggery",
+    "qty": 40,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "ghee",
+    "qty": 12,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "cashew_nuts",
+    "qty": 8,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "raisins",
+    "qty": 5,
+    "unit": "g"
+   }
+  ],
+  "staple_spices": [
+   "cardamom"
+  ],
+  "nutrition": {
+   "kcal": 380,
+   "protein_g": 7,
+   "carbs_g": 64,
+   "fat_g": 11,
+   "fiber_g": 2
+  },
+  "health_tags": [
+   "festive",
+   "kids_friendly"
+  ],
+  "combo_partners": [],
+  "notes": "Festival classic — Pongal, Fridays, temple prasadam"
+ },
+ {
+  "id": "tf_medhu_vada",
+  "name_en": "Medhu Vada (2 pc)",
+  "name_ta": "மெது வடை",
+  "category": "tiffin",
+  "diet": "veg",
+  "spice_level": "mild",
+  "prep_time_min": 30,
+  "ingredients": [
+   {
+    "ingredient_id": "urad_dal",
+    "qty": 50,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "shallots",
+    "qty": 15,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "green_chilli",
+    "qty": 3,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "curry_leaves",
+    "qty": 2,
+    "unit": "g"
+   },
+   {
+    "ingredient_id": "cooking_oil",
+    "qty": 20,
+    "unit": "ml"
+   }
+  ],
+  "staple_spices": [
+   "black_pepper",
+   "salt"
+  ],
+  "nutrition": {
+   "kcal": 290,
+   "protein_g": 9,
+   "carbs_g": 26,
+   "fat_g": 17,
+   "fiber_g": 3
+  },
+  "health_tags": [
+   "festive"
+  ],
+  "combo_partners": [
+   "ac_coconut_chutney",
+   "kz_sambar"
+  ],
+  "notes": "Weekend/festival treat; pairs with sambar and chutney"
  }
 ]

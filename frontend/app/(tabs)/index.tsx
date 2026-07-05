@@ -10,6 +10,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { dishEmoji } from "@/src/food-emoji";
 import { FoodAvatar } from "@/src/food-visual";
+import { useCharmer } from "@/src/components/capt-charmer";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
@@ -80,6 +81,8 @@ export default function HomeScreen() {
   const timeEmoji = greeting < 12 ? "🌅" : greeting < 17 ? "☀️" : "🌙";
   const name = user?.name?.split(" ")[0] ?? "there";
 
+  const charmer = useCharmer();
+  const charmerNagged = React.useRef(false);
   const expiring = (items ?? []).filter(
     (i) => i.freshness === "red" || i.freshness === "yellow",
   );

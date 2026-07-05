@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet } from "react-native";
 
 import { colors } from "@/src/theme";
+import { CharmerProvider } from "@/src/components/capt-charmer";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -16,6 +17,7 @@ const TAB_ICON: Record<string, { active: IconName; inactive: IconName }> = {
 
 export default function TabsLayout() {
   return (
+    <CharmerProvider>
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
@@ -38,6 +40,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
       <Tabs.Screen name="grocery" options={{ title: "Grocery" }} />
     </Tabs>
+    </CharmerProvider>
   );
 }
 

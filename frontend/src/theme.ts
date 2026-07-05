@@ -43,7 +43,9 @@ export const radius = {
 } as const;
 
 export const fonts = {
-  headingEn: "Baloo2-Regular",
+  // Cricket-game inspired: chunky rounded headings everywhere.
+  // Baloo2 SemiBold for all standard headings, ExtraBold for hero titles.
+  headingEn: "Baloo2_600SemiBold",
   headingSemi: "Baloo2_600SemiBold",
   headingBold: "Baloo2_800ExtraBold",
   bodyTa: "NotoSansTamil-Regular",

@@ -18,6 +18,8 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
+import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
+import { useAuth } from "@/src/auth-context";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -38,6 +40,7 @@ type Plan = {
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { profile } = useAuth();
   const [mode, setMode] = useState<"today" | "week">("today");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [week, setWeek] = useState<Plan[] | null>(null);
@@ -55,6 +58,8 @@ export default function PlanScreen() {
   const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
   const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
   const [addBusy, setAddBusy] = useState(false);
+  const [addQuery, setAddQuery] = useState("");
+  const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMeta, setAiMeta] = useState<{
     source?: "ai" | "fallback";
@@ -204,26 +209,20 @@ export default function PlanScreen() {
   const openAddDish = async (meal: Meal["key"], date: string) => {
     setAddCtx({ meal, date });
     setAddOptions(null);
+    setAddQuery("");
     try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${date}&meal=${meal}`,
-      );
-      setAddOptions(r.options);
+      const all = await loadDishCatalog();
+      setCatalog(all);
+      setAddOptions(filterDishes(all, { diet: profile?.diet }));
     } catch {
       setAddOptions([]);
     }
   };
 
-  const searchAddDish = async (q: string) => {
-    if (!addCtx) return;
-    try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${addCtx.date}&meal=${addCtx.meal}&q=${encodeURIComponent(q)}`,
-      );
-      setAddOptions(r.options);
-    } catch {
-      /* keep previous list on transient error */
-    }
+  const searchAddDish = (q: string) => {
+    setAddQuery(q);
+    if (!catalog) return;
+    setAddOptions(filterDishes(catalog, { q, diet: profile?.diet }));
   };
 
   const pickAddDish = async (opt: MealItem) => {

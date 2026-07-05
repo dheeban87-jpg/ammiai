@@ -181,6 +181,8 @@ export default function CalendarScreen() {
   const shareImage = async () => {
     setSharing(true);
     try {
+      // Let React paint the capture-only branded header before snapshotting.
+      await new Promise((r) => setTimeout(r, 150));
       // captureRef returns a base64 data URI on web, tmp file uri on native.
       const uri = await captureRef(shotRef, {
         format: "png",
@@ -300,16 +302,18 @@ export default function CalendarScreen() {
             options={{ format: "png", quality: 0.95 }}
             style={styles.captureWrap}
           >
-            <View style={styles.exportHeader}>
-              <View>
-                <Text style={styles.exportBrand}>AmmiAI</Text>
-                <Text style={styles.exportBrandTa}>தமிழ் சமையலறை</Text>
+            {sharing ? (
+              <View style={styles.exportHeader}>
+                <View>
+                  <Text style={styles.exportBrand}>AmmiAI</Text>
+                  <Text style={styles.exportBrandTa}>தமிழ் சமையலறை</Text>
+                </View>
+                <View>
+                  <Text style={styles.exportMonth}>{MONTH_NAMES[month - 1]}</Text>
+                  <Text style={styles.exportYear}>{year}</Text>
+                </View>
               </View>
-              <View>
-                <Text style={styles.exportMonth}>{MONTH_NAMES[month - 1]}</Text>
-                <Text style={styles.exportYear}>{year}</Text>
-              </View>
-            </View>
+            ) : null}
 
             {/* Weekday header */}
             <View style={styles.weekRow}>
@@ -406,7 +410,9 @@ export default function CalendarScreen() {
                   <Text style={styles.legendText}>Dinner</Text>
                 </View>
               </View>
-              <Text style={styles.exportTagline}>Made with AmmiAI · Tamil kitchen manager</Text>
+              {sharing ? (
+                <Text style={styles.exportTagline}>Made with AmmiAI · Tamil kitchen manager</Text>
+              ) : null}
             </View>
           </ViewShot>
 

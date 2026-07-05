@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -67,10 +68,14 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
             </View>
           ) : list.length === 0 ? (
             <View style={{ padding: spacing.l, alignItems: "center" }}>
-              <Text style={{ color: colors.textMuted }}>No dishes match "{q}"</Text>
+              <Text style={{ color: colors.textMuted, textAlign: "center" }}>
+                {q
+                  ? `No dishes match "${q}" — try a shorter name`
+                  : "Couldn't load the dish list. Check your connection and reopen."}
+              </Text>
             </View>
           ) : (
-            <View style={{ maxHeight: 420 }}>
+            <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
               {list.map((opt) => (
                 <TouchableOpacity
                   key={opt.id}
@@ -83,16 +88,18 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle} numberOfLines={1}>{opt.name_en}</Text>
                     {opt.name_ta ? <Text style={styles.rowTa} numberOfLines={1}>{opt.name_ta}</Text> : null}
-                    {opt._score?.zero_shop ? (
-                      <Text style={styles.rowGood}>0 shopping</Text>
-                    ) : (
-                      <Text style={styles.rowMuted}>{Math.round((opt._score?.pantry_ratio ?? 0) * 100)}% in pantry</Text>
-                    )}
+                    {opt._score ? (
+                      opt._score.zero_shop ? (
+                        <Text style={styles.rowGood}>0 shopping</Text>
+                      ) : (
+                        <Text style={styles.rowMuted}>{Math.round((opt._score.pantry_ratio ?? 0) * 100)}% in pantry</Text>
+                      )
+                    ) : null}
                   </View>
                   <Text style={styles.rowKcal}>{opt.nutrition?.kcal ?? 0} kcal</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           )}
 
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn} disabled={busy}>

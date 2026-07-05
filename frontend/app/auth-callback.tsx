@@ -25,6 +25,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/src/auth-context";
+import { clearBufferedUrl, getBufferedUrl, onBufferedUrl } from "@/src/url-buffer";
 import { parseAuthCallbackUrl, redactCallbackUrl } from "@/src/utils/parse-callback";
 import { colors, fonts, radius, spacing } from "@/src/theme";
 
@@ -54,6 +55,7 @@ export default function AuthCallback() {
       done.current = true;
       try {
         await processGoogleSessionId(sid);
+        clearBufferedUrl();
         router.replace("/");
       } catch (e: any) {
         console.error("[auth-callback] processGoogleSessionId failed:", e?.message);
@@ -63,6 +65,22 @@ export default function AuthCallback() {
     },
     [processGoogleSessionId, router],
   );
+
+  // 0a) PRIMARY FIX: the boot-time URL buffer. The redirect URL that
+  //     navigated us here was captured by src/url-buffer.ts at app boot,
+  //     before this screen existed — so the race that produced <null> is gone.
+  useEffect(() => {
+    const buffered = getBufferedUrl();
+    if (buffered) attempt("boot_buffer", buffered);
+    const unsub = onBufferedUrl((url) => attempt("boot_buffer_live", url));
+    return unsub;
+  }, [attempt]);
+
+  // 0b) expo-linking's useURL() replays the most recent URL to late mounters.
+  const hookUrl = Linking.useURL();
+  useEffect(() => {
+    if (hookUrl) attempt("use_url_hook", hookUrl);
+  }, [hookUrl, attempt]);
 
   // 1) Try expo-router params (session_id could ride the query).
   useEffect(() => {

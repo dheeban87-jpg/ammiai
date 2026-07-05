@@ -1,3 +1,6 @@
+// MUST be first: starts capturing deep-link URLs before any screen mounts.
+import "@/src/url-buffer";
+
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";

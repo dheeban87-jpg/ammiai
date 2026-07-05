@@ -108,21 +108,29 @@ export default function SignIn() {
                 <Text style={styles.googleText}>Continue with Google</Text>
               </TouchableOpacity>
 
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>or</Text>
-                <View style={styles.dividerLine} />
-              </View>
+              {/* Phone-OTP is a mocked demo flow (any 6-digit code). It is
+                  kept ONLY on web so the Playwright test pipeline can sign in
+                  without Google. Native builds (the Play Store APK) ship
+                  Google-only until a real SMS provider is wired. */}
+              {Platform.OS === "web" && (
+                <>
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
 
-              <TouchableOpacity
-                testID="sign-in-phone-btn"
-                style={styles.phoneBtn}
-                onPress={() => setStage("phone")}
-                disabled={busy}
-              >
-                <Ionicons name="call-outline" size={18} color={colors.textOnPrimary} />
-                <Text style={styles.phoneText}>Continue with Phone</Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    testID="sign-in-phone-btn"
+                    style={styles.phoneBtn}
+                    onPress={() => setStage("phone")}
+                    disabled={busy}
+                  >
+                    <Ionicons name="call-outline" size={18} color={colors.textOnPrimary} />
+                    <Text style={styles.phoneText}>Continue with Phone</Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </>
           )}
 

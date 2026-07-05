@@ -2,7 +2,7 @@
   "expo": {
     "name": "AmmiAI",
     "slug": "ammiai",
-    "version": "1.0.0",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ammiai",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.tamilkitchenai.l1kgno"
+      "bundleIdentifier": "com.ammiai.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,15 +18,23 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.tamilkitchenai.l1kgno",
+      "package": "com.ammiai.app",
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": false,
-          "data": [{ "scheme": "ammiai" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "ammiai"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
-      ]
+      ],
+      "versionCode": 6
     },
     "web": {
       "bundler": "metro",

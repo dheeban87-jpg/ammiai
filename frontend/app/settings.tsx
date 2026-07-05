@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "@/src/api";
 import { useAuth } from "@/src/auth-context";
+import { useI18n } from "@/src/i18n";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import {
   fireTest,
@@ -50,6 +51,7 @@ function confirmWeb(title: string, body: string): Promise<boolean> {
 }
 
 export default function Settings() {
+  const { t, lang, setLang } = useI18n();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, profile, saveProfile, resetOnboarding, logout } = useAuth();
@@ -200,6 +202,26 @@ export default function Settings() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
+
+        {/* Language — Batch 9 */}
+        <Text style={styles.sectionLabel}>{t("settings.language")}</Text>
+        <View style={styles.card}>
+          <Text style={styles.fieldLabel}>{t("settings.language.hint")}</Text>
+          <View style={styles.langRow} testID="settings-language-toggle">
+            {(["en", "ta"] as const).map((l) => (
+              <TouchableOpacity
+                key={l}
+                testID={`settings-lang-${l}`}
+                onPress={() => setLang(l)}
+                style={[styles.langBtn, lang === l && styles.langBtnActive]}
+              >
+                <Text style={[styles.langBtnText, lang === l && styles.langBtnTextActive]}>
+                  {l === "en" ? t("settings.language.en") : t("settings.language.ta")}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         {/* Profile */}
         <Text style={styles.sectionLabel}>Profile</Text>
@@ -550,4 +572,25 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 11,
   },
+  langRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 10,
+  },
+  langBtn: {
+    flex: 1,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.m,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  langBtnActive: {
+    borderColor: colors.bananaLeaf,
+    backgroundColor: `${colors.bananaLeaf}12`,
+  },
+  langBtnText: { fontSize: 15, fontWeight: "700", color: colors.textSecondary },
+  langBtnTextActive: { color: colors.bananaLeaf },
 });

@@ -20,6 +20,7 @@ import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
 import { useAuth } from "@/src/auth-context";
+import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -41,6 +42,7 @@ export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { profile } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"today" | "week">("today");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [week, setWeek] = useState<Plan[] | null>(null);
@@ -277,7 +279,7 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.screen} testID="plan-screen">
-      <AppHeader title="Plan" subtitleTa="இன்றைய உணவு திட்டம்" />
+      <AppHeader title={t("plan.title")} subtitleTa={t("plan.subtitle")} />
 
       <View style={styles.segmentWrap} testID="plan-mode-toggle">
         <View style={styles.segment}>
@@ -289,7 +291,7 @@ export default function PlanScreen() {
               onPress={() => setMode(m)}
             >
               <Text style={[styles.segText, mode === m && { color: colors.riceWhite }]}>
-                {m === "today" ? "Today" : "This week"}
+                {m === "today" ? t("plan.today") : t("plan.week")}
               </Text>
             </TouchableOpacity>
           ))}
@@ -429,7 +431,7 @@ export default function PlanScreen() {
             ) : (
               <>
                 <Ionicons name="refresh" size={18} color={colors.riceWhite} />
-                <Text style={styles.fabText}>Regenerate</Text>
+                <Text style={styles.fabText}>{t("plan.regenerate")}</Text>
               </>
             )}
           </TouchableOpacity>

@@ -20,6 +20,7 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
+import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { FoodAvatar } from "@/src/food-visual";
@@ -78,6 +79,7 @@ const VENDOR_META: Record<
 };
 
 export default function GroceryScreen() {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [days, setDays] = useState<7 | 14>(7);
   const [data, setData] = useState<GroceryList | null>(null);
@@ -293,8 +295,8 @@ export default function GroceryScreen() {
   return (
     <View style={styles.screen} testID="grocery-screen">
       <AppHeader
-        title="Grocery"
-        subtitleTa="சந்தை பட்டியல்"
+        title={t("grocery.title")}
+        subtitleTa={t("grocery.subtitle")}
         right={
           data && data.total_items > 0 ? (
             <View style={styles.headerBadge}>

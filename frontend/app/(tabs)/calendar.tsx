@@ -16,6 +16,8 @@ import ViewShot, { captureRef } from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 
 import { AppHeader } from "@/src/components/app-header";
+import { FoodAvatar } from "@/src/food-visual";
+import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import type { Meal } from "@/src/components/meal-card";
@@ -35,7 +37,7 @@ type MonthResp = {
   plans: Record<string, Plan>;
 };
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -57,7 +59,21 @@ function firstDishName(meal?: Meal): string {
   return it?.name_en ?? "";
 }
 
+function firstDish(meal?: Meal): { id: string; name: string; category?: string } | null {
+  if (!meal) return null;
+  const it = meal.items.find((i) => !i.static);
+  if (!it) return null;
+  return { id: it.id, name: it.name_en, category: (it as any).category };
+}
+
+/** Tight cell name: drop the "(...)" suffix so more fits. */
+function shortName(name?: string | null): string {
+  if (!name) return "";
+  return name.split(" (")[0];
+}
+
 export default function CalendarScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const today = new Date();
@@ -224,8 +240,8 @@ export default function CalendarScreen() {
   return (
     <View style={styles.screen} testID="calendar-screen">
       <AppHeader
-        title="Calendar"
-        subtitleTa="வாராந்திர அட்டவணை"
+        title={t("calendar.title")}
+        subtitleTa={t("calendar.subtitle")}
         right={
           <TouchableOpacity
             testID="calendar-share-btn"
@@ -318,8 +334,14 @@ export default function CalendarScreen() {
             {/* Weekday header */}
             <View style={styles.weekRow}>
               {WEEKDAYS.map((d, i) => (
-                <View key={i} style={styles.weekHead}>
-                  <Text style={styles.weekHeadText}>{d}</Text>
+                <View
+                  key={i}
+                  style={[
+                    styles.weekHead,
+                    i === 0 ? styles.weekHeadSun : i === 6 ? styles.weekHeadSat : styles.weekHeadWk,
+                  ]}
+                >
+                  <Text style={[styles.weekHeadText, i === 0 && { color: colors.chili }]}>{d}</Text>
                 </View>
               ))}
             </View>
@@ -358,6 +380,7 @@ export default function CalendarScreen() {
                       <Text
                         style={[
                           styles.cellDay,
+                          new Date(c.date + "T00:00:00").getDay() === 0 && { color: colors.chili },
                           isToday && { color: colors.bananaLeafDark },
                         ]}
                       >
@@ -368,26 +391,37 @@ export default function CalendarScreen() {
                     {busy === c.date ? (
                       <ActivityIndicator size="small" color={colors.bananaLeaf} />
                     ) : plan ? (
-                      <View style={styles.cellMeals}>
-                        {(["breakfast", "lunch", "dinner"] as const).map((mk) => {
-                          const nm = firstDishName((plan as any)[mk]);
-                          return (
-                            <View key={mk} style={styles.cellMealRow}>
-                              <Ionicons
-                                name={MEAL_ICON[mk]}
-                                size={9}
-                                color={colors.bananaLeafSoft}
-                              />
-                              <Text style={styles.cellMealText} numberOfLines={1}>
-                                {nm || "—"}
-                              </Text>
+                      (() => {
+                        const bf = firstDish((plan as any).breakfast);
+                        const lu = firstDish((plan as any).lunch);
+                        const dn = firstDish((plan as any).dinner);
+                        const imgA = bf ?? lu ?? dn;
+                        const imgB = lu && imgA?.id !== lu.id ? lu : dn && imgA?.id !== dn.id ? dn : null;
+                        return (
+                          <View style={styles.cellMeals}>
+                            <Text style={styles.cellMealText} numberOfLines={2}>
+                              {shortName(bf?.name) || "—"}
+                            </Text>
+                            <View style={styles.cellImgRow}>
+                              {imgA ? (
+                                <FoodAvatar kind="dish" id={imgA.id} category={imgA.category} size={28} />
+                              ) : null}
+                              {imgB ? (
+                                <FoodAvatar kind="dish" id={imgB.id} category={imgB.category} size={28} />
+                              ) : null}
                             </View>
-                          );
-                        })}
-                      </View>
+                            <Text style={styles.cellMealText} numberOfLines={2}>
+                              {shortName(lu?.name) || "—"}
+                            </Text>
+                            <Text style={[styles.cellMealText, styles.cellMealDinner]} numberOfLines={2}>
+                              {shortName(dn?.name) || "—"}
+                            </Text>
+                          </View>
+                        );
+                      })()
                     ) : (
                       <View style={styles.cellEmptyIcon}>
-                        <Ionicons name="add" size={16} color={colors.textMuted} />
+                        <Ionicons name="add" size={18} color={colors.textMuted} />
                       </View>
                     )}
                   </TouchableOpacity>
@@ -520,7 +554,7 @@ const styles = StyleSheet.create({
   statPillValue: { fontSize: 14, fontWeight: "800", color: colors.textPrimary },
   statPillLabel: { fontSize: 10, color: colors.textMuted, fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  body: { padding: spacing.m },
+  body: { padding: 0 },
   captureWrap: {
     backgroundColor: colors.riceWhite,
     borderRadius: radius.l,
@@ -564,26 +598,31 @@ const styles = StyleSheet.create({
   weekHead: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 4,
+    paddingVertical: 9,
+    borderWidth: 1,
+    borderColor: "#C9C3AE",
   },
+  weekHeadSun: { backgroundColor: "#F6DBD2" },
+  weekHeadWk: { backgroundColor: "#DCE9D2" },
+  weekHeadSat: { backgroundColor: "#D6E2F2" },
   weekHeadText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: colors.textMuted,
+    fontSize: 14.5,
+    fontWeight: "800",
+    color: colors.textPrimary,
     letterSpacing: 0.4,
   },
   grid: { flexDirection: "row", flexWrap: "wrap" },
   cell: {
     width: `${100 / 7}%`,
-    aspectRatio: 0.62,
-    padding: 4,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    minHeight: 168,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: "#C9C3AE",
     backgroundColor: colors.surface,
   },
   cellBlank: {
     width: `${100 / 7}%`,
-    aspectRatio: 0.62,
+    minHeight: 168,
   },
   cellEmpty: {
     backgroundColor: colors.surfaceSoft,
@@ -602,7 +641,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cellDay: {
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: "800",
     color: colors.textPrimary,
   },
@@ -612,7 +651,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: colors.turmeric,
   },
-  cellMeals: { flex: 1, justifyContent: "center", marginTop: 3 },
+  cellMeals: { flex: 1, justifyContent: "space-evenly", alignItems: "center", marginTop: 2 },
   cellMealRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -620,9 +659,18 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   cellMealText: {
-    fontSize: 10,
-    color: colors.textSecondary,
-    flex: 1,
+    fontSize: 11,
+    lineHeight: 13.5,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+  cellMealDinner: { color: colors.textSecondary, fontWeight: "700" },
+  cellImgRow: {
+    flexDirection: "row",
+    gap: 3,
+    marginVertical: 2,
+    justifyContent: "center",
   },
   cellEmptyIcon: {
     flex: 1,

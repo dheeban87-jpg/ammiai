@@ -16,6 +16,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
+import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { GROUP_ORDER, groupFor, iconFor } from "@/src/ingredient-icons";
@@ -40,6 +41,7 @@ const FRESHNESS_LABEL: Record<string, string> = {
 type FilterKey = "all" | "expiring" | "pantry" | "fridge";
 
 export default function PantryScreen() {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [items, setItems] = useState<PantryItem[]>([]);
@@ -146,8 +148,8 @@ export default function PantryScreen() {
   return (
     <View style={styles.screen} testID="pantry-screen">
       <AppHeader
-        title="Pantry"
-        subtitleTa="சாமான் அறை"
+        title={t("pantry.title")}
+        subtitleTa={t("pantry.subtitle")}
         right={
           <TouchableOpacity
             testID="pantry-add-btn"

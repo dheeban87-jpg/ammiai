@@ -370,8 +370,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
   body: { padding: spacing.m, paddingBottom: spacing.xl },
   iconBtn: {
-    width: 34,
-    height: 34,
+    width: 42,
+    height: 42,
     borderRadius: radius.pill,
     backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 6,
   },
-  pillLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  pillLabel: { fontSize: 12.5, color: colors.textMuted, marginTop: 2 },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: spacing.s,
   },
-  linkText: { fontSize: 12, color: colors.bananaLeaf, fontWeight: "700" },
+  linkText: { fontSize: 13.5, color: colors.bananaLeaf, fontWeight: "700" },
   center: { alignItems: "center", padding: spacing.l },
   emptyCard: {
     backgroundColor: colors.surface,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   expTitle: { fontSize: 15, fontWeight: "600", color: colors.textPrimary },
-  expSub: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  expSub: { fontSize: 13.5, color: colors.textMuted, marginTop: 2 },
   expDays: { fontSize: 13, fontWeight: "700" },
   rescueCard: {
     backgroundColor: `${colors.turmeric}10`,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   },
   rescueHeader: { flexDirection: "row", alignItems: "center", gap: 6 },
   rescueTitle: { fontWeight: "700", color: colors.turmeric, fontSize: 13 },
-  rescueHint: { color: colors.textSecondary, fontSize: 12, marginVertical: 6 },
+  rescueHint: { color: colors.textSecondary, fontSize: 13.5, marginVertical: 6 },
   rescueScroll: { gap: 8, paddingVertical: 4 },
   dishChipCard: {
     width: 160,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   dishChipMeta: { marginTop: 6 },
-  dishChipMetaText: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  dishChipMetaText: { fontSize: 12.5, color: colors.textMuted, marginTop: 4 },
   profileCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.m,
@@ -524,5 +524,5 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
   },
-  footerHintText: { fontSize: 12, color: colors.textMuted },
+  footerHintText: { fontSize: 13, color: colors.textMuted },
 });

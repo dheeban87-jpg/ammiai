@@ -4,6 +4,7 @@
 // this component already exposes the hook for it.
 import React, { createContext, useContext, useMemo, useRef, useState } from "react";
 import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VideoView, useVideoPlayer } from "expo-video";
 
 import { colors, fonts, radius, spacing } from "@/src/theme";
@@ -82,6 +83,7 @@ function pick(mood: CharmerMood): string {
 }
 
 export function CharmerProvider({ children }: { children: React.ReactNode }) {
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
   const [mood, setMood] = useState<CharmerMood>("idle");
   const [line, setLine] = useState<string>(LINES.idle[0]);
@@ -116,7 +118,7 @@ export function CharmerProvider({ children }: { children: React.ReactNode }) {
 
       {/* Floating Captain button */}
       <PressableScale
-        style={styles.fab}
+        style={[styles.fab, { bottom: 66 + insets.bottom }]}
         onPress={() => api.show(badge.current ? "whistle" : "idle")}
         testID="charmer-fab"
       >
@@ -157,7 +159,6 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: spacing.l,
-    bottom: 96,
     width: 58,
     height: 58,
     borderRadius: 29,

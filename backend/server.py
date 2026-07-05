@@ -927,6 +927,151 @@ async def plan_swap(payload: SwapIn, current=Depends(get_current_user)):
     return saved
 
 
+class RemoveDishIn(BaseModel):
+    date: str
+    meal: str
+    recipe_id: str
+
+
+@api_router.post("/plan/remove-dish")
+async def plan_remove_dish(payload: RemoveDishIn, current=Depends(get_current_user)):
+    """Let the user delete a dish from a meal slot outright (no replacement)."""
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}, {"_id": 0}
+    )
+    if not doc or payload.meal not in doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    meal = doc[payload.meal]
+    items = meal.get("items", [])
+    new_items = [
+        it for it in items
+        if not (it.get("id") == payload.recipe_id and not it.get("static"))
+    ]
+    if len(new_items) == len(items):
+        raise HTTPException(status_code=404, detail="Dish not found or is a fixed base")
+    meal["items"] = new_items
+    from meal_engine import meal_status, sum_nutrition
+
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    tpl = meal.get("template", payload.meal)
+    meal.update(meal_status(new_items, tpl, rules))
+    doc[payload.meal] = meal
+    all_items = doc["breakfast"]["items"] + doc["lunch"]["items"] + doc["dinner"]["items"]
+    totals = sum_nutrition(all_items)
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    targets = daily_targets(rules, profile)
+    doc["day_totals"] = totals
+    doc["day_targets"] = targets
+    doc["rings"] = {
+        "kcal": min(1.0, round(totals["kcal"] / max(1, targets["kcal"]), 3)),
+        "protein_g": min(1.0, round(totals["protein_g"] / max(1, targets["protein_g"]), 3)),
+        "fiber_g": min(1.0, round(totals["fiber_g"] / max(1, targets["fiber_g"]), 3)),
+    }
+    doc["manual_edits"] = doc.get("manual_edits", 0) + 1
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": payload.date}, doc, upsert=True
+    )
+    return _clean(await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}
+    ))
+
+
+class AddDishIn(BaseModel):
+    date: str
+    meal: str
+    recipe_id: str
+
+
+@api_router.get("/plan/add-dish-options")
+async def plan_add_dish_options(
+    date: str,
+    meal: str,
+    q: Optional[str] = None,
+    current=Depends(get_current_user),
+):
+    """Searchable list of dishes a user can manually add to a meal slot."""
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    diet = profile.get("diet", "veg")
+    allergies = set(profile.get("allergies", []) or [])
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(1000)
+    ctx = await _build_context(current["user_id"])
+    pantry_have = ctx.pantry.have if hasattr(ctx, "pantry") else set()
+
+    def diet_ok(r):
+        if diet == "veg":
+            return r.get("diet") in ("veg",)
+        if diet == "egg":
+            return r.get("diet") in ("veg", "egg")
+        return True
+
+    def allergy_ok(r):
+        ids = {i.get("ingredient_id") for i in r.get("ingredients", [])}
+        return not (ids & allergies)
+
+    out = []
+    ql = (q or "").strip().lower()
+    for r in recipes:
+        if not diet_ok(r) or not allergy_ok(r):
+            continue
+        if ql and ql not in r.get("name_en", "").lower() and ql not in r.get("name_ta", "").lower():
+            continue
+        req = [i["ingredient_id"] for i in r.get("ingredients", []) if i["ingredient_id"] not in STAPLE_ALWAYS]
+        have_n = sum(1 for i in req if i in pantry_have)
+        out.append({
+            **r,
+            "_score": {
+                "pantry_ratio": (have_n / len(req)) if req else 1.0,
+                "zero_shop": bool(req) and have_n == len(req),
+            },
+        })
+    out.sort(key=lambda r: (-r["_score"]["pantry_ratio"], r["name_en"]))
+    return {"options": out[:40]}
+
+
+@api_router.post("/plan/add-dish")
+async def plan_add_dish(payload: AddDishIn, current=Depends(get_current_user)):
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}, {"_id": 0}
+    )
+    if not doc or payload.meal not in doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    recipe = await db.recipes.find_one({"id": payload.recipe_id}, {"_id": 0})
+    if not recipe:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    meal = doc[payload.meal]
+    items = meal.get("items", [])
+    if any(it.get("id") == payload.recipe_id for it in items):
+        raise HTTPException(status_code=400, detail="Already in this meal")
+    items.append(recipe)
+    meal["items"] = items
+    from meal_engine import meal_status, sum_nutrition
+
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    tpl = meal.get("template", payload.meal)
+    meal.update(meal_status(items, tpl, rules))
+    doc[payload.meal] = meal
+    all_items = doc["breakfast"]["items"] + doc["lunch"]["items"] + doc["dinner"]["items"]
+    totals = sum_nutrition(all_items)
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    targets = daily_targets(rules, profile)
+    doc["day_totals"] = totals
+    doc["day_targets"] = targets
+    doc["rings"] = {
+        "kcal": min(1.0, round(totals["kcal"] / max(1, targets["kcal"]), 3)),
+        "protein_g": min(1.0, round(totals["protein_g"] / max(1, targets["protein_g"]), 3)),
+        "fiber_g": min(1.0, round(totals["fiber_g"] / max(1, targets["fiber_g"]), 3)),
+    }
+    doc["manual_edits"] = doc.get("manual_edits", 0) + 1
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": payload.date}, doc, upsert=True
+    )
+    return _clean(await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": payload.date}
+    ))
+
+
 class BulkGenerateIn(BaseModel):
     start_date: str  # yyyy-mm-dd
     end_date: str    # yyyy-mm-dd (inclusive)
@@ -1211,6 +1356,37 @@ async def grocery_list(
         if c in items_by_cat
     ]
 
+    # Apply user overrides: removed items disappear, manual adds are appended.
+    overrides = await db.grocery_overrides.find_one(
+        {"user_id": current["user_id"]}, {"_id": 0}
+    ) or {"removed": [], "manual": []}
+    removed = set(overrides.get("removed", []))
+    if removed:
+        for g in groups:
+            g["items"] = [it for it in g["items"] if it["ingredient_id"] not in removed]
+        groups = [g for g in groups if g["items"]]
+
+    for m in overrides.get("manual", []):
+        ing = ingredients.get(m["ingredient_id"], {})
+        cat = _grocery_category(ing)
+        price = _price_for(m["ingredient_id"], m["qty"], m["unit"])
+        row = {
+            "ingredient_id": m["ingredient_id"],
+            "name": ing.get("name", m["ingredient_id"].replace("_", " ").title()),
+            "category": cat,
+            "qty": m["qty"],
+            "unit": m["unit"],
+            "estimated_inr": round(price, 2) if price else None,
+            "manual": True,
+        }
+        if price:
+            total_estimated_inr += price
+        target = next((g for g in groups if g["category"] == cat), None)
+        if target:
+            target["items"].append(row)
+        else:
+            groups.append({"category": cat, "items": [row]})
+
     return {
         "start_date": start.isoformat(),
         "end_date": end.isoformat(),
@@ -1220,6 +1396,64 @@ async def grocery_list(
         "total_items": sum(len(g["items"]) for g in groups),
         "total_estimated_inr": round(total_estimated_inr, 2),
     }
+
+
+class GroceryRemoveIn(BaseModel):
+    ingredient_id: str
+
+
+@api_router.post("/grocery/remove-item")
+async def grocery_remove_item(payload: GroceryRemoveIn, current=Depends(get_current_user)):
+    await db.grocery_overrides.update_one(
+        {"user_id": current["user_id"]},
+        {"$addToSet": {"removed": payload.ingredient_id},
+         "$pull": {"manual": {"ingredient_id": payload.ingredient_id}}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api_router.post("/grocery/restore-item")
+async def grocery_restore_item(payload: GroceryRemoveIn, current=Depends(get_current_user)):
+    await db.grocery_overrides.update_one(
+        {"user_id": current["user_id"]},
+        {"$pull": {"removed": payload.ingredient_id}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+class GroceryAddIn(BaseModel):
+    ingredient_id: str
+    qty: float
+    unit: str = "g"
+
+
+@api_router.post("/grocery/add-item")
+async def grocery_add_item(payload: GroceryAddIn, current=Depends(get_current_user)):
+    ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id}, {"_id": 0})
+    if not ing:
+        raise HTTPException(status_code=404, detail="Unknown ingredient")
+    await db.grocery_overrides.update_one(
+        {"user_id": current["user_id"]},
+        {"$pull": {"manual": {"ingredient_id": payload.ingredient_id}}},
+    )
+    await db.grocery_overrides.update_one(
+        {"user_id": current["user_id"]},
+        {"$push": {"manual": payload.dict()},
+         "$pull": {"removed": payload.ingredient_id}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api_router.get("/grocery/search-ingredients")
+async def grocery_search_ingredients(q: str = "", current=Depends(get_current_user)):
+    ql = q.strip().lower()
+    all_ing = await db.ingredients.find({}, {"_id": 0}).to_list(200)
+    if ql:
+        all_ing = [i for i in all_ing if ql in i["name"].lower() or ql in i["ingredient_id"]]
+    return {"items": sorted(all_ing, key=lambda i: i["name"])[:30]}
 
 
 class OrderPlacedIn(BaseModel):

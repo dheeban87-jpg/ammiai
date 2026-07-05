@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "@/src/theme";
 import { CharmerProvider } from "@/src/components/capt-charmer";
@@ -16,30 +17,35 @@ const TAB_ICON: Record<string, { active: IconName; inactive: IconName }> = {
 };
 
 export default function TabsLayout() {
+  // Respect the device's own gesture-nav / button-nav bar so our tab bar
+  // never sits underneath it (fixes hard-to-tap tabs on gesture-nav phones).
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 10);
+
   return (
     <CharmerProvider>
-    <Tabs
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.bananaLeaf,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarItemStyle: styles.tabItem,
-        tabBarIcon: ({ focused, color, size }) => {
-          const set = TAB_ICON[route.name];
-          if (!set) return null;
-          const name = focused ? set.active : set.inactive;
-          return <Ionicons name={name} size={size ?? 22} color={color} />;
-        },
-      })}
-    >
-      <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="pantry" options={{ title: "Pantry" }} />
-      <Tabs.Screen name="plan" options={{ title: "Plan" }} />
-      <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
-      <Tabs.Screen name="grocery" options={{ title: "Grocery" }} />
-    </Tabs>
+      <Tabs
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: colors.bananaLeaf,
+          tabBarInactiveTintColor: colors.textMuted,
+          tabBarStyle: [styles.tabBar, { height: 58 + bottomPad, paddingBottom: bottomPad }],
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarItemStyle: styles.tabItem,
+          tabBarIcon: ({ focused, color }) => {
+            const set = TAB_ICON[route.name];
+            if (!set) return null;
+            const name = focused ? set.active : set.inactive;
+            return <Ionicons name={name} size={26} color={color} />;
+          },
+        })}
+      >
+        <Tabs.Screen name="index" options={{ title: "Home" }} />
+        <Tabs.Screen name="pantry" options={{ title: "Pantry" }} />
+        <Tabs.Screen name="plan" options={{ title: "Plan" }} />
+        <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
+        <Tabs.Screen name="grocery" options={{ title: "Grocery" }} />
+      </Tabs>
     </CharmerProvider>
   );
 }
@@ -49,16 +55,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
-    height: Platform.OS === "ios" ? 84 : 64,
-    paddingTop: 6,
-    paddingBottom: Platform.OS === "ios" ? 22 : 8,
+    paddingTop: 8,
   },
   tabItem: {
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
+    fontSize: 12.5,
+    fontWeight: "700",
+    marginTop: 3,
   },
 });

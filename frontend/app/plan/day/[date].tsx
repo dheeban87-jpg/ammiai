@@ -13,8 +13,9 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { NutritionRing } from "@/src/components/nutrition-ring";
-import { MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
+import { MealCard, MEAL_META, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
+import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -46,6 +47,10 @@ export default function DayEditScreen() {
   >(null);
   const [swapOptions, setSwapOptions] = useState<MealItem[] | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);
+
+  const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
+  const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
+  const [addBusy, setAddBusy] = useState(false);
 
   const load = useCallback(async () => {
     if (!date) return;
@@ -96,6 +101,62 @@ export default function DayEditScreen() {
       setSwapCtx(null);
     } finally {
       setSwapBusy(false);
+    }
+  };
+
+  const openAddDish = async (meal: Meal["key"]) => {
+    if (!date) return;
+    setAddCtx({ meal, date });
+    setAddOptions(null);
+    try {
+      const r = await api.get<{ options: MealItem[] }>(
+        `/api/plan/add-dish-options?date=${date}&meal=${meal}`,
+      );
+      setAddOptions(r.options);
+    } catch {
+      setAddOptions([]);
+    }
+  };
+
+  const searchAddDish = async (q: string) => {
+    if (!addCtx) return;
+    try {
+      const r = await api.get<{ options: MealItem[] }>(
+        `/api/plan/add-dish-options?date=${addCtx.date}&meal=${addCtx.meal}&q=${encodeURIComponent(q)}`,
+      );
+      setAddOptions(r.options);
+    } catch {
+      /* keep list */
+    }
+  };
+
+  const pickAddDish = async (opt: MealItem) => {
+    if (!addCtx) return;
+    setAddBusy(true);
+    try {
+      const updated = await api.post<Plan>("/api/plan/add-dish", {
+        date: addCtx.date,
+        meal: addCtx.meal,
+        recipe_id: opt.id,
+      });
+      setPlan(updated);
+      setAddCtx(null);
+    } finally {
+      setAddBusy(false);
+    }
+  };
+
+  const removeDish = async (meal: Meal["key"], item: MealItem) => {
+    if (!date) return;
+    try {
+      const updated = await api.post<Plan>("/api/plan/remove-dish", {
+        date,
+        meal,
+        recipe_id: item.id,
+      });
+      setPlan(updated);
+    } catch {
+      /* noop */
     }
   };
 
@@ -229,9 +290,30 @@ export default function DayEditScreen() {
             </View>
           ) : null}
 
-          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} onCooked={(it) => onCooked("breakfast", it)} testIDPrefix="day-breakfast" />
-          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} onCooked={(it) => onCooked("lunch", it)} testIDPrefix="day-lunch" />
-          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} onCooked={(it) => onCooked("dinner", it)} testIDPrefix="day-dinner" />
+          <MealCard
+            meal={plan.breakfast}
+            onSwap={(it) => openSwap("breakfast", it)}
+            onCooked={(it) => onCooked("breakfast", it)}
+            onRemove={(it) => removeDish("breakfast", it)}
+            onAddDish={() => openAddDish("breakfast")}
+            testIDPrefix="day-breakfast"
+          />
+          <MealCard
+            meal={plan.lunch}
+            onSwap={(it) => openSwap("lunch", it)}
+            onCooked={(it) => onCooked("lunch", it)}
+            onRemove={(it) => removeDish("lunch", it)}
+            onAddDish={() => openAddDish("lunch")}
+            testIDPrefix="day-lunch"
+          />
+          <MealCard
+            meal={plan.dinner}
+            onSwap={(it) => openSwap("dinner", it)}
+            onCooked={(it) => onCooked("dinner", it)}
+            onRemove={(it) => removeDish("dinner", it)}
+            onAddDish={() => openAddDish("dinner")}
+            testIDPrefix="day-dinner"
+          />
 
           {error ? (
             <View style={styles.errorBanner}>
@@ -253,6 +335,16 @@ export default function DayEditScreen() {
         onClose={() => setSwapCtx(null)}
         onPick={doSwap}
         busy={swapBusy}
+      />
+
+      <AddDishSheet
+        visible={addCtx != null}
+        mealLabel={addCtx ? MEAL_META[addCtx.meal].title : undefined}
+        options={addOptions}
+        onClose={() => setAddCtx(null)}
+        onPick={pickAddDish}
+        onSearch={searchAddDish}
+        busy={addBusy}
       />
     </View>
   );

@@ -65,13 +65,13 @@ const styles = StyleSheet.create({
   title: {
     color: colors.textOnPrimary,
     fontFamily: fonts.headingBold,
-    fontSize: 26,
-    lineHeight: 30,
+    fontSize: 27,
+    lineHeight: 31,
   },
   subtitleTa: {
     color: "#CDE2CF",
     fontFamily: fonts.bodyTa,
-    fontSize: 14,
+    fontSize: 15,
     marginTop: 2,
   },
 });

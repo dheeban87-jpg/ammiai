@@ -15,9 +15,6 @@ import { api, clearToken, getToken, setToken } from "@/src/api";
 import type { Profile, User } from "@/src/types";
 import { parseAuthCallbackUrl, redactCallbackUrl } from "@/src/utils/parse-callback";
 
-const EMERGENT_SESSION_API =
-  "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data";
-
 type AuthState = {
   status: "loading" | "unauth" | "authed";
   user: User | null;
@@ -67,14 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const processGoogleSessionId = useCallback(
     async (sessionId: string) => {
-      const res = await fetch(EMERGENT_SESSION_API, {
-        headers: { "X-Session-ID": sessionId },
-      });
-      if (!res.ok) throw new Error("Emergent session verification failed");
-      const data = await res.json();
+      // Send the RAW session_id to our backend; the backend performs the
+      // one-and-only Emergent exchange. (Previously the frontend exchanged
+      // it first and forwarded the minted session_token, and the backend
+      // tried to exchange THAT again — Emergent session ids are single-use,
+      // so the second exchange always failed with 401 "Invalid session token".)
       const backendResp = await api.post<{ session_token: string; user: User }>(
         "/api/auth/google/session",
-        { session_token: data.session_token },
+        { session_token: sessionId },
         false,
       );
       await setToken(backendResp.session_token);

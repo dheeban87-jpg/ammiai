@@ -17,6 +17,7 @@ import { AppHeader } from "@/src/components/app-header";
 import { NutritionRing } from "@/src/components/nutrition-ring";
 import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
+import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -50,6 +51,10 @@ export default function PlanScreen() {
   >(null);
   const [swapOptions, setSwapOptions] = useState<MealItem[] | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);
+
+  const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
+  const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
+  const [addBusy, setAddBusy] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMeta, setAiMeta] = useState<{
     source?: "ai" | "fallback";
@@ -196,6 +201,62 @@ export default function PlanScreen() {
     }
   };
 
+  const openAddDish = async (meal: Meal["key"], date: string) => {
+    setAddCtx({ meal, date });
+    setAddOptions(null);
+    try {
+      const r = await api.get<{ options: MealItem[] }>(
+        `/api/plan/add-dish-options?date=${date}&meal=${meal}`,
+      );
+      setAddOptions(r.options);
+    } catch {
+      setAddOptions([]);
+    }
+  };
+
+  const searchAddDish = async (q: string) => {
+    if (!addCtx) return;
+    try {
+      const r = await api.get<{ options: MealItem[] }>(
+        `/api/plan/add-dish-options?date=${addCtx.date}&meal=${addCtx.meal}&q=${encodeURIComponent(q)}`,
+      );
+      setAddOptions(r.options);
+    } catch {
+      /* keep previous list on transient error */
+    }
+  };
+
+  const pickAddDish = async (opt: MealItem) => {
+    if (!addCtx) return;
+    setAddBusy(true);
+    try {
+      const updated = await api.post<Plan>("/api/plan/add-dish", {
+        date: addCtx.date,
+        meal: addCtx.meal,
+        recipe_id: opt.id,
+      });
+      if (mode === "today") setPlan(updated);
+      else loadWeek();
+      setAddCtx(null);
+    } finally {
+      setAddBusy(false);
+    }
+  };
+
+  const removeDish = async (mealKey: Meal["key"], item: MealItem, date: string) => {
+    try {
+      const updated = await api.post<Plan>("/api/plan/remove-dish", {
+        date,
+        meal: mealKey,
+        recipe_id: item.id,
+      });
+      if (mode === "today") setPlan(updated);
+      else loadWeek();
+    } catch {
+      /* noop */
+    }
+  };
+
   const [streakToast, setStreakToast] = useState<string | null>(null);
   const onCooked = async (mealKey: Meal["key"], item: MealItem) => {
     if (!plan) return;
@@ -266,9 +327,30 @@ export default function PlanScreen() {
             </View>
           ) : null}
 
-          <MealCard meal={plan.breakfast} onSwap={(it) => openSwap("breakfast", it)} onCooked={(it) => onCooked("breakfast", it)} testIDPrefix="meal-breakfast" />
-          <MealCard meal={plan.lunch} onSwap={(it) => openSwap("lunch", it)} onCooked={(it) => onCooked("lunch", it)} testIDPrefix="meal-lunch" />
-          <MealCard meal={plan.dinner} onSwap={(it) => openSwap("dinner", it)} onCooked={(it) => onCooked("dinner", it)} testIDPrefix="meal-dinner" />
+          <MealCard
+            meal={plan.breakfast}
+            onSwap={(it) => openSwap("breakfast", it)}
+            onCooked={(it) => onCooked("breakfast", it)}
+            onRemove={(it) => removeDish("breakfast", it, plan.date)}
+            onAddDish={() => openAddDish("breakfast", plan.date)}
+            testIDPrefix="meal-breakfast"
+          />
+          <MealCard
+            meal={plan.lunch}
+            onSwap={(it) => openSwap("lunch", it)}
+            onCooked={(it) => onCooked("lunch", it)}
+            onRemove={(it) => removeDish("lunch", it, plan.date)}
+            onAddDish={() => openAddDish("lunch", plan.date)}
+            testIDPrefix="meal-lunch"
+          />
+          <MealCard
+            meal={plan.dinner}
+            onSwap={(it) => openSwap("dinner", it)}
+            onCooked={(it) => onCooked("dinner", it)}
+            onRemove={(it) => removeDish("dinner", it, plan.date)}
+            onAddDish={() => openAddDish("dinner", plan.date)}
+            testIDPrefix="meal-dinner"
+          />
 
           {error ? (
             <View style={styles.errorBanner} testID="plan-error">
@@ -287,21 +369,19 @@ export default function PlanScreen() {
           }
           ListHeaderComponent={
             <View style={styles.aiHeader} testID="ai-week-header">
-              <View style={styles.aiHeaderTextWrap}>
-                <View style={styles.aiHeaderTitleRow}>
-                  <Ionicons name="sparkles" size={16} color={colors.turmeric} />
-                  <Text style={styles.aiHeaderTitle}>
-                    {aiMeta?.source === "ai"
-                      ? "AI-personalised week"
-                      : "Personalise this week"}
-                  </Text>
-                </View>
-                <Text style={styles.aiHeaderSub}>
+              <View style={styles.aiHeaderTitleRow}>
+                <Ionicons name="sparkles" size={18} color={colors.turmeric} />
+                <Text style={styles.aiHeaderTitle}>
                   {aiMeta?.source === "ai"
-                    ? "Claude Sonnet picked and ordered your week from your pantry."
-                    : "Let AmmiAI pick the best week from your pantry + favourites."}
+                    ? "AI-personalised week"
+                    : "Personalise this week"}
                 </Text>
               </View>
+              <Text style={styles.aiHeaderSub}>
+                {aiMeta?.source === "ai"
+                  ? "Claude Sonnet picked and ordered your week from your pantry."
+                  : "Let AmmiAI pick the best week from your pantry + favourites."}
+              </Text>
               <TouchableOpacity
                 testID="ai-personalise-btn"
                 onPress={personalizeWithAi}
@@ -313,9 +393,9 @@ export default function PlanScreen() {
                   <ActivityIndicator color={colors.riceWhite} />
                 ) : (
                   <>
-                    <Ionicons name="sparkles" size={14} color={colors.riceWhite} />
+                    <Ionicons name="sparkles" size={16} color={colors.riceWhite} />
                     <Text style={styles.aiHeaderBtnText}>
-                      {aiMeta?.source === "ai" ? "Re-run" : "Personalise"}
+                      {aiMeta?.source === "ai" ? "Re-run AI" : "Personalise with AI"}
                     </Text>
                   </>
                 )}
@@ -365,6 +445,16 @@ export default function PlanScreen() {
         onPick={doSwap}
         busy={swapBusy}
         violations={plan?.violations ?? null}
+      />
+
+      <AddDishSheet
+        visible={addCtx != null}
+        mealLabel={addCtx ? MEAL_META[addCtx.meal].title : undefined}
+        options={addOptions}
+        onClose={() => setAddCtx(null)}
+        onPick={pickAddDish}
+        onSearch={searchAddDish}
+        busy={addBusy}
       />
 
       {streakToast ? (
@@ -473,9 +563,9 @@ const styles = StyleSheet.create({
     padding: 4,
     borderRadius: radius.pill,
   },
-  segBtn: { flex: 1, paddingVertical: 8, borderRadius: radius.pill, alignItems: "center" },
+  segBtn: { flex: 1, minHeight: 46, justifyContent: "center", borderRadius: radius.pill, alignItems: "center" },
   segBtnActive: { backgroundColor: colors.bananaLeaf },
-  segText: { fontSize: 13, fontWeight: "700", color: colors.textSecondary },
+  segText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
   body: { padding: spacing.m },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   ringsCard: {
@@ -505,9 +595,6 @@ const styles = StyleSheet.create({
   },
   guardText: { color: colors.turmeric, flex: 1, fontSize: 12, fontWeight: "600" },
   aiHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.s,
     backgroundColor: `${colors.turmeric}12`,
     borderColor: `${colors.turmeric}55`,
     borderWidth: 1,
@@ -516,28 +603,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
   },
   aiHeaderTextWrap: { flex: 1 },
-  aiHeaderTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  aiHeaderTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   aiHeaderTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "800",
     color: colors.textPrimary,
   },
   aiHeaderSub: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
-    marginTop: 2,
-    lineHeight: 16,
+    marginTop: 4,
+    lineHeight: 18,
   },
   aiHeaderBtn: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 48,
     backgroundColor: colors.bananaLeaf,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    marginTop: spacing.m,
     borderRadius: radius.pill,
   },
-  aiHeaderBtnText: { color: colors.riceWhite, fontWeight: "800", fontSize: 12 },
+  aiHeaderBtnText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
   aiReasonCard: {
     flexDirection: "row",
     gap: 8,

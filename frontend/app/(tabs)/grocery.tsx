@@ -9,10 +9,11 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import { useFocusEffect } from "expo-router";
@@ -21,7 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppHeader } from "@/src/components/app-header";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
-import { iconFor } from "@/src/ingredient-icons";
+import { FoodAvatar } from "@/src/food-visual";
 
 type GroceryItem = {
   ingredient_id: string;
@@ -84,6 +85,11 @@ export default function GroceryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [addItemVisible, setAddItemVisible] = useState(false);
+  const [addQuery, setAddQuery] = useState("");
+  const [addResults, setAddResults] = useState<
+    { ingredient_id: string; name: string; category: string }[] | null
+  >(null);
   const [orderModal, setOrderModal] = useState<OrderVendor | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -93,7 +99,9 @@ export default function GroceryScreen() {
     try {
       const d = await api.get<GroceryList>(`/api/grocery/list?days=${days}`);
       setData(d);
-      setChecked(new Set());
+      // Default: every item pre-selected — the whole list is "what you need".
+      // Unchecking = "I'll skip this one" / already sorted elsewhere.
+      setChecked(new Set(d.groups.flatMap((g) => g.items.map((it) => it.ingredient_id))));
     } catch (e: any) {
       setError(e?.message ?? "Couldn't load list");
     } finally {
@@ -114,15 +122,22 @@ export default function GroceryScreen() {
     load();
   };
 
-  const remaining = useMemo(() => {
+  const selected = useMemo(() => {
     if (!data) return [] as GroceryItem[];
-    return data.groups.flatMap((g) => g.items).filter((it) => !checked.has(it.ingredient_id));
+    return data.groups.flatMap((g) => g.items).filter((it) => checked.has(it.ingredient_id));
   }, [data, checked]);
 
-  const remainingCost = useMemo(
-    () => remaining.reduce((sum, it) => sum + (it.estimated_inr ?? 0), 0),
-    [remaining],
+  const selectedCost = useMemo(
+    () => selected.reduce((sum, it) => sum + (it.estimated_inr ?? 0), 0),
+    [selected],
   );
+
+  const allIds = useMemo(
+    () => (data ? data.groups.flatMap((g) => g.items.map((it) => it.ingredient_id)) : []),
+    [data],
+  );
+  const selectAll = () => setChecked(new Set(allIds));
+  const clearAll = () => setChecked(new Set());
 
   const toggle = (id: string) => {
     setChecked((prev) => {
@@ -133,16 +148,59 @@ export default function GroceryScreen() {
     });
   };
 
+  const removeItemPermanently = async (id: string) => {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    try {
+      await api.post("/api/grocery/remove-item", { ingredient_id: id });
+      await load();
+      setToast("Removed from list");
+      setTimeout(() => setToast(null), 2000);
+    } catch {
+      /* noop */
+    }
+  };
+
+  const searchAddItem = async (q: string) => {
+    setAddQuery(q);
+    try {
+      const r = await api.get<{ items: { ingredient_id: string; name: string; category: string }[] }>(
+        `/api/grocery/search-ingredients?q=${encodeURIComponent(q)}`,
+      );
+      setAddResults(r.items);
+    } catch {
+      setAddResults([]);
+    }
+  };
+
+  const addManualItem = async (item: { ingredient_id: string; name: string }) => {
+    try {
+      await api.post("/api/grocery/add-item", { ingredient_id: item.ingredient_id, qty: 100, unit: "g" });
+      setAddItemVisible(false);
+      setAddQuery("");
+      setAddResults(null);
+      await load();
+      setChecked((prev) => new Set(prev).add(item.ingredient_id));
+      setToast(`${item.name} added to list`);
+      setTimeout(() => setToast(null), 2000);
+    } catch {
+      setToast("Couldn't add item");
+    }
+  };
+
   const listAsText = useMemo(() => {
     if (!data) return "";
     const lines: string[] = [
       `🛒 AmmiAI Shopping List`,
       `${data.days_covered} days · ${data.household_size} people`,
-      `${remaining.length} items · ₹${Math.round(remainingCost)} est.`,
+      `${selected.length} items · ₹${Math.round(selectedCost)} est.`,
       "",
     ];
     for (const g of data.groups) {
-      const items = g.items.filter((it) => !checked.has(it.ingredient_id));
+      const items = g.items.filter((it) => checked.has(it.ingredient_id));
       if (!items.length) continue;
       lines.push(`— ${g.category} —`);
       for (const it of items) {
@@ -152,7 +210,7 @@ export default function GroceryScreen() {
     }
     lines.push("Made with AmmiAI 🌿");
     return lines.join("\n");
-  }, [data, remaining, checked, remainingCost]);
+  }, [data, selected, checked, selectedCost]);
 
   const copyList = async () => {
     try {
@@ -184,7 +242,11 @@ export default function GroceryScreen() {
   };
 
   const openOrder = (vendor: OrderVendor) => {
-    if (!data || remaining.length === 0) return;
+    if (!data || selected.length === 0) {
+      setToast("Select at least one item first");
+      setTimeout(() => setToast(null), 2200);
+      return;
+    }
     setOrderModal(vendor);
   };
 
@@ -198,7 +260,7 @@ export default function GroceryScreen() {
   };
 
   const openOrderAll = (vendor: OrderVendor) => {
-    for (const it of remaining) {
+    for (const it of selected) {
       openVendorItem(vendor, it.name);
     }
     setOrderModal(null);
@@ -211,14 +273,14 @@ export default function GroceryScreen() {
     setBusy(true);
     try {
       await api.post("/api/grocery/order-placed", {
-        items: remaining.map((it) => ({
+        items: selected.map((it) => ({
           ingredient_id: it.ingredient_id,
           qty: it.qty,
           unit: it.unit,
         })),
       });
       setConfirmVisible(false);
-      setToast(`${remaining.length} items added to pantry`);
+      setToast(`${selected.length} items added to pantry`);
       setTimeout(() => setToast(null), 3000);
       await load(); // list will now be empty
     } finally {
@@ -237,7 +299,7 @@ export default function GroceryScreen() {
           data && data.total_items > 0 ? (
             <View style={styles.headerBadge}>
               <Text style={styles.headerBadgeText}>
-                ₹{Math.round(remainingCost)}
+                ₹{Math.round(selectedCost)}
               </Text>
             </View>
           ) : null
@@ -290,8 +352,8 @@ export default function GroceryScreen() {
         >
           <View style={styles.summary} testID="grocery-summary">
             <View style={styles.summaryItem}>
-              <Text style={styles.summaryValue}>{remaining.length}</Text>
-              <Text style={styles.summaryLabel}>items</Text>
+              <Text style={styles.summaryValue}>{selected.length}</Text>
+              <Text style={styles.summaryLabel}>selected</Text>
             </View>
             <View style={styles.summarySep} />
             <View style={styles.summaryItem}>
@@ -306,10 +368,30 @@ export default function GroceryScreen() {
             <View style={styles.summarySep} />
             <View style={styles.summaryItem}>
               <Text style={[styles.summaryValue, { color: colors.chili }]}>
-                ₹{Math.round(remainingCost)}
+                ₹{Math.round(selectedCost)}
               </Text>
               <Text style={styles.summaryLabel}>est.</Text>
             </View>
+          </View>
+
+          <View style={styles.toolRow}>
+            <TouchableOpacity style={styles.toolBtn} onPress={selectAll} testID="grocery-select-all" hitSlop={8}>
+              <Ionicons name="checkmark-done-outline" size={16} color={colors.bananaLeaf} />
+              <Text style={styles.toolBtnText}>Select all</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.toolBtn} onPress={clearAll} testID="grocery-clear-all" hitSlop={8}>
+              <Ionicons name="close-circle-outline" size={16} color={colors.textMuted} />
+              <Text style={[styles.toolBtnText, { color: colors.textMuted }]}>Clear</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolBtn, styles.toolBtnAdd]}
+              onPress={() => setAddItemVisible(true)}
+              testID="grocery-add-item"
+              hitSlop={8}
+            >
+              <Ionicons name="add" size={18} color={colors.riceWhite} />
+              <Text style={[styles.toolBtnText, { color: colors.riceWhite }]}>Add item</Text>
+            </TouchableOpacity>
           </View>
 
           {data?.groups.map((g) => (
@@ -323,47 +405,59 @@ export default function GroceryScreen() {
               {g.items.map((it) => {
                 const on = checked.has(it.ingredient_id);
                 return (
-                  <TouchableOpacity
-                    key={it.ingredient_id}
-                    testID={`grocery-row-${it.ingredient_id}`}
-                    style={styles.row}
-                    onPress={() => toggle(it.ingredient_id)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.checkbox, on && styles.checkboxOn]}>
-                      {on ? <Ionicons name="checkmark" size={14} color={colors.riceWhite} /> : null}
-                    </View>
-                    <MaterialCommunityIcons
-                      name={iconFor(it.ingredient_id, it.category)}
-                      size={20}
-                      color={on ? colors.textMuted : colors.bananaLeaf}
-                      style={{ marginHorizontal: 6 }}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={[
-                          styles.rowName,
-                          on && { textDecorationLine: "line-through", color: colors.textMuted },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {it.name}
-                      </Text>
-                      <Text style={styles.rowSub}>
-                        {it.qty} {it.unit}
-                        {it.have_base > 0
-                          ? `  · have ${it.have_base} ${it.base_unit}`
-                          : ""}
-                      </Text>
-                    </View>
-                    {it.estimated_inr != null ? (
-                      <Text style={[styles.rowPrice, on && { color: colors.textMuted }]}>
-                        ₹{Math.round(it.estimated_inr)}
-                      </Text>
-                    ) : (
-                      <Text style={styles.rowPriceMuted}>—</Text>
-                    )}
-                  </TouchableOpacity>
+                  <View key={it.ingredient_id} style={styles.rowWrap}>
+                    <TouchableOpacity
+                      testID={`grocery-row-${it.ingredient_id}`}
+                      style={styles.row}
+                      onPress={() => toggle(it.ingredient_id)}
+                      activeOpacity={0.7}
+                      hitSlop={4}
+                    >
+                      <View style={[styles.checkbox, on && styles.checkboxOn]}>
+                        {on ? <Ionicons name="checkmark" size={18} color={colors.riceWhite} /> : null}
+                      </View>
+                      <FoodAvatar
+                        kind="ingredient"
+                        id={it.ingredient_id}
+                        category={it.category}
+                        size={40}
+                        style={{ marginHorizontal: 10 }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.rowName,
+                            !on && { color: colors.textMuted },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {it.name}
+                        </Text>
+                        <Text style={styles.rowSub}>
+                          {it.qty} {it.unit}
+                          {it.have_base > 0
+                            ? `  · have ${it.have_base} ${it.base_unit}`
+                            : ""}
+                          {(it as any).manual ? "  · added by you" : ""}
+                        </Text>
+                      </View>
+                      {it.estimated_inr != null ? (
+                        <Text style={[styles.rowPrice, !on && { color: colors.textMuted }]}>
+                          ₹{Math.round(it.estimated_inr)}
+                        </Text>
+                      ) : (
+                        <Text style={styles.rowPriceMuted}>—</Text>
+                      )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      testID={`grocery-remove-${it.ingredient_id}`}
+                      style={styles.rowRemoveBtn}
+                      onPress={() => removeItemPermanently(it.ingredient_id)}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
@@ -395,19 +489,24 @@ export default function GroceryScreen() {
           <View style={styles.vendorRow}>
             {(Object.keys(VENDOR_META) as OrderVendor[]).map((v) => {
               const m = VENDOR_META[v];
+              const disabled = selected.length === 0;
               return (
                 <TouchableOpacity
                   key={v}
                   testID={`order-${v}`}
-                  style={[styles.vendorBtn, { backgroundColor: m.color }]}
+                  style={[styles.vendorBtn, { backgroundColor: m.color }, disabled && styles.vendorBtnDisabled]}
                   onPress={() => openOrder(v)}
+                  disabled={disabled}
                 >
-                  <Ionicons name={m.icon} size={16} color="#111" />
+                  <Ionicons name={m.icon} size={18} color="#111" />
                   <Text style={styles.vendorBtnText}>{m.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
+          {selected.length === 0 ? (
+            <Text style={styles.selectHint}>Select items above to enable ordering</Text>
+          ) : null}
         </View>
       ) : null}
 
@@ -432,27 +531,24 @@ export default function GroceryScreen() {
                   onPress={() => openOrderAll(orderModal)}
                 >
                   <Text style={styles.orderAllText}>
-                    Open {remaining.length} items on {VENDOR_META[orderModal].label}
+                    Open {selected.length} items on {VENDOR_META[orderModal].label}
                   </Text>
                 </TouchableOpacity>
                 <Text style={styles.modalHint}>Or open one at a time:</Text>
                 <ScrollView style={{ maxHeight: 260 }}>
-                  {remaining.map((it) => (
+                  {selected.map((it) => (
                     <TouchableOpacity
                       key={it.ingredient_id}
                       style={styles.singleItem}
                       onPress={() => openVendorItem(orderModal, it.name)}
+                      hitSlop={6}
                     >
-                      <MaterialCommunityIcons
-                        name={iconFor(it.ingredient_id, it.category)}
-                        size={16}
-                        color={colors.bananaLeaf}
-                      />
+                      <FoodAvatar kind="ingredient" id={it.ingredient_id} category={it.category} size={30} />
                       <Text style={styles.singleItemName}>{it.name}</Text>
                       <Text style={styles.singleItemQty}>
                         {it.qty} {it.unit}
                       </Text>
-                      <Ionicons name="open-outline" size={14} color={colors.textMuted} />
+                      <Ionicons name="open-outline" size={16} color={colors.textMuted} />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -477,7 +573,7 @@ export default function GroceryScreen() {
             </View>
             <Text style={styles.confirmTitle}>Order placed?</Text>
             <Text style={styles.confirmSub}>
-              We&apos;ll bulk-add {remaining.length} items to your pantry with today&apos;s date and default storage.
+              We&apos;ll bulk-add {selected.length} items to your pantry with today&apos;s date and default storage.
             </Text>
             <View style={styles.confirmRow}>
               <TouchableOpacity
@@ -500,6 +596,56 @@ export default function GroceryScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Add item search modal */}
+      <Modal visible={addItemVisible} transparent animationType="fade" onRequestClose={() => setAddItemVisible(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setAddItemVisible(false)}>
+          <Pressable
+            style={[styles.modalCard, { paddingBottom: insets.bottom + spacing.m, maxHeight: "80%" }]}
+            onPress={(e) => e.stopPropagation()}
+            testID="add-item-sheet"
+          >
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Add an item</Text>
+            <Text style={styles.modalSub}>Search any of our 98 tracked ingredients to add to this list</Text>
+            <View style={styles.addSearchWrap}>
+              <Ionicons name="search" size={18} color={colors.textMuted} />
+              <TextInput
+                value={addQuery}
+                onChangeText={searchAddItem}
+                placeholder="Search ingredient…"
+                placeholderTextColor={colors.textMuted}
+                style={styles.addSearchInput}
+                testID="add-item-search"
+                autoFocus
+              />
+            </View>
+            <ScrollView style={{ maxHeight: 360 }}>
+              {addResults === null ? null : addResults.length === 0 ? (
+                <Text style={{ color: colors.textMuted, textAlign: "center", padding: spacing.l }}>
+                  {addQuery ? `No match for "${addQuery}"` : "Type to search"}
+                </Text>
+              ) : (
+                addResults.map((r) => (
+                  <TouchableOpacity
+                    key={r.ingredient_id}
+                    style={styles.addResultRow}
+                    onPress={() => addManualItem(r)}
+                    testID={`add-item-result-${r.ingredient_id}`}
+                  >
+                    <FoodAvatar kind="ingredient" id={r.ingredient_id} category={r.category} size={38} style={{ marginRight: 10 }} />
+                    <Text style={styles.addResultName}>{r.name}</Text>
+                    <Ionicons name="add-circle" size={24} color={colors.bananaLeaf} />
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => setAddItemVisible(false)}>
+              <Text style={styles.cancelText}>Close</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -546,12 +692,13 @@ const styles = StyleSheet.create({
   },
   segBtn: {
     flex: 1,
-    paddingVertical: 8,
+    minHeight: 46,
+    justifyContent: "center",
     borderRadius: radius.pill,
     alignItems: "center",
   },
   segBtnActive: { backgroundColor: colors.bananaLeaf },
-  segText: { fontSize: 13, fontWeight: "700", color: colors.textSecondary },
+  segText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   emptyWrap: { padding: spacing.l, alignItems: "center", flexGrow: 1, justifyContent: "center" },
   emptyIcon: {
@@ -619,16 +766,38 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: "700",
   },
-  row: {
+  toolRow: { flexDirection: "row", gap: 8, marginBottom: spacing.m },
+  toolBtn: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    gap: 5,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    backgroundColor: `${colors.bananaLeaf}12`,
+  },
+  toolBtnAdd: { flex: 1, justifyContent: "center", backgroundColor: colors.bananaLeaf },
+  toolBtnText: { fontSize: 13, fontWeight: "700", color: colors.bananaLeaf },
+  rowWrap: { flexDirection: "row", alignItems: "center" },
+  row: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 68,
+    paddingVertical: 12,
     paddingHorizontal: spacing.m,
   },
+  rowRemoveBtn: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
+  },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
     borderWidth: 2,
     borderColor: colors.border,
     alignItems: "center",
@@ -638,6 +807,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bananaLeaf,
     borderColor: colors.bananaLeaf,
   },
+  selectHint: {
+    textAlign: "center",
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 6,
+  },
+  vendorBtnDisabled: { opacity: 0.35 },
+  addSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: radius.m,
+    backgroundColor: colors.surfaceSoft,
+    marginBottom: spacing.m,
+  },
+  addSearchInput: { flex: 1, fontSize: 15, color: colors.textPrimary, paddingVertical: 10 },
+  addResultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: 60,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  addResultName: { flex: 1, fontSize: 15, fontWeight: "600", color: colors.textPrimary },
   rowName: { fontSize: 14, fontWeight: "600", color: colors.textPrimary },
   rowSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   rowPrice: { fontFamily: fonts.headingEn, fontSize: 15, color: colors.bananaLeafDark },
@@ -661,11 +857,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 10,
+    minHeight: 46,
     borderRadius: radius.pill,
     backgroundColor: `${colors.bananaLeaf}12`,
   },
-  utilityText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 13 },
+  utilityText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
   vendorRow: { flexDirection: "row", gap: 6 },
   vendorBtn: {
     flex: 1,
@@ -673,14 +869,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
-    paddingVertical: 12,
+    minHeight: 52,
     borderRadius: radius.m,
     ...shadow.card,
   },
   vendorBtnText: {
     color: "#111",
     fontWeight: "800",
-    fontSize: 13,
+    fontSize: 14,
   },
   modalBackdrop: {
     flex: 1,

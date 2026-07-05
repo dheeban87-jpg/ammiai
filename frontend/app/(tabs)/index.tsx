@@ -370,8 +370,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
   body: { padding: spacing.m, paddingBottom: spacing.xl },
   iconBtn: {
-    width: 34,
-    height: 34,
+    width: 42,
+    height: 42,
     borderRadius: radius.pill,
     backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",

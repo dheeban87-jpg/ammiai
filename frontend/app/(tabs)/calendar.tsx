@@ -68,12 +68,25 @@ export default function CalendarScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [monthSpend, setMonthSpend] = useState<number | null>(null);
   const shotRef = useRef<any>(null);
 
   const load = useCallback(async () => {
     try {
       const r = await api.get<MonthResp>(`/api/plan/month?year=${year}&month=${month}`);
       setData(r);
+      // Estimated spend for the whole visible month (best-effort; ignore failure)
+      const daysIn = new Date(year, month, 0).getDate();
+      const start = isoDate(year, month, 1);
+      const end = isoDate(year, month, daysIn);
+      try {
+        const g = await api.get<{ total_estimated_inr: number }>(
+          `/api/grocery/list?start_date=${start}&end_date=${end}`,
+        );
+        setMonthSpend(g.total_estimated_inr);
+      } catch {
+        setMonthSpend(null);
+      }
     } catch (e: any) {
       setError(e?.message ?? "Couldn't load month");
     } finally {
@@ -104,6 +117,13 @@ export default function CalendarScreen() {
   }, [data]);
 
   const todayIso = isoDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+  const balancedDays = useMemo(() => {
+    if (!data) return 0;
+    return Object.values(data.plans).filter((p: any) =>
+      p.breakfast?.chip === "balanced" && p.lunch?.chip === "balanced" && p.dinner?.chip === "balanced",
+    ).length;
+  }, [data]);
 
   const planForDate = (date: string): Plan | undefined => data?.plans[date];
 
@@ -240,6 +260,28 @@ export default function CalendarScreen() {
           <Ionicons name="chevron-forward" size={22} color={colors.bananaLeafDark} />
         </TouchableOpacity>
       </View>
+
+      {data ? (
+        <View style={styles.statsStrip} testID="month-stats-strip">
+          <View style={styles.statPill}>
+            <Ionicons name="calendar" size={15} color={colors.bananaLeaf} />
+            <Text style={styles.statPillValue}>{Object.keys(data.plans).length}/{data.days_in_month}</Text>
+            <Text style={styles.statPillLabel}>planned</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Ionicons name="checkmark-circle" size={15} color={colors.bananaLeaf} />
+            <Text style={styles.statPillValue}>{balancedDays}</Text>
+            <Text style={styles.statPillLabel}>balanced</Text>
+          </View>
+          <View style={styles.statPill}>
+            <Ionicons name="wallet" size={15} color={colors.chili} />
+            <Text style={[styles.statPillValue, { color: colors.chili }]}>
+              {monthSpend != null ? `₹${Math.round(monthSpend)}` : "—"}
+            </Text>
+            <Text style={styles.statPillLabel}>est. spend</Text>
+          </View>
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.center}>
@@ -433,7 +475,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   monthBtn: {
-    width: 34, height: 34, alignItems: "center", justifyContent: "center",
+    width: 44, height: 44, alignItems: "center", justifyContent: "center",
     borderRadius: radius.pill,
     backgroundColor: colors.surfaceSoft,
   },
@@ -449,6 +491,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 2,
   },
+  statsStrip: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: spacing.m,
+    paddingVertical: spacing.s,
+    backgroundColor: colors.riceWhite,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  statPill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 4,
+    minHeight: 44,
+    borderRadius: radius.m,
+    backgroundColor: colors.surfaceSoft,
+  },
+  statPillValue: { fontSize: 14, fontWeight: "800", color: colors.textPrimary },
+  statPillLabel: { fontSize: 10, color: colors.textMuted, fontWeight: "600" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   body: { padding: spacing.m },
   captureWrap: {
@@ -505,15 +569,15 @@ const styles = StyleSheet.create({
   grid: { flexDirection: "row", flexWrap: "wrap" },
   cell: {
     width: `${100 / 7}%`,
-    aspectRatio: 0.75,
-    padding: 3,
+    aspectRatio: 0.62,
+    padding: 4,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
   cellBlank: {
     width: `${100 / 7}%`,
-    aspectRatio: 0.75,
+    aspectRatio: 0.62,
   },
   cellEmpty: {
     backgroundColor: colors.surfaceSoft,
@@ -532,25 +596,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cellDay: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 13,
+    fontWeight: "800",
     color: colors.textPrimary,
   },
   todayDot: {
-    width: 5,
-    height: 5,
+    width: 6,
+    height: 6,
     borderRadius: 3,
     backgroundColor: colors.turmeric,
   },
-  cellMeals: { flex: 1, justifyContent: "center", marginTop: 2 },
+  cellMeals: { flex: 1, justifyContent: "center", marginTop: 3 },
   cellMealRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
-    marginBottom: 1,
+    gap: 3,
+    marginBottom: 2,
   },
   cellMealText: {
-    fontSize: 8.5,
+    fontSize: 10,
     color: colors.textSecondary,
     flex: 1,
   },

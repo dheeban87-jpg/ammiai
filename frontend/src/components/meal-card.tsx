@@ -69,15 +69,20 @@ export function MealCard({
   meal,
   onSwap,
   onCooked,
+  onRemove,
+  onAddDish,
   testIDPrefix,
 }: {
   meal: Meal;
   onSwap: (item: MealItem) => void;
   onCooked?: (item: MealItem) => void;
+  onRemove?: (item: MealItem) => void;
+  onAddDish?: () => void;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
   const meta = MEAL_META[meal.key];
+  const isEmpty = meal.items.length === 0 || meal.items.every((it) => it.static);
   return (
     <View style={styles.mealCard} testID={testIDPrefix}>
       <View style={styles.mealHeader}>
@@ -95,6 +100,17 @@ export function MealCard({
           <Text style={[styles.chipTagText, { color: chip.color }]}>{chip.label}</Text>
         </View>
       </View>
+
+      {isEmpty && onAddDish ? (
+        <TouchableOpacity
+          style={styles.emptyState}
+          onPress={onAddDish}
+          testID={`${testIDPrefix}-plan-empty`}
+        >
+          <Ionicons name="add-circle-outline" size={22} color={colors.bananaLeaf} />
+          <Text style={styles.emptyStateText}>Plan this meal — tap to add a dish</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {meal.items.map((it, idx) => (
         <View
@@ -162,25 +178,49 @@ export function MealCard({
                   testID={`${testIDPrefix}-cook-${it.id}`}
                   style={styles.cookBtn}
                   onPress={() => onCooked(it)}
-                  hitSlop={6}
+                  hitSlop={10}
                 >
-                  <Ionicons name="checkmark-circle-outline" size={14} color={colors.chili} />
+                  <Ionicons name="checkmark-circle-outline" size={16} color={colors.chili} />
                   <Text style={styles.cookBtnText}>Cooked</Text>
                 </TouchableOpacity>
               ) : null}
-              <TouchableOpacity
-                testID={`${testIDPrefix}-swap-${it.id}`}
-                style={styles.swapBtn}
-                onPress={() => onSwap(it)}
-                hitSlop={6}
-              >
-                <Ionicons name="swap-horizontal" size={14} color={colors.bananaLeaf} />
-                <Text style={styles.swapBtnText}>Swap</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 6 }}>
+                <TouchableOpacity
+                  testID={`${testIDPrefix}-swap-${it.id}`}
+                  style={styles.swapBtn}
+                  onPress={() => onSwap(it)}
+                  hitSlop={10}
+                >
+                  <Ionicons name="swap-horizontal" size={16} color={colors.bananaLeaf} />
+                  <Text style={styles.swapBtnText}>Swap</Text>
+                </TouchableOpacity>
+                {onRemove ? (
+                  <TouchableOpacity
+                    testID={`${testIDPrefix}-remove-${it.id}`}
+                    style={styles.removeBtn}
+                    onPress={() => onRemove(it)}
+                    hitSlop={10}
+                  >
+                    <Ionicons name="trash-outline" size={16} color={colors.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
           )}
         </View>
       ))}
+
+      {!isEmpty && onAddDish ? (
+        <TouchableOpacity
+          style={styles.addDishBtn}
+          onPress={onAddDish}
+          testID={`${testIDPrefix}-add-dish`}
+          hitSlop={8}
+        >
+          <Ionicons name="add" size={18} color={colors.bananaLeaf} />
+          <Text style={styles.addDishText}>Add dish</Text>
+        </TouchableOpacity>
+      ) : null}
 
       <View style={styles.mealFooter}>
         <NutritionChip label="kcal" value={Math.round(meal.kcal)} tint={colors.bananaLeaf} />
@@ -238,7 +278,8 @@ const styles = StyleSheet.create({
   dishRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    minHeight: 64,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
@@ -255,26 +296,63 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
     borderRadius: radius.pill,
-    backgroundColor: `${colors.bananaLeaf}12`,
+    backgroundColor: `${colors.bananaLeaf}14`,
   },
-  swapBtnText: { fontSize: 12, color: colors.bananaLeaf, fontWeight: "700" },
+  swapBtnText: { fontSize: 13, color: colors.bananaLeaf, fontWeight: "700" },
+  removeBtn: {
+    minWidth: 40,
+    minHeight: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSoft,
+  },
   cookBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    minHeight: 40,
+    paddingVertical: 9,
+    paddingHorizontal: 13,
     borderRadius: radius.pill,
-    backgroundColor: `${colors.chili}12`,
+    backgroundColor: `${colors.chili}14`,
   },
-  cookBtnText: { fontSize: 12, color: colors.chili, fontWeight: "700" },
+  cookBtnText: { fontSize: 13, color: colors.chili, fontWeight: "700" },
   actionsCol: {
     alignItems: "flex-end",
-    gap: 6,
+    gap: 8,
   },
+  emptyState: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 18,
+    marginBottom: spacing.s,
+    borderRadius: radius.m,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: `${colors.bananaLeaf}40`,
+    backgroundColor: `${colors.bananaLeaf}08`,
+  },
+  emptyStateText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
+  addDishBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 44,
+    marginTop: spacing.xs,
+    marginBottom: spacing.s,
+    borderRadius: radius.m,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addDishText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 13 },
   cookedBadge: {
     flexDirection: "row",
     alignItems: "center",

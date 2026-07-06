@@ -943,12 +943,11 @@ async def plan_remove_dish(payload: RemoveDishIn, current=Depends(get_current_us
         raise HTTPException(status_code=404, detail="Plan not found")
     meal = doc[payload.meal]
     items = meal.get("items", [])
-    new_items = [
-        it for it in items
-        if not (it.get("id") == payload.recipe_id and not it.get("static"))
-    ]
+    # User feedback: base items (rice/curd) must also be removable — it's the
+    # user's plate. Any item can be removed by id now.
+    new_items = [it for it in items if it.get("id") != payload.recipe_id]
     if len(new_items) == len(items):
-        raise HTTPException(status_code=404, detail="Dish not found or is a fixed base")
+        raise HTTPException(status_code=404, detail="Dish not found in this meal")
     meal["items"] = new_items
     from meal_engine import meal_status, sum_nutrition
 
@@ -1457,12 +1456,52 @@ async def grocery_search_ingredients(q: str = "", current=Depends(get_current_us
 
 
 class OrderPlacedIn(BaseModel):
-    items: List[Dict[str, Any]]  # each {ingredient_id, qty, unit, storage?}
+    items: List[Dict[str, Any]]  # each {ingredient_id, qty, unit, storage?, paid_inr?}
+    source: Optional[str] = "online"  # "online" | "local_shop"
+    total_paid_inr: Optional[float] = None  # quick single-total entry (optional)
 
 
 @api_router.post("/grocery/order-placed")
 async def grocery_order_placed(payload: OrderPlacedIn, current=Depends(get_current_user)):
     today = _now().date().isoformat()
+    # Purchase log: powers actual-spend vs estimate in weekly/monthly reports.
+    purchase_rows = []
+    for it in payload.items:
+        iid = it.get("ingredient_id")
+        if not iid:
+            continue
+        est = _price_for(iid, float(it.get("qty", 0) or 0), it.get("unit", "g"))
+        paid = it.get("paid_inr")
+        try:
+            paid = round(float(paid), 2) if paid is not None else None
+        except (TypeError, ValueError):
+            paid = None
+        purchase_rows.append({
+            "id": uuid.uuid4().hex,
+            "user_id": current["user_id"],
+            "date": today,
+            "ingredient_id": iid,
+            "qty": it.get("qty"),
+            "unit": it.get("unit"),
+            "estimated_inr": round(est, 2) if est else None,
+            "paid_inr": paid,
+            "source": payload.source or "online",
+            "created_at": _now(),
+        })
+    if purchase_rows:
+        # Quick-total mode: user typed one total instead of per-item prices.
+        # Distribute it across items proportionally to estimates (or evenly).
+        item_paid_sum = sum((p["paid_inr"] or 0) for p in purchase_rows)
+        if payload.total_paid_inr and item_paid_sum == 0:
+            est_sum = sum((p["estimated_inr"] or 0) for p in purchase_rows)
+            for p in purchase_rows:
+                if est_sum > 0:
+                    share = (p["estimated_inr"] or 0) / est_sum
+                else:
+                    share = 1 / len(purchase_rows)
+                p["paid_inr"] = round(payload.total_paid_inr * share, 2)
+                p["paid_is_derived"] = True
+        await db.purchases.insert_many(purchase_rows)
     inserted = []
     ingredients = {
         i["ingredient_id"]: i
@@ -1889,7 +1928,279 @@ async def weekly_report(
         "current_streak": streak.get("current_streak", 0),
         "longest_streak": streak.get("longest_streak", 0),
         "badges": badges,
+        **(await _spend_and_lessons(current["user_id"], start.isoformat(), end.isoformat(),
+                                    waste, waste_inr, consumed_inr)),
     }
+
+
+async def _spend_and_lessons(
+    user_id: str, start_iso: str, end_iso: str,
+    waste: List[Dict[str, Any]], waste_inr: float, consumed_inr: float,
+) -> Dict[str, Any]:
+    """Shared report extras: actual vs estimated spend, utilisation, lessons."""
+    purchases = await db.purchases.find(
+        {"user_id": user_id, "date": {"$gte": start_iso, "$lte": end_iso}},
+        {"_id": 0},
+    ).to_list(1000)
+    actual_spend = round(sum((p.get("paid_inr") or 0) for p in purchases), 2)
+    estimated_spend = round(sum((p.get("estimated_inr") or 0) for p in purchases), 2)
+    local_count = sum(1 for p in purchases if p.get("source") == "local_shop")
+
+    # Utilisation: of the value that left the kitchen, how much was eaten vs binned
+    used_plus_wasted = consumed_inr + waste_inr
+    utilisation_pct = int(round(100 * consumed_inr / used_plus_wasted)) if used_plus_wasted > 0 else None
+
+    # Top wasted ingredients (by ₹) — the raw material for lessons
+    waste_by_ing: Dict[str, float] = {}
+    for w in waste:
+        nm = w.get("name") or w.get("ingredient_id") or "item"
+        waste_by_ing[nm] = waste_by_ing.get(nm, 0) + (w.get("estimated_inr") or 0)
+    top_wasted = sorted(
+        ({"name": k, "inr": round(v, 2)} for k, v in waste_by_ing.items()),
+        key=lambda x: -x["inr"],
+    )[:3]
+
+    # Lessons learnt — plain, actionable sentences
+    lessons: List[str] = []
+    if top_wasted and top_wasted[0]["inr"] > 0:
+        lessons.append(
+            f"{top_wasted[0]['name']} was your biggest waste (₹{top_wasted[0]['inr']:.0f}). "
+            f"Buy a smaller quantity, or plan a dish that uses it within 2 days of purchase."
+        )
+    if actual_spend and estimated_spend:
+        diff = round(actual_spend - estimated_spend, 2)
+        if diff > 10:
+            lessons.append(
+                f"You paid ₹{diff:.0f} above AmmiAI's estimate. Compare local-shop and app prices "
+                f"before buying — estimates are on each grocery item."
+            )
+        elif diff < -10:
+            lessons.append(f"Smart shopping — you paid ₹{-diff:.0f} under estimate. Keep it up.")
+    if utilisation_pct is not None:
+        if utilisation_pct >= 90:
+            lessons.append(f"{utilisation_pct}% of your food value was eaten, not wasted. Excellent kitchen discipline.")
+        elif utilisation_pct < 70:
+            lessons.append(
+                f"Only {utilisation_pct}% of food value was used. Check 'Expiring soon' daily and cook those first."
+            )
+    if not lessons:
+        lessons.append("Clean week — nothing to correct. Carry on, soldier.")
+
+    return {
+        "actual_spend_inr": actual_spend or None,
+        "estimated_spend_inr": estimated_spend or None,
+        "local_shop_purchases": local_count,
+        "utilisation_pct": utilisation_pct,
+        "top_wasted": top_wasted,
+        "lessons": lessons,
+    }
+
+
+@api_router.get("/report/monthly")
+async def monthly_report(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    current=Depends(get_current_user),
+):
+    """Monthly summary — spend, waste, utilisation, top dishes, lessons learnt."""
+    now = _now()
+    y = year or now.year
+    m = month or now.month
+    from calendar import monthrange
+    last_day = monthrange(y, m)[1]
+    start_iso = f"{y:04d}-{m:02d}-01"
+    end_iso = f"{y:04d}-{m:02d}-{last_day:02d}"
+
+    waste = await db.waste_log.find(
+        {
+            "user_id": current["user_id"],
+            "discarded_at": {
+                "$gte": datetime(y, m, 1, tzinfo=timezone.utc),
+                "$lte": datetime(y, m, last_day, 23, 59, 59, tzinfo=timezone.utc),
+            },
+        },
+        {"_id": 0},
+    ).to_list(2000)
+    waste_inr = round(sum((w.get("estimated_inr") or 0) for w in waste), 2)
+
+    plans = await db.meal_plans.find(
+        {"user_id": current["user_id"], "date": {"$gte": start_iso, "$lte": end_iso}},
+        {"_id": 0},
+    ).to_list(40)
+    consumed_inr = 0.0
+    cooked_count = 0
+    dish_counter: Dict[str, int] = {}
+    balanced_days = 0
+    for p in plans:
+        day_balanced = True
+        for mk in ("breakfast", "lunch", "dinner"):
+            meal = p.get(mk) or {}
+            if meal.get("chip") != "balanced":
+                day_balanced = False
+            for it in meal.get("items", []):
+                if it.get("cooked") and not it.get("static"):
+                    cooked_count += 1
+                    dish_counter[it.get("name_en", "dish")] = dish_counter.get(it.get("name_en", "dish"), 0) + 1
+                    est = _dish_cost_estimate(it)
+                    if est:
+                        consumed_inr += est
+        if day_balanced and any((p.get(mk) or {}).get("items") for mk in ("breakfast", "lunch", "dinner")):
+            balanced_days += 1
+    consumed_inr = round(consumed_inr, 2)
+    top_dishes = sorted(
+        ({"name": k, "count": v} for k, v in dish_counter.items()), key=lambda x: -x["count"]
+    )[:5]
+
+    extras = await _spend_and_lessons(
+        current["user_id"], start_iso, end_iso, waste, waste_inr, consumed_inr
+    )
+    return {
+        "year": y,
+        "month": m,
+        "start_date": start_iso,
+        "end_date": end_iso,
+        "days_planned": len(plans),
+        "balanced_days": balanced_days,
+        "cooked_count": cooked_count,
+        "waste_count": len(waste),
+        "waste_inr": waste_inr,
+        "consumed_inr": consumed_inr,
+        "top_dishes": top_dishes,
+        **extras,
+    }
+
+
+def _dish_cost_estimate(it: Dict[str, Any]) -> Optional[float]:
+    total = 0.0
+    for ing in it.get("ingredients", []) or []:
+        p = _price_for(ing.get("ingredient_id", ""), float(ing.get("qty", 0) or 0), ing.get("unit", "g"))
+        if p:
+            total += p
+    return round(total, 2) if total > 0 else None
+
+
+class ScanBillIn(BaseModel):
+    image_base64: str
+    media_type: str = "image/jpeg"
+    list_items: List[Dict[str, Any]] = []  # current grocery list [{ingredient_id, name}]
+
+
+@api_router.post("/grocery/scan-bill")
+async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_user)):
+    """Read a shop bill photo with Claude vision; match lines to the user's
+    grocery list so prices auto-fill instead of manual typing."""
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    from anthropic import AsyncAnthropic
+    from ai_planner import AI_MODEL
+
+    client = AsyncAnthropic(api_key=key)
+    resp = await client.messages.create(
+        model=AI_MODEL,
+        max_tokens=1200,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {
+                    "type": "base64",
+                    "media_type": payload.media_type,
+                    "data": payload.image_base64,
+                }},
+                {"type": "text", "text": (
+                    "This is a grocery bill/receipt (may be Tamil or English, possibly handwritten). "
+                    "Extract every line item with its price in INR. Respond ONLY with JSON, no prose, "
+                    "no markdown fences: {\"items\": [{\"name\": str, \"price_inr\": number}], "
+                    "\"total_inr\": number or null}"
+                )},
+            ],
+        }],
+    )
+    raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Couldn't read the bill — try a clearer photo")
+
+    bill_items = parsed.get("items") or []
+    # Fuzzy-match bill lines to the user's current list (sent by the app,
+    # since the grocery list is computed, not stored) + known ingredients.
+    glist = payload.list_items
+    ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name_en": 1}).to_list(1000)
+    ing_names = {i["id"]: (i.get("name_en") or "").lower() for i in ingredients}
+
+    def _match(bill_name: str) -> Optional[str]:
+        b = bill_name.lower().strip()
+        if not b:
+            return None
+        # Prefer items already on the list
+        for g in glist:
+            gn = (g.get("name") or ing_names.get(g.get("ingredient_id", ""), "")).lower()
+            base = gn.split(" (")[0]
+            if base and (base in b or b in gn):
+                return g.get("ingredient_id")
+        for iid, nm in ing_names.items():
+            base = nm.split(" (")[0]
+            if base and (base in b or b in nm):
+                return iid
+        return None
+
+    matches: Dict[str, float] = {}
+    unmatched: List[Dict[str, Any]] = []
+    for bi in bill_items:
+        try:
+            price = round(float(bi.get("price_inr")), 2)
+        except (TypeError, ValueError):
+            continue
+        iid = _match(str(bi.get("name", "")))
+        if iid:
+            matches[iid] = matches.get(iid, 0) + price
+        else:
+            unmatched.append({"name": bi.get("name"), "price_inr": price})
+    total = parsed.get("total_inr")
+    try:
+        total = round(float(total), 2) if total is not None else None
+    except (TypeError, ValueError):
+        total = None
+    return {"matches": matches, "unmatched": unmatched, "total_inr": total}
+
+
+@api_router.get("/report/monthly-advice")
+async def monthly_advice(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    current=Depends(get_current_user),
+):
+    """Captain's AI habit analysis: buying patterns → next-month discipline plan."""
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    report = await monthly_report(year=year, month=month, current=current)
+    purchases = await db.purchases.find(
+        {"user_id": current["user_id"],
+         "date": {"$gte": report["start_date"], "$lte": report["end_date"]}},
+        {"_id": 0, "ingredient_id": 1, "paid_inr": 1, "estimated_inr": 1, "source": 1, "date": 1},
+    ).to_list(1000)
+
+    from anthropic import AsyncAnthropic
+    from ai_planner import AI_MODEL
+    client = AsyncAnthropic(api_key=key)
+    prompt = (
+        "You are Capt. Charmer, a gruff-but-caring drill-sergeant panda who manages a Tamil family kitchen. "
+        "Analyse this month's buying and cooking habits, then give next month's discipline plan. "
+        "Be specific with numbers from the data. Format: 2-3 short observations about patterns "
+        "(overbuying, waste timing, price vs estimate, shop vs app), then exactly 3 numbered orders "
+        "for next month. Max 130 words total. End with 'Carry on, soldier.'\n\n"
+        f"MONTH SUMMARY: {json.dumps({k: v for k, v in report.items() if k != 'lessons'})}\n"
+        f"PURCHASES: {json.dumps(purchases[:120])}"
+    )
+    resp = await client.messages.create(
+        model=AI_MODEL, max_tokens=400,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    advice = "".join(getattr(b, "text", "") or "" for b in (resp.content or [])).strip()
+    return {"advice": advice, "year": report["year"], "month": report["month"]}
 
 
 # ------------------------- AI Layer ------------------------- #

@@ -72,6 +72,7 @@ export function MealCard({
   onCooked,
   onRemove,
   onAddDish,
+  onSuggest,
   testIDPrefix,
 }: {
   meal: Meal;
@@ -79,6 +80,7 @@ export function MealCard({
   onCooked?: (item: MealItem) => void;
   onRemove?: (item: MealItem) => void;
   onAddDish?: () => void;
+  onSuggest?: () => void;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
@@ -170,8 +172,21 @@ export function MealCard({
             ) : null}
           </View>
           {it.static ? (
-            <View style={styles.staticTag}>
-              <Text style={styles.staticTagText}>{t("dish.base")}</Text>
+            <View style={styles.actionsCol}>
+              <View style={styles.staticTag}>
+                <Text style={styles.staticTagText}>{t("dish.base")}</Text>
+              </View>
+              {onRemove ? (
+                <TouchableOpacity
+                  testID={`${testIDPrefix}-remove-${it.id}`}
+                  style={styles.baseRemoveBtn}
+                  onPress={() => onRemove(it)}
+                  hitSlop={10}
+                  accessibilityLabel={`Remove ${it.name_en}`}
+                >
+                  <Ionicons name="trash-outline" size={15} color={colors.textMuted} />
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : (
             <View style={styles.actionsCol}>
@@ -211,6 +226,18 @@ export function MealCard({
           )}
         </View>
       ))}
+
+      {!isEmpty && onSuggest ? (
+        <TouchableOpacity
+          style={styles.suggestBtn}
+          onPress={onSuggest}
+          testID={`${testIDPrefix}-suggest`}
+          hitSlop={8}
+        >
+          <Ionicons name="sparkles" size={17} color={colors.riceWhite} />
+          <Text style={styles.suggestText}>{`Captain's suggestion`}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {!isEmpty && onAddDish ? (
         <TouchableOpacity
@@ -342,6 +369,17 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.bananaLeaf}08`,
   },
   emptyStateText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
+  suggestBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 50,
+    marginTop: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.turmeric,
+  },
+  suggestText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
   addDishBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -369,6 +407,15 @@ const styles = StyleSheet.create({
     color: colors.riceWhite,
     fontSize: 9,
     fontWeight: "700",
+  },
+  baseRemoveBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceSoft,
+    marginTop: 6,
   },
   staticTag: {
     paddingVertical: 4,

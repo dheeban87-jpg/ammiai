@@ -33,21 +33,69 @@ type Report = {
   current_streak: number;
   longest_streak: number;
   badges: { key: string; label: string; icon: string }[];
+  // Deploy-activated extras (rendered only when present)
+  actual_spend_inr?: number | null;
+  estimated_spend_inr?: number | null;
+  utilisation_pct?: number | null;
+  top_wasted?: { name: string; inr: number }[];
+  lessons?: string[];
+};
+
+type MonthlyReport = {
+  year: number;
+  month: number;
+  days_planned: number;
+  balanced_days: number;
+  cooked_count: number;
+  waste_count: number;
+  waste_inr: number;
+  consumed_inr: number;
+  top_dishes?: { name: string; count: number }[];
+  actual_spend_inr?: number | null;
+  estimated_spend_inr?: number | null;
+  utilisation_pct?: number | null;
+  top_wasted?: { name: string; inr: number }[];
+  lessons?: string[];
 };
 
 export default function WeeklyReport() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [r, setR] = useState<Report | null>(null);
+  const [monthly, setMonthly] = useState<MonthlyReport | null>(null);
+  const [monthlyUnavailable, setMonthlyUnavailable] = useState(false);
+  const [period, setPeriod] = useState<"week" | "month">("week");
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [advice, setAdvice] = useState<string | null>(null);
+  const [adviceBusy, setAdviceBusy] = useState(false);
+
+  const getAdvice = async () => {
+    setAdviceBusy(true);
+    try {
+      const out = await api.get<{ advice: string }>("/api/report/monthly-advice");
+      setAdvice(out.advice);
+    } catch {
+      setToast("Captain's AI advice activates after the next backend update");
+      setTimeout(() => setToast(null), 3500);
+    } finally {
+      setAdviceBusy(false);
+    }
+  };
   const shotRef = useRef<any>(null);
 
   const load = useCallback(async () => {
     try {
       const data = await api.get<Report>("/api/report/weekly");
       setR(data);
+      try {
+        const m = await api.get<MonthlyReport>("/api/report/monthly");
+        setMonthly(m);
+      } catch {
+        // Monthly endpoint arrives with the next backend deploy.
+        setMonthlyUnavailable(true);
+      }
     } finally {
       setLoading(false);
     }
@@ -125,7 +173,7 @@ Made with AmmiAI 🌿`
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={22} color={colors.textOnPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Weekly report</Text>
+        <Text style={styles.headerTitle}>{period === "week" ? "Weekly report" : "Monthly report"}</Text>
         <TouchableOpacity onPress={shareImage} style={styles.shareBtn} disabled={sharing} testID="report-share">
           {sharing ? <ActivityIndicator color={colors.riceWhite} /> : <Ionicons name="share-outline" size={20} color={colors.riceWhite} />}
         </TouchableOpacity>
@@ -135,7 +183,136 @@ Made with AmmiAI 🌿`
         <View style={styles.center}><ActivityIndicator color={colors.bananaLeaf} /></View>
       ) : r ? (
         <ScrollView contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + spacing.xl }]}>
-          <ViewShot ref={shotRef} options={{ format: "png", quality: 0.95 }} style={styles.captureWrap}>
+          <View style={styles.periodToggle}>
+            {(["week", "month"] as const).map((p) => (
+              <TouchableOpacity
+                key={p}
+                testID={`report-period-${p}`}
+                style={[styles.periodBtn, period === p && styles.periodBtnActive]}
+                onPress={() => {
+                  if (p === "month" && !monthly) return;
+                  setPeriod(p);
+                }}
+                disabled={p === "month" && !monthly}
+              >
+                <Text style={[styles.periodText, period === p && styles.periodTextActive, p === "month" && !monthly && { opacity: 0.4 }]}>
+                  {p === "week" ? "This week" : monthly ? "This month" : "Month (soon)"}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {period === "month" && monthly ? (
+            <View style={styles.monthWrap} testID="monthly-report">
+              <View style={styles.statGridM}>
+                <View style={styles.statCardM}>
+                  <Text style={styles.statValueM}>{monthly.days_planned}</Text>
+                  <Text style={styles.statLabelM}>days planned</Text>
+                </View>
+                <View style={styles.statCardM}>
+                  <Text style={styles.statValueM}>{monthly.balanced_days}</Text>
+                  <Text style={styles.statLabelM}>balanced days</Text>
+                </View>
+                <View style={styles.statCardM}>
+                  <Text style={styles.statValueM}>{monthly.cooked_count}</Text>
+                  <Text style={styles.statLabelM}>dishes cooked</Text>
+                </View>
+                <View style={styles.statCardM}>
+                  <Text style={[styles.statValueM, { color: colors.chili }]}>₹{Math.round(monthly.waste_inr)}</Text>
+                  <Text style={styles.statLabelM}>wasted ({monthly.waste_count})</Text>
+                </View>
+              </View>
+
+              {monthly.actual_spend_inr != null ? (
+                <View style={styles.spendCard}>
+                  <Text style={styles.sectionLabel}>Spend</Text>
+                  <View style={styles.spendRow}>
+                    <Text style={styles.spendLabel}>You paid</Text>
+                    <Text style={styles.spendValue}>₹{Math.round(monthly.actual_spend_inr)}</Text>
+                  </View>
+                  {monthly.estimated_spend_inr != null ? (
+                    <View style={styles.spendRow}>
+                      <Text style={styles.spendLabel}>AmmiAI estimate</Text>
+                      <Text style={styles.spendMuted}>₹{Math.round(monthly.estimated_spend_inr)}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {monthly.utilisation_pct != null ? (
+                <View style={styles.utilCard}>
+                  <Text style={styles.sectionLabel}>Kitchen utilisation</Text>
+                  <View style={styles.utilBarBg}>
+                    <View style={[styles.utilBarFill, { width: `${monthly.utilisation_pct}%` }]} />
+                  </View>
+                  <Text style={styles.utilText}>
+                    {monthly.utilisation_pct}% of food value eaten · {100 - monthly.utilisation_pct}% wasted
+                  </Text>
+                </View>
+              ) : null}
+
+              {monthly.top_dishes && monthly.top_dishes.length > 0 ? (
+                <View style={styles.listCard}>
+                  <Text style={styles.sectionLabel}>Most cooked</Text>
+                  {monthly.top_dishes.map((d) => (
+                    <View key={d.name} style={styles.listRow}>
+                      <Text style={styles.listName} numberOfLines={1}>{d.name}</Text>
+                      <Text style={styles.listMeta}>×{d.count}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {monthly.top_wasted && monthly.top_wasted.length > 0 ? (
+                <View style={styles.listCard}>
+                  <Text style={styles.sectionLabel}>Most wasted</Text>
+                  {monthly.top_wasted.map((d) => (
+                    <View key={d.name} style={styles.listRow}>
+                      <Text style={styles.listName} numberOfLines={1}>{d.name}</Text>
+                      <Text style={[styles.listMeta, { color: colors.chili }]}>₹{Math.round(d.inr)}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {monthly.lessons && monthly.lessons.length > 0 ? (
+                <View style={styles.lessonsCard}>
+                  <Text style={styles.sectionLabel}>Captain&apos;s lessons 🐼</Text>
+                  {monthly.lessons.map((l, i) => (
+                    <View key={i} style={styles.lessonRow}>
+                      <Ionicons name="bulb" size={15} color={colors.turmeric} style={{ marginTop: 2 }} />
+                      <Text style={styles.lessonText}>{l}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {advice ? (
+                <View style={styles.adviceCard} testID="ai-advice-card">
+                  <Text style={styles.sectionLabel}>Captain&apos;s AI habit analysis 🐼</Text>
+                  <Text style={styles.adviceText}>{advice}</Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  testID="get-advice-btn"
+                  style={[styles.adviceBtn, adviceBusy && { opacity: 0.6 }]}
+                  onPress={getAdvice}
+                  disabled={adviceBusy}
+                >
+                  {adviceBusy ? (
+                    <ActivityIndicator color={colors.riceWhite} />
+                  ) : (
+                    <>
+                      <Ionicons name="sparkles" size={17} color={colors.riceWhite} />
+                      <Text style={styles.adviceBtnText}>Get Captain&apos;s AI habit analysis</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
+
+          <ViewShot ref={shotRef} options={{ format: "png", quality: 0.95 }} style={[styles.captureWrap, period === "month" && { display: "none" }]}>
             <View style={styles.exportHeader}>
               <View>
                 <Text style={styles.exportBrand}>AmmiAI</Text>
@@ -163,6 +340,46 @@ Made with AmmiAI 🌿`
               <StatCard color={colors.turmeric} icon="fitness" value={`${r.diet_balance_score}/100`} label="Diet balance" />
               <StatCard color="#7A20CB" icon="flame" value={r.current_streak} label="Streak (days)" />
             </View>
+
+            {r.actual_spend_inr != null ? (
+              <View style={styles.spendCard}>
+                <Text style={styles.sectionLabel}>Spend this week</Text>
+                <View style={styles.spendRow}>
+                  <Text style={styles.spendLabel}>You paid</Text>
+                  <Text style={styles.spendValue}>₹{Math.round(r.actual_spend_inr)}</Text>
+                </View>
+                {r.estimated_spend_inr != null ? (
+                  <View style={styles.spendRow}>
+                    <Text style={styles.spendLabel}>AmmiAI estimate</Text>
+                    <Text style={styles.spendMuted}>₹{Math.round(r.estimated_spend_inr)}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
+
+            {r.utilisation_pct != null ? (
+              <View style={styles.utilCard}>
+                <Text style={styles.sectionLabel}>Kitchen utilisation</Text>
+                <View style={styles.utilBarBg}>
+                  <View style={[styles.utilBarFill, { width: `${r.utilisation_pct}%` }]} />
+                </View>
+                <Text style={styles.utilText}>
+                  {r.utilisation_pct}% of food value eaten · {100 - r.utilisation_pct}% wasted
+                </Text>
+              </View>
+            ) : null}
+
+            {r.lessons && r.lessons.length > 0 ? (
+              <View style={styles.lessonsCard}>
+                <Text style={styles.sectionLabel}>Captain&apos;s lessons 🐼</Text>
+                {r.lessons.map((l, i) => (
+                  <View key={i} style={styles.lessonRow}>
+                    <Ionicons name="bulb" size={15} color={colors.turmeric} style={{ marginTop: 2 }} />
+                    <Text style={styles.lessonText}>{l}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             <Text style={styles.sectionLabel}>Badges</Text>
             {r.badges.length ? (
@@ -324,4 +541,72 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center", gap: 8, ...shadow.card,
   },
   toastText: { color: colors.textPrimary, fontSize: 13 },
+  periodToggle: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.pill,
+    padding: 4,
+    marginBottom: spacing.m,
+  },
+  periodBtn: { flex: 1, minHeight: 46, alignItems: "center", justifyContent: "center", borderRadius: radius.pill },
+  periodBtnActive: { backgroundColor: colors.bananaLeaf },
+  periodText: { fontSize: 15, fontWeight: "800", color: colors.textSecondary },
+  periodTextActive: { color: colors.riceWhite },
+  monthWrap: { gap: spacing.m },
+  statGridM: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  statCardM: {
+    width: "47%",
+    flexGrow: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    alignItems: "center",
+    ...shadow.card,
+  },
+  statValueM: { fontFamily: fonts.headingBold, fontSize: 26, color: colors.bananaLeafDark },
+  statLabelM: { fontSize: 12.5, fontWeight: "700", color: colors.textMuted, marginTop: 2 },
+  spendCard: { backgroundColor: colors.surface, borderRadius: radius.l, padding: spacing.m, ...shadow.card, marginTop: spacing.m },
+  spendRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
+  spendLabel: { fontSize: 14.5, color: colors.textSecondary, fontWeight: "700" },
+  spendValue: { fontFamily: fonts.headingBold, fontSize: 20, color: colors.textPrimary },
+  spendMuted: { fontSize: 15, color: colors.textMuted, fontWeight: "700" },
+  utilCard: { backgroundColor: colors.surface, borderRadius: radius.l, padding: spacing.m, ...shadow.card, marginTop: spacing.m },
+  utilBarBg: { height: 14, borderRadius: 7, backgroundColor: `${colors.chili}22`, marginTop: 8, overflow: "hidden" },
+  utilBarFill: { height: 14, borderRadius: 7, backgroundColor: colors.bananaLeaf },
+  utilText: { fontSize: 13.5, fontWeight: "700", color: colors.textSecondary, marginTop: 8 },
+  listCard: { backgroundColor: colors.surface, borderRadius: radius.l, padding: spacing.m, ...shadow.card },
+  listRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6 },
+  listName: { flex: 1, fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  listMeta: { fontSize: 15, fontWeight: "800", color: colors.textSecondary },
+  lessonsCard: {
+    backgroundColor: `${colors.turmeric}12`,
+    borderColor: `${colors.turmeric}55`,
+    borderWidth: 1,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    marginTop: spacing.m,
+  },
+  lessonRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  lessonText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.textPrimary, fontWeight: "600" },
+  adviceBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 54,
+    borderRadius: radius.pill,
+    backgroundColor: colors.turmeric,
+    marginTop: spacing.m,
+  },
+  adviceBtnText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15.5 },
+  adviceCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    borderWidth: 2,
+    borderColor: colors.turmeric,
+    marginTop: spacing.m,
+    ...shadow.card,
+  },
+  adviceText: { fontSize: 14.5, lineHeight: 22, color: colors.textPrimary, marginTop: 6, fontWeight: "600" },
 });

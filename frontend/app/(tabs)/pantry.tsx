@@ -499,9 +499,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: spacing.m,
   },
-  rowTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
+  rowTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary },
   rowEmoji: { fontSize: 24 },
-  rowSub: { fontSize: 13.5, color: colors.textMuted, marginTop: 2 },
+  rowSub: { fontSize: 15, color: colors.textMuted, marginTop: 2 },
   rowRight: { alignItems: "flex-end" },
   freshWrap: {
     flexDirection: "row",
@@ -509,8 +509,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   freshDot: { width: 8, height: 8, borderRadius: 4 },
-  freshText: { fontSize: 12.5, fontWeight: "700" },
-  daysText: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  freshText: { fontSize: 14, fontWeight: "700" },
+  daysText: { fontSize: 14.5, color: colors.textSecondary, marginTop: 2 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",

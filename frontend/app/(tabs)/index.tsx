@@ -91,7 +91,7 @@ export default function HomeScreen() {
     <View style={styles.screen} testID="home-screen">
       <AppHeader
         title="AmmiAI"
-        subtitleTa={`${timeLabel}, ${name}`}
+        subtitleTa="உங்கள் தமிழ் சமையலறை உதவியாளர்"
         onLongPress={() => router.push("/settings")}
         right={
           <TouchableOpacity
@@ -112,9 +112,7 @@ export default function HomeScreen() {
         <Text style={styles.welcome} testID="home-welcome">
           {timeLabel} {timeEmoji}{"\n"}{name}
         </Text>
-        <Text style={styles.welcomeTa} testID="home-welcome-ta">
-          உங்கள் தமிழ் சமையலறை உதவியாளர்
-        </Text>
+
 
         {/* Balance rings (from today's plan) */}
         {plan ? (
@@ -379,8 +377,8 @@ const styles = StyleSheet.create({
   },
   welcome: {
     fontFamily: fonts.headingBold,
-    fontSize: 28,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 38,
     color: colors.textPrimary,
     marginTop: spacing.s,
   },

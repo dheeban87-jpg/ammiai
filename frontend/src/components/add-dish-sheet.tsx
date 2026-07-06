@@ -98,7 +98,10 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
                       )
                     ) : null}
                   </View>
-                  <Text style={styles.rowKcal}>{opt.nutrition?.kcal ?? 0} kcal</Text>
+                  <View style={styles.rowMacros}>
+                    <Text style={styles.rowKcal}>{opt.nutrition?.kcal ?? 0} kcal</Text>
+                    <Text style={styles.rowProtein}>P {opt.nutrition?.protein_g ?? 0}g</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -148,6 +151,8 @@ const styles = StyleSheet.create({
   rowTa: { fontFamily: fonts.bodyTa, fontSize: 12, color: colors.textMuted, marginTop: 1 },
   rowGood: { fontSize: 11, color: colors.bananaLeaf, fontWeight: "700", marginTop: 2 },
   rowMuted: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  rowMacros: { alignItems: "flex-end" },
+  rowProtein: { fontSize: 13, color: colors.chili, fontWeight: "800", marginTop: 2 },
   rowKcal: { fontFamily: fonts.headingEn, fontSize: 14, color: colors.textPrimary, marginLeft: spacing.s },
   cancelBtn: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: spacing.s },
   cancelText: { color: colors.textMuted, fontWeight: "700", fontSize: 15 },

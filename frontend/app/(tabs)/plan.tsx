@@ -19,6 +19,7 @@ import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
+import { SuggestSheet, pickSuggestion, type Suggestion } from "@/src/components/suggest-sheet";
 import { useAuth } from "@/src/auth-context";
 import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
@@ -60,6 +61,10 @@ export default function PlanScreen() {
   const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
   const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
   const [addBusy, setAddBusy] = useState(false);
+  const [suggestCtx, setSuggestCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [suggestSkip, setSuggestSkip] = useState<string[]>([]);
+  const [suggestBusy, setSuggestBusy] = useState(false);
   const [addQuery, setAddQuery] = useState("");
   const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -244,6 +249,48 @@ export default function PlanScreen() {
     }
   };
 
+  const openSuggest = async (mealKey: Meal["key"], date: string) => {
+    if (!plan) return;
+    setSuggestCtx({ meal: mealKey, date });
+    setSuggestSkip([]);
+    try {
+      const all = catalog ?? (await loadDishCatalog());
+      if (!catalog) setCatalog(all);
+      const mealObj = (plan as any)[mealKey] as Meal;
+      const exclude = mealObj.items.map((i) => i.id);
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude));
+    } catch {
+      setSuggestion(null);
+    }
+  };
+
+  const suggestAnother = () => {
+    if (!suggestCtx || !catalog || !plan) return;
+    const mealObj = (plan as any)[suggestCtx.meal] as Meal;
+    const exclude = mealObj.items.map((i) => i.id);
+    const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
+    setSuggestSkip(skip);
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip));
+  };
+
+  const addSuggested = async () => {
+    if (!suggestCtx || !suggestion) return;
+    setSuggestBusy(true);
+    try {
+      const updated = await api.post<Plan>("/api/plan/add-dish", {
+        date: suggestCtx.date,
+        meal: suggestCtx.meal,
+        recipe_id: suggestion.recipe.id,
+      });
+      if (mode === "today") setPlan(updated);
+      else loadWeek();
+      setSuggestCtx(null);
+      setSuggestion(null);
+    } finally {
+      setSuggestBusy(false);
+    }
+  };
+
   const removeDish = async (mealKey: Meal["key"], item: MealItem, date: string) => {
     try {
       const updated = await api.post<Plan>("/api/plan/remove-dish", {
@@ -334,6 +381,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("breakfast", it)}
             onRemove={(it) => removeDish("breakfast", it, plan.date)}
             onAddDish={() => openAddDish("breakfast", plan.date)}
+            onSuggest={() => openSuggest("breakfast", plan.date)}
             testIDPrefix="meal-breakfast"
           />
           <MealCard
@@ -342,6 +390,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("lunch", it)}
             onRemove={(it) => removeDish("lunch", it, plan.date)}
             onAddDish={() => openAddDish("lunch", plan.date)}
+            onSuggest={() => openSuggest("lunch", plan.date)}
             testIDPrefix="meal-lunch"
           />
           <MealCard
@@ -350,6 +399,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("dinner", it)}
             onRemove={(it) => removeDish("dinner", it, plan.date)}
             onAddDish={() => openAddDish("dinner", plan.date)}
+            onSuggest={() => openSuggest("dinner", plan.date)}
             testIDPrefix="meal-dinner"
           />
 
@@ -456,6 +506,16 @@ export default function PlanScreen() {
         onPick={pickAddDish}
         onSearch={searchAddDish}
         busy={addBusy}
+      />
+
+      <SuggestSheet
+        visible={suggestCtx != null}
+        suggestion={suggestion}
+        mealLabel={suggestCtx ? MEAL_META[suggestCtx.meal].title : ""}
+        busy={suggestBusy}
+        onAdd={addSuggested}
+        onAnother={suggestAnother}
+        onClose={() => { setSuggestCtx(null); setSuggestion(null); }}
       />
 
       {streakToast ? (

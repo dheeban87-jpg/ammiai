@@ -85,6 +85,23 @@ export default function CalendarScreen() {
   const [error, setError] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [monthSpend, setMonthSpend] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"week" | "month">("week");
+
+  // Current week (Sun..Sat) containing today, as ISO dates within this view.
+  const weekDates = useMemo(() => {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    base.setDate(base.getDate() - base.getDay()); // back to Sunday
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      return {
+        iso: isoDate(d.getFullYear(), d.getMonth() + 1, d.getDate()),
+        day: d.getDate(),
+        wd: i,
+      };
+    });
+  }, []);
   const shotRef = useRef<any>(null);
 
   const load = useCallback(async () => {
@@ -331,7 +348,82 @@ export default function CalendarScreen() {
               </View>
             ) : null}
 
+            {/* Week / Month toggle */}
+            {!sharing ? (
+              <View style={styles.viewToggle}>
+                {(["week", "month"] as const).map((vm) => (
+                  <TouchableOpacity
+                    key={vm}
+                    testID={`calendar-view-${vm}`}
+                    onPress={() => setViewMode(vm)}
+                    style={[styles.viewToggleBtn, viewMode === vm && styles.viewToggleBtnActive]}
+                  >
+                    <Text style={[styles.viewToggleText, viewMode === vm && styles.viewToggleTextActive]}>
+                      {vm === "week" ? "This week" : "Month"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+
+            {viewMode === "week" && !sharing ? (
+              <View style={styles.weekList}>
+                {weekDates.map((w) => {
+                  const plan = planForDate(w.iso);
+                  const isToday = w.iso === todayIso;
+                  const bf = plan ? firstDish((plan as any).breakfast) : null;
+                  const lu = plan ? firstDish((plan as any).lunch) : null;
+                  const dn = plan ? firstDish((plan as any).dinner) : null;
+                  return (
+                    <TouchableOpacity
+                      key={w.iso}
+                      testID={`week-card-${w.iso}`}
+                      style={[styles.weekCard, isToday && styles.weekCardToday]}
+                      activeOpacity={0.85}
+                      disabled={busy === w.iso}
+                      onPress={() => {
+                        if (plan) router.push(`/plan/day/${w.iso}`);
+                        else planDay(w.iso);
+                      }}
+                    >
+                      <View style={[styles.weekDateBadge, w.wd === 0 && { backgroundColor: "#F6DBD2" }, w.wd === 6 && { backgroundColor: "#D6E2F2" }]}>
+                        <Text style={[styles.weekDateNum, w.wd === 0 && { color: colors.chili }]}>{w.day}</Text>
+                        <Text style={styles.weekDateWd}>{WEEKDAYS[w.wd]}</Text>
+                      </View>
+                      {busy === w.iso ? (
+                        <ActivityIndicator color={colors.bananaLeaf} style={{ flex: 1 }} />
+                      ) : plan ? (
+                        <View style={styles.weekMealsCol}>
+                          {([["sunny", bf], ["restaurant", lu], ["moon", dn]] as const).map(([icon, dish], i) => (
+                            <View key={i} style={styles.weekMealLine}>
+                              <Ionicons name={icon as any} size={13} color={colors.bananaLeafSoft} style={{ width: 18 }} />
+                              {dish ? (
+                                <FoodAvatar kind="dish" id={dish.id} category={dish.category} size={30} style={{ marginRight: 8 }} />
+                              ) : (
+                                <View style={{ width: 38 }} />
+                              )}
+                              <Text style={styles.weekMealName} numberOfLines={1}>
+                                {shortName(dish?.name) || "—"}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      ) : (
+                        <View style={styles.weekEmptyCol}>
+                          <Ionicons name="add-circle-outline" size={22} color={colors.bananaLeaf} />
+                          <Text style={styles.weekEmptyText}>Tap to plan this day</Text>
+                        </View>
+                      )}
+                      <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
+
             {/* Weekday header */}
+            {viewMode === "month" || sharing ? (
+            <>
             <View style={styles.weekRow}>
               {WEEKDAYS.map((d, i) => (
                 <View
@@ -428,6 +520,8 @@ export default function CalendarScreen() {
                 );
               })}
             </View>
+            </>
+            ) : null}
 
             <View style={styles.exportFooter}>
               <View style={styles.exportLegend}>
@@ -594,6 +688,50 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginTop: 2,
   },
+  viewToggle: {
+    flexDirection: "row",
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: radius.pill,
+    padding: 4,
+    marginHorizontal: spacing.m,
+    marginBottom: spacing.m,
+  },
+  viewToggleBtn: {
+    flex: 1,
+    minHeight: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: radius.pill,
+  },
+  viewToggleBtnActive: { backgroundColor: colors.bananaLeaf },
+  viewToggleText: { fontSize: 15, fontWeight: "800", color: colors.textSecondary },
+  viewToggleTextActive: { color: colors.riceWhite },
+  weekList: { paddingHorizontal: spacing.m, gap: 10 },
+  weekCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    gap: spacing.m,
+    ...shadow.card,
+  },
+  weekCardToday: { borderWidth: 2, borderColor: colors.turmeric },
+  weekDateBadge: {
+    width: 56,
+    height: 64,
+    borderRadius: radius.m,
+    backgroundColor: "#DCE9D2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekDateNum: { fontFamily: fonts.headingBold, fontSize: 22, color: colors.textPrimary, lineHeight: 26 },
+  weekDateWd: { fontSize: 12, fontWeight: "800", color: colors.textSecondary },
+  weekMealsCol: { flex: 1, gap: 6 },
+  weekMealLine: { flexDirection: "row", alignItems: "center" },
+  weekMealName: { flex: 1, fontSize: 15.5, fontWeight: "700", color: colors.textPrimary },
+  weekEmptyCol: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 8 },
+  weekEmptyText: { fontSize: 13.5, fontWeight: "700", color: colors.bananaLeaf },
   weekRow: { flexDirection: "row" },
   weekHead: {
     flex: 1,

@@ -48,6 +48,7 @@ type GroceryList = {
   end_date: string;
   household_size: number;
   days_covered: number;
+  covered_items?: { ingredient_id: string; name: string; need_qty: number; unit: string }[];
   groups: GroceryGroup[];
   total_items: number;
   total_estimated_inr: number;
@@ -501,6 +502,18 @@ export default function GroceryScreen() {
             </View>
           </View>
 
+          {data?.covered_items && data.covered_items.length > 0 ? (
+            <View style={styles.coveredBanner} testID="pantry-covered-banner">
+              <Ionicons name="checkmark-circle" size={18} color={colors.bananaLeaf} />
+              <Text style={styles.coveredText}>
+                <Text style={{ fontWeight: "800" }}>
+                  Pantry checked — {data.covered_items.length} item{data.covered_items.length > 1 ? "s" : ""} already covered:{" "}
+                </Text>
+                {data.covered_items.map((c) => c.name).join(", ")}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={styles.toolRow}>
             <TouchableOpacity style={styles.toolBtn} onPress={selectAll} testID="grocery-select-all" hitSlop={8}>
               <Ionicons name="checkmark-done-outline" size={16} color={colors.bananaLeaf} />
@@ -561,10 +574,9 @@ export default function GroceryScreen() {
                           {it.name}
                         </Text>
                         <Text style={styles.rowSub}>
-                          {it.qty} {it.unit}
                           {it.have_base > 0
-                            ? `  · have ${it.have_base} ${it.base_unit}`
-                            : ""}
+                            ? `Need ${it.need_base}${it.base_unit} · have ${it.have_base}${it.base_unit} → buy ${it.qty} ${it.unit}`
+                            : `Not in pantry → buy ${it.qty} ${it.unit}`}
                           {(it as any).manual ? "  · added by you" : ""}
                         </Text>
                       </View>
@@ -640,6 +652,12 @@ export default function GroceryScreen() {
             <Ionicons name="storefront-outline" size={19} color={colors.bananaLeafDark} />
             <Text style={styles.localShopText}>Bought at local shop — enter prices</Text>
           </TouchableOpacity>
+          <View style={styles.ondcRow}>
+            <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
+            <Text style={styles.ondcText}>
+              Order via ONDC (open network, live kirana prices) — coming after launch
+            </Text>
+          </View>
           {selected.length === 0 ? (
             <Text style={styles.selectHint}>Select items above to enable ordering</Text>
           ) : null}
@@ -1121,6 +1139,27 @@ const styles = StyleSheet.create({
   },
   utilityText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
   vendorRow: { flexDirection: "row", gap: 6 },
+  coveredBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: `${colors.bananaLeaf}10`,
+    borderColor: `${colors.bananaLeaf}44`,
+    borderWidth: 1,
+    borderRadius: radius.m,
+    padding: spacing.m,
+    marginTop: spacing.s,
+  },
+  coveredText: { flex: 1, fontSize: 13.5, lineHeight: 19, color: colors.bananaLeafDark, fontWeight: "600" },
+  ondcRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    marginTop: 10,
+    opacity: 0.75,
+  },
+  ondcText: { fontSize: 12, color: colors.textMuted, fontWeight: "600" },
   localShopBtn: {
     flexDirection: "row",
     alignItems: "center",

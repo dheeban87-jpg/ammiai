@@ -1308,6 +1308,7 @@ async def grocery_list(
     }
 
     items_by_cat: Dict[str, List[Dict[str, Any]]] = {}
+    covered_items: List[Dict[str, Any]] = []
     total_estimated_inr = 0.0
     for iid, need in sorted(required.items()):
         pantry_q = have.get(iid, {}).get("qty", 0.0)
@@ -1316,6 +1317,16 @@ async def grocery_list(
         if pantry_unit == need["unit_base"]:
             deficit = max(0.0, need["qty"] - pantry_q)
         if deficit <= 0:
+            # Fully covered by pantry — surface it so the app can show the
+            # "auto-magic" (plan → pantry check → buy only the gap).
+            ing_c = ingredients.get(iid, {})
+            dq, du = _from_base(need["qty"], need["unit_base"])
+            covered_items.append({
+                "ingredient_id": iid,
+                "name": ing_c.get("name", iid.replace("_", " ").title()),
+                "need_qty": dq,
+                "unit": du,
+            })
             continue
         disp_qty, disp_unit = _from_base(deficit, need["unit_base"])
         # Nice rounding to shopping increments
@@ -1394,6 +1405,7 @@ async def grocery_list(
         "groups": groups,
         "total_items": sum(len(g["items"]) for g in groups),
         "total_estimated_inr": round(total_estimated_inr, 2),
+        "covered_items": covered_items,  # already in pantry — nothing to buy
     }
 
 

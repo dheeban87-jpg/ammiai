@@ -9,6 +9,7 @@ import { VideoView, useVideoPlayer } from "expo-video";
 
 import { colors, fonts, radius, spacing } from "@/src/theme";
 import { PressableScale } from "@/src/components/pressable-scale";
+import { CaptainChat } from "@/src/components/captain-chat";
 
 export type CharmerMood =
   | "idle"
@@ -85,6 +86,7 @@ function pick(mood: CharmerMood): string {
 export function CharmerProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [mood, setMood] = useState<CharmerMood>("idle");
   const [line, setLine] = useState<string>(LINES.idle[0]);
   const badge = useRef(false);
@@ -141,6 +143,16 @@ export function CharmerProvider({ children }: { children: React.ReactNode }) {
             <Text style={styles.line}>“{line}”</Text>
             <View style={styles.row}>
               <Pressable
+                style={[styles.btn, styles.btnAsk]}
+                onPress={() => {
+                  setOpen(false);
+                  setChatOpen(true);
+                }}
+                testID="charmer-ask-btn"
+              >
+                <Text style={styles.btnAskText}>💬 Ask the Captain</Text>
+              </Pressable>
+              <Pressable
                 style={[styles.btn, styles.btnGhost]}
                 onPress={() => setOpen(false)}
                 testID="charmer-dismiss"
@@ -151,6 +163,8 @@ export function CharmerProvider({ children }: { children: React.ReactNode }) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <CaptainChat visible={chatOpen} onClose={() => setChatOpen(false)} />
     </Ctx.Provider>
   );
 }
@@ -211,6 +225,8 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: "row", marginTop: spacing.l },
   btn: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 999 },
+  btnAsk: { backgroundColor: colors.bananaLeaf },
+  btnAskText: { color: colors.riceWhite, fontWeight: "800", fontSize: 14 },
   btnGhost: { backgroundColor: colors.bananaLeaf },
   btnGhostText: { color: "#fff", fontWeight: "700" },
 });

@@ -14,6 +14,7 @@ import { StatusBar } from "expo-status-bar";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth-context";
 import { LanguageProvider } from "@/src/i18n";
+import { CrashGate } from "@/src/crash-guard";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
@@ -86,11 +87,13 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <View style={{ flex: 1, backgroundColor: colors.riceWhite }}>
-        <AuthProvider>
-          <LanguageProvider>
-            <RootStack />
-          </LanguageProvider>
-        </AuthProvider>
+        <CrashGate>
+          <AuthProvider>
+            <LanguageProvider>
+              <RootStack />
+            </LanguageProvider>
+          </AuthProvider>
+        </CrashGate>
       </View>
     </SafeAreaProvider>
   );

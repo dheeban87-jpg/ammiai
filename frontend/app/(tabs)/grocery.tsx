@@ -20,6 +20,7 @@ import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
+import { ScreenErrorBoundary } from "@/src/components/error-boundary";
 import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
@@ -89,7 +90,7 @@ const VENDOR_META: Record<
   },
 };
 
-export default function GroceryScreen() {
+function GroceryScreenInner() {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [days, setDays] = useState<7 | 14>(7);
@@ -511,7 +512,7 @@ export default function GroceryScreen() {
             </View>
           </View>
 
-          {data?.covered_items && data.covered_items.length > 0 ? (
+          {Array.isArray(data?.covered_items) && data.covered_items.length > 0 ? (
             <View style={styles.coveredBanner} testID="pantry-covered-banner">
               <Ionicons name="checkmark-circle" size={18} color={colors.bananaLeaf} />
               <Text style={styles.coveredText}>
@@ -583,8 +584,8 @@ export default function GroceryScreen() {
                           {it.name}
                         </Text>
                         <Text style={styles.rowSub}>
-                          {it.have_base > 0
-                            ? `Need ${it.need_base}${it.base_unit} · have ${it.have_base}${it.base_unit} → buy ${it.qty} ${it.unit}`
+                          {(it.have_base ?? 0) > 0
+                            ? `Need ${it.need_base ?? it.qty}${it.base_unit ?? ""} · have ${it.have_base}${it.base_unit ?? ""} → buy ${it.qty} ${it.unit}`
                             : `Not in pantry → buy ${it.qty} ${it.unit}`}
                           {(it as any).manual ? "  · added by you" : ""}
                         </Text>
@@ -1416,3 +1417,12 @@ const styles = StyleSheet.create({
   },
   toastText: { color: colors.riceWhite, flex: 1, fontSize: 13, fontWeight: "600" },
 });
+
+
+export default function GroceryScreen() {
+  return (
+    <ScreenErrorBoundary name="Grocery">
+      <GroceryScreenInner />
+    </ScreenErrorBoundary>
+  );
+}

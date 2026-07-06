@@ -59,7 +59,8 @@ async def _seed_ingredients() -> int:
 async def _seed_recipes() -> int:
     with open(DATA_DIR / "recipes_ammiaai_v2.json", "r", encoding="utf-8") as f:
         items = json.load(f)
-    await db.recipes.delete_many({})
+    # Preserve user-created custom dishes across restarts/reseeds
+    await db.recipes.delete_many({"custom": {"$ne": True}})
     if items:
         await db.recipes.insert_many(items)
     return len(items)
@@ -206,13 +207,20 @@ async def get_ingredient(ingredient_id: str):
 
 
 @api_router.get("/recipes")
-async def list_recipes(category: Optional[str] = None, diet: Optional[str] = None):
-    query: Dict[str, Any] = {}
+async def list_recipes(
+    category: Optional[str] = None,
+    diet: Optional[str] = None,
+    current=Depends(get_current_user),
+):
+    # Global recipes + this user's own custom dishes
+    query: Dict[str, Any] = {
+        "$or": [{"user_id": {"$exists": False}}, {"user_id": current["user_id"]}],
+    }
     if category:
         query["category"] = category
     if diet:
         query["diet"] = diet
-    return await db.recipes.find(query, {"_id": 0}).to_list(1000)
+    return await db.recipes.find(query, {"_id": 0}).to_list(1200)
 
 
 @api_router.get("/recipes/{recipe_id}")
@@ -2080,6 +2088,126 @@ async def monthly_report(
         "top_dishes": top_dishes,
         **extras,
     }
+
+
+class CaptainChatIn(BaseModel):
+    message: str
+    history: List[Dict[str, str]] = []  # [{role: "user"|"assistant", content}]
+
+
+@api_router.post("/captain/chat")
+async def captain_chat(payload: CaptainChatIn, current=Depends(get_current_user)):
+    """Capt. Charmer's live brain: Claude with the user's real kitchen context —
+    today's plan, pantry with expiries, profile. Not hardcoded lines."""
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    msg = (payload.message or "").strip()[:600]
+    if not msg:
+        raise HTTPException(status_code=400, detail="Empty message")
+
+    uid = current["user_id"]
+    today = _now().date().isoformat()
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    plan = await db.meal_plans.find_one({"user_id": uid, "date": today}, {"_id": 0})
+    pantry = await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200)
+    pantry_brief = []
+    for p in pantry[:40]:
+        e = await _enrich_item(p)
+        pantry_brief.append({
+            "name": e.get("name") or p.get("ingredient_id"),
+            "qty": p.get("qty"), "unit": p.get("unit"),
+            "days_left": e.get("days_left"),
+        })
+    plan_brief = None
+    if plan:
+        plan_brief = {
+            mk: {
+                "dishes": [i.get("name_en") for i in (plan.get(mk) or {}).get("items", []) if not i.get("static")],
+                "kcal": (plan.get(mk) or {}).get("kcal"),
+                "protein_g": (plan.get(mk) or {}).get("protein_g"),
+                "status": (plan.get(mk) or {}).get("chip"),
+            } for mk in ("breakfast", "lunch", "dinner")
+        }
+
+    from anthropic import AsyncAnthropic
+    from ai_planner import AI_MODEL
+    client = AsyncAnthropic(api_key=key)
+
+    system = (
+        "You are Capt. Charmer — a gruff, warm-hearted drill-sergeant panda running a Tamil family "
+        "kitchen inside the AmmiAI app. Speak briefly (under 90 words), practically, in simple English "
+        "with occasional Tamil food words. Use the KITCHEN CONTEXT to give real, specific answers about "
+        "today's meals, pantry, expiring items, nutrition, and Tamil cooking. If asked about nutrition "
+        "numbers, be honest that values are per-serving estimates from standard recipes. Never invent "
+        "pantry items or dishes not in context. End actionable answers with a short order like "
+        "'Carry on, soldier.'\n\n"
+        f"KITCHEN CONTEXT:\nprofile: {json.dumps({k: profile.get(k) for k in ('name','diet','household_size','spice_level') if k in profile})}\n"
+        f"today_plan: {json.dumps(plan_brief)}\n"
+        f"pantry: {json.dumps(pantry_brief)}"
+    )
+    msgs = [
+        {"role": h.get("role", "user"), "content": (h.get("content") or "")[:500]}
+        for h in payload.history[-8:]
+        if h.get("role") in ("user", "assistant") and h.get("content")
+    ]
+    msgs.append({"role": "user", "content": msg})
+
+    resp = await client.messages.create(
+        model=AI_MODEL, max_tokens=300, system=system, messages=msgs,
+    )
+    reply = "".join(getattr(b, "text", "") or "" for b in (resp.content or [])).strip()
+    return {"reply": reply}
+
+
+class CustomDishIn(BaseModel):
+    name_en: str
+    name_ta: Optional[str] = None
+    category: str = "accompaniment"
+    diet: str = "veg"  # veg | egg | nonveg
+    kcal: float
+    protein_g: float
+    fiber_g: float = 0
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
+
+
+@api_router.post("/recipes/custom")
+async def create_custom_dish(payload: CustomDishIn, current=Depends(get_current_user)):
+    """User's own dish — appears in their catalog, planner, and calendar like
+    any built-in recipe. Nutrition values are the user's own per-serving numbers."""
+    name = payload.name_en.strip()[:80]
+    if not name:
+        raise HTTPException(status_code=400, detail="Dish name required")
+    if payload.category not in ("tiffin", "kuzhambu", "poriyal", "kootu", "rasam", "accompaniment", "variety_rice", "nonveg"):
+        raise HTTPException(status_code=400, detail="Unknown category")
+    if payload.diet not in ("veg", "egg", "nonveg"):
+        raise HTTPException(status_code=400, detail="Unknown diet")
+    doc = {
+        "id": f"custom_{uuid.uuid4().hex[:10]}",
+        "user_id": current["user_id"],  # personal — only this user sees it
+        "custom": True,
+        "name_en": name,
+        "name_ta": (payload.name_ta or "").strip()[:80] or name,
+        "category": payload.category,
+        "diet": payload.diet,
+        "spice_level": "medium",
+        "prep_time_min": 20,
+        "ingredients": [],
+        "staple_spices": [],
+        "nutrition": {
+            "kcal": round(float(payload.kcal), 1),
+            "protein_g": round(float(payload.protein_g), 1),
+            "fiber_g": round(float(payload.fiber_g or 0), 1),
+            "carbs_g": round(float(payload.carbs_g), 1) if payload.carbs_g is not None else None,
+            "fat_g": round(float(payload.fat_g), 1) if payload.fat_g is not None else None,
+        },
+        "health_tags": ["custom"],
+        "combo_partners": [],
+        "notes": "Added by you — nutrition values are your own estimates.",
+    }
+    await db.recipes.insert_one({**doc})
+    return doc
 
 
 def _dish_cost_estimate(it: Dict[str, Any]) -> Optional[float]:

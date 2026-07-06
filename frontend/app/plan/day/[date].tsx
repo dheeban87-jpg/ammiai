@@ -18,6 +18,7 @@ import { MealCard, MEAL_META, type Meal, type MealItem } from "@/src/components/
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
+import { SuggestSheet, pickSuggestion, type Suggestion, type PantryInfo } from "@/src/components/suggest-sheet";
 import { useAuth } from "@/src/auth-context";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
@@ -55,6 +56,68 @@ export default function DayEditScreen() {
   const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
   const [addBusy, setAddBusy] = useState(false);
   const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
+  const [suggestMeal, setSuggestMeal] = useState<Meal["key"] | null>(null);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [suggestSkip, setSuggestSkip] = useState<string[]>([]);
+  const [suggestBusy, setSuggestBusy] = useState(false);
+  const [pantryInfo, setPantryInfo] = useState<PantryInfo | null>(null);
+
+  const loadPantryInfo = async (): Promise<PantryInfo | null> => {
+    if (pantryInfo) return pantryInfo;
+    try {
+      const rows = await api.get<{ ingredient_id: string; days_left: number | null }[]>("/api/pantry");
+      const info: PantryInfo = {
+        ids: new Set(rows.map((r) => r.ingredient_id)),
+        expiring: new Set(
+          rows.filter((r) => r.days_left != null && r.days_left <= 2).map((r) => r.ingredient_id),
+        ),
+      };
+      setPantryInfo(info);
+      return info;
+    } catch {
+      return null;
+    }
+  };
+
+  const openSuggest = async (mealKey: Meal["key"]) => {
+    if (!plan) return;
+    setSuggestMeal(mealKey);
+    setSuggestSkip([]);
+    try {
+      const all = catalog ?? (await loadDishCatalog());
+      if (!catalog) setCatalog(all);
+      const pInfo = await loadPantryInfo();
+      const mealObj = (plan as any)[mealKey] as Meal;
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, mealObj.items.map((i) => i.id), [], pInfo));
+    } catch {
+      setSuggestion(null);
+    }
+  };
+
+  const suggestAnother = () => {
+    if (!suggestMeal || !catalog || !plan) return;
+    const mealObj = (plan as any)[suggestMeal] as Meal;
+    const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
+    setSuggestSkip(skip);
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, mealObj.items.map((i) => i.id), skip, pantryInfo));
+  };
+
+  const addSuggested = async () => {
+    if (!suggestMeal || !suggestion || !date) return;
+    setSuggestBusy(true);
+    try {
+      const updated = await api.post<Plan>("/api/plan/add-dish", {
+        date,
+        meal: suggestMeal,
+        recipe_id: suggestion.recipe.id,
+      });
+      setPlan(updated);
+      setSuggestMeal(null);
+      setSuggestion(null);
+    } finally {
+      setSuggestBusy(false);
+    }
+  };
   const { profile } = useAuth();
 
   const load = useCallback(async () => {
@@ -299,6 +362,7 @@ export default function DayEditScreen() {
             onCooked={(it) => onCooked("breakfast", it)}
             onRemove={(it) => removeDish("breakfast", it)}
             onAddDish={() => openAddDish("breakfast")}
+            onSuggest={() => openSuggest("breakfast")}
             testIDPrefix="day-breakfast"
           />
           <MealCard
@@ -307,6 +371,7 @@ export default function DayEditScreen() {
             onCooked={(it) => onCooked("lunch", it)}
             onRemove={(it) => removeDish("lunch", it)}
             onAddDish={() => openAddDish("lunch")}
+            onSuggest={() => openSuggest("lunch")}
             testIDPrefix="day-lunch"
           />
           <MealCard
@@ -315,6 +380,7 @@ export default function DayEditScreen() {
             onCooked={(it) => onCooked("dinner", it)}
             onRemove={(it) => removeDish("dinner", it)}
             onAddDish={() => openAddDish("dinner")}
+            onSuggest={() => openSuggest("dinner")}
             testIDPrefix="day-dinner"
           />
 
@@ -338,6 +404,16 @@ export default function DayEditScreen() {
         onClose={() => setSwapCtx(null)}
         onPick={doSwap}
         busy={swapBusy}
+      />
+
+      <SuggestSheet
+        visible={suggestMeal != null}
+        suggestion={suggestion}
+        mealLabel={suggestMeal ? MEAL_META[suggestMeal].title : ""}
+        busy={suggestBusy}
+        onAdd={addSuggested}
+        onAnother={suggestAnother}
+        onClose={() => { setSuggestMeal(null); setSuggestion(null); }}
       />
 
       <AddDishSheet

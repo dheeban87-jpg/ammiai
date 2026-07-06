@@ -23,6 +23,7 @@ import type { MealItem } from "@/src/components/meal-card";
 type Props = {
   visible: boolean;
   mealLabel?: string;
+  onCreateOwn?: () => void;
   options: MealItem[] | null;
   onClose: () => void;
   onPick: (opt: MealItem) => void;
@@ -30,7 +31,7 @@ type Props = {
   busy?: boolean;
 };
 
-export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onSearch, busy }: Props) {
+export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onSearch, busy, onCreateOwn }: Props) {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState("");
   const { t } = useI18n();
@@ -46,7 +47,15 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
           testID="add-dish-sheet"
         >
           <View style={styles.handle} />
-          <Text style={styles.title}>{t("addsheet.title")}{mealLabel ? ` · ${mealLabel}` : ""}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={styles.title}>{t("addsheet.title")}{mealLabel ? ` · ${mealLabel}` : ""}</Text>
+            {onCreateOwn ? (
+              <TouchableOpacity testID="create-own-dish-btn" style={styles.ownBtn} onPress={onCreateOwn} hitSlop={8}>
+                <Ionicons name="create-outline" size={15} color={colors.riceWhite} />
+                <Text style={styles.ownBtnText}>My own dish</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
           <Text style={styles.sub}>{t("addsheet.sub")}</Text>
 
           <View style={styles.searchWrap}>
@@ -107,6 +116,9 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
             </ScrollView>
           )}
 
+          <Text style={styles.nutriNote}>
+            ⓘ Nutrition values are per-serving estimates from standard Tamil home recipes (IFCT reference).
+          </Text>
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn} disabled={busy}>
             <Text style={styles.cancelText}>{t("addsheet.close")}</Text>
           </TouchableOpacity>
@@ -154,6 +166,17 @@ const styles = StyleSheet.create({
   rowMacros: { alignItems: "flex-end" },
   rowProtein: { fontSize: 13, color: colors.chili, fontWeight: "800", marginTop: 2 },
   rowKcal: { fontFamily: fonts.headingEn, fontSize: 14, color: colors.textPrimary, marginLeft: spacing.s },
+  ownBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    minHeight: 42,
+    paddingHorizontal: 12,
+    borderRadius: radius.pill,
+    backgroundColor: colors.turmeric,
+  },
+  ownBtnText: { color: colors.riceWhite, fontWeight: "800", fontSize: 12.5 },
+  nutriNote: { fontSize: 11.5, color: colors.textMuted, textAlign: "center", marginTop: 8, lineHeight: 16 },
   cancelBtn: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: spacing.s },
   cancelText: { color: colors.textMuted, fontWeight: "700", fontSize: 15 },
 });

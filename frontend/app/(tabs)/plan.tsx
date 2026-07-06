@@ -18,6 +18,7 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
+import { CustomDishSheet } from "@/src/components/custom-dish-sheet";
 import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
 import { SuggestSheet, pickSuggestion, type Suggestion, type PantryInfo } from "@/src/components/suggest-sheet";
 import { useAuth } from "@/src/auth-context";
@@ -66,6 +67,26 @@ export default function PlanScreen() {
   const [suggestSkip, setSuggestSkip] = useState<string[]>([]);
   const [suggestBusy, setSuggestBusy] = useState(false);
   const [pantryInfo, setPantryInfo] = useState<PantryInfo | null>(null);
+  const [customOpen, setCustomOpen] = useState(false);
+
+  const onCustomCreated = async (dish: any) => {
+    setCustomOpen(false);
+    setCatalog(null); // force re-fetch so the new dish is searchable
+    if (addCtx) {
+      try {
+        const updated = await api.post<Plan>("/api/plan/add-dish", {
+          date: addCtx.date,
+          meal: addCtx.meal,
+          recipe_id: dish.id,
+        });
+        if (mode === "today") setPlan(updated);
+        else loadWeek();
+        setAddCtx(null);
+      } catch {
+        /* dish saved; user can add it from the list */
+      }
+    }
+  };
 
   const loadPantryInfo = async (): Promise<PantryInfo | null> => {
     if (pantryInfo) return pantryInfo;
@@ -531,6 +552,13 @@ export default function PlanScreen() {
         onPick={pickAddDish}
         onSearch={searchAddDish}
         busy={addBusy}
+        onCreateOwn={() => setCustomOpen(true)}
+      />
+
+      <CustomDishSheet
+        visible={customOpen}
+        onClose={() => setCustomOpen(false)}
+        onCreated={onCustomCreated}
       />
 
       <SuggestSheet

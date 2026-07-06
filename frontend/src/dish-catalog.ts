@@ -60,3 +60,8 @@ export function filterDishes(
   out.sort((a, b) => a.name_en.localeCompare(b.name_en));
   return out;
 }
+
+/** Invalidate the cache (call after creating a custom dish). */
+export function clearDishCatalog(): void {
+  _cache = null;
+}

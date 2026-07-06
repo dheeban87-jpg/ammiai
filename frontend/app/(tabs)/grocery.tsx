@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
-import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -279,6 +278,16 @@ export default function GroceryScreen() {
 
   const scanBill = async () => {
     try {
+      // Lazy import: if this APK build predates the expo-image-picker
+      // dependency, the Grocery screen must still open fine.
+      let ImagePicker: typeof import("expo-image-picker");
+      try {
+        ImagePicker = await import("expo-image-picker");
+      } catch {
+        setToast("Bill scan needs the latest app build — rebuild the APK");
+        setTimeout(() => setToast(null), 3500);
+        return;
+      }
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.7,

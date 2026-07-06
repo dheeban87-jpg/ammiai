@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -151,8 +152,14 @@ export default function DayEditScreen() {
         recipe_id: item.id,
       });
       setPlan(updated);
-    } catch {
-      /* noop */
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      Alert.alert(
+        "Couldn't remove",
+        item.static && (msg.includes("404") || msg.includes("fixed base"))
+          ? "Removing rice/curd unlocks with the next backend update."
+          : "Please try again.",
+      );
     }
   };
 

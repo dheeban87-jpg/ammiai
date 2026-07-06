@@ -28,19 +28,40 @@ export type Suggestion = {
   reason: string;
 };
 
-/** Pick the dish that best fixes this meal's weakest macro. */
+export type PantryInfo = {
+  ids: Set<string>; // ingredient_ids currently in pantry
+  expiring: Set<string>; // ingredient_ids with <= 2 days left
+};
+
+const MEAL_CATEGORIES: Record<Meal["key"], string[]> = {
+  // What actually belongs on a Tamil plate at each meal
+  breakfast: ["tiffin", "accompaniment", "nonveg"],
+  lunch: ["kuzhambu", "poriyal", "kootu", "rasam", "variety_rice", "accompaniment", "nonveg"],
+  dinner: ["tiffin", "kuzhambu", "poriyal", "kootu", "rasam", "accompaniment", "nonveg"],
+};
+
+/** Captain's pick: pantry-aware, expiry-aware, meal-appropriate, varied.
+ *  Priority: rescue expiring items > use pantry stock > fix the weakest
+ *  macro > respect the kcal budget. Picks randomly among the top 5 so
+ *  repeated taps don't parrot the same kootu. */
 export function pickSuggestion(
   catalog: CatalogRecipe[],
   meal: Meal,
   diet: string | null | undefined,
   excludeIds: string[],
   skipIds: string[] = [],
+  pantry?: PantryInfo | null,
 ): Suggestion | null {
   const excluded = new Set([...excludeIds, ...skipIds]);
+  const allowedCats = new Set(MEAL_CATEGORIES[meal.key] ?? []);
+  const inMealCats = new Set(
+    meal.items.filter((i) => !i.static).map((i) => (i as any).category).filter(Boolean),
+  );
   const pool = catalog.filter((r) => {
     if (excluded.has(r.id)) return false;
     if (diet === "veg" && r.diet !== "veg") return false;
     if (diet === "egg" && r.diet === "nonveg") return false;
+    if (allowedCats.size > 0 && !allowedCats.has(r.category)) return false;
     return true;
   });
   if (pool.length === 0) return null;
@@ -54,17 +75,40 @@ export function pickSuggestion(
       const f = (r.nutrition as any)?.fiber_g ?? 0;
       const k = r.nutrition?.kcal ?? 0;
       let score = proteinGap > 0 ? p * 3 + f : f * 2 + p;
-      if (k > kcalRoom) score -= (k - kcalRoom) / 15; // don't blow the kcal budget
-      return { r, score, p, f, k };
+      if (k > kcalRoom) score -= (k - kcalRoom) / 15;
+      // Variety: don't stack another dish of a category already on the plate
+      if (inMealCats.has(r.category)) score -= 8;
+      // Pantry awareness: reward dishes cookable from what's at home,
+      // and heavily reward rescuing expiring items.
+      let pantryHits = 0;
+      let expiringHit: string | null = null;
+      if (pantry) {
+        for (const ing of r.ingredients ?? []) {
+          if (pantry.ids.has(ing.ingredient_id)) pantryHits++;
+          if (pantry.expiring.has(ing.ingredient_id)) expiringHit = ing.ingredient_id;
+        }
+        score += pantryHits * 4;
+        if (expiringHit) score += 20;
+      }
+      return { r, score, p, f, k, pantryHits, expiringHit };
     })
     .sort((a, b) => b.score - a.score);
 
-  const best = scored[0];
+  // Randomise among the leaders so suggestions feel alive, not robotic
+  const top = scored.slice(0, Math.min(5, scored.length));
+  const best = top[Math.floor(Math.random() * top.length)];
   if (!best) return null;
-  const reason =
-    proteinGap > 0
-      ? `+${Math.round(best.p)}g protein — closes the gap toward Balanced`
-      : `+${Math.round(best.f)}g fiber, only ${Math.round(best.k)} kcal — keeps it light`;
+
+  let reason: string;
+  if (best.expiringHit) {
+    reason = `uses your ${best.expiringHit.replace(/_/g, " ")} before it expires — waste nothing`;
+  } else if (best.pantryHits >= 2) {
+    reason = `${best.pantryHits} ingredients already in your pantry — almost zero shopping`;
+  } else if (proteinGap > 0) {
+    reason = `+${Math.round(best.p)}g protein — closes the gap toward Balanced`;
+  } else {
+    reason = `+${Math.round(best.f)}g fiber, only ${Math.round(best.k)} kcal — keeps it light`;
+  }
   return { recipe: best.r, reason };
 }
 

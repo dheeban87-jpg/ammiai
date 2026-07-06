@@ -19,7 +19,7 @@ import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
-import { SuggestSheet, pickSuggestion, type Suggestion } from "@/src/components/suggest-sheet";
+import { SuggestSheet, pickSuggestion, type Suggestion, type PantryInfo } from "@/src/components/suggest-sheet";
 import { useAuth } from "@/src/auth-context";
 import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
@@ -65,6 +65,24 @@ export default function PlanScreen() {
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [suggestSkip, setSuggestSkip] = useState<string[]>([]);
   const [suggestBusy, setSuggestBusy] = useState(false);
+  const [pantryInfo, setPantryInfo] = useState<PantryInfo | null>(null);
+
+  const loadPantryInfo = async (): Promise<PantryInfo | null> => {
+    if (pantryInfo) return pantryInfo;
+    try {
+      const rows = await api.get<{ ingredient_id: string; days_left: number | null }[]>("/api/pantry");
+      const info: PantryInfo = {
+        ids: new Set(rows.map((r) => r.ingredient_id)),
+        expiring: new Set(
+          rows.filter((r) => r.days_left != null && r.days_left <= 2).map((r) => r.ingredient_id),
+        ),
+      };
+      setPantryInfo(info);
+      return info;
+    } catch {
+      return null;
+    }
+  };
   const [addQuery, setAddQuery] = useState("");
   const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
@@ -256,9 +274,10 @@ export default function PlanScreen() {
     try {
       const all = catalog ?? (await loadDishCatalog());
       if (!catalog) setCatalog(all);
+      const pInfo = await loadPantryInfo();
       const mealObj = (plan as any)[mealKey] as Meal;
       const exclude = mealObj.items.map((i) => i.id);
-      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude));
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude, [], pInfo));
     } catch {
       setSuggestion(null);
     }
@@ -270,7 +289,7 @@ export default function PlanScreen() {
     const exclude = mealObj.items.map((i) => i.id);
     const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
     setSuggestSkip(skip);
-    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip));
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip, pantryInfo));
   };
 
   const addSuggested = async () => {
@@ -300,8 +319,14 @@ export default function PlanScreen() {
       });
       if (mode === "today") setPlan(updated);
       else loadWeek();
-    } catch {
-      /* noop */
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      setStreakToast(
+        item.static && (msg.includes("404") || msg.includes("fixed base"))
+          ? "Removing rice/curd unlocks with the next backend update 🐼"
+          : "Couldn't remove that dish — try again",
+      );
+      setTimeout(() => setStreakToast(null), 3200);
     }
   };
 

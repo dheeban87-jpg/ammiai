@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, fonts, radius, spacing } from "@/src/theme";
 import { FoodAvatar } from "@/src/food-visual";
+import { useI18n } from "@/src/i18n";
 import type { MealItem } from "@/src/components/meal-card";
 
 type Props = {
@@ -31,6 +33,7 @@ type Props = {
 export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onSearch, busy }: Props) {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState("");
+  const { t } = useI18n();
 
   const list = useMemo(() => options ?? [], [options]);
 
@@ -43,8 +46,8 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
           testID="add-dish-sheet"
         >
           <View style={styles.handle} />
-          <Text style={styles.title}>Add a dish{mealLabel ? ` · ${mealLabel}` : ""}</Text>
-          <Text style={styles.sub}>Search all 72 Amma-style dishes and add whatever you like</Text>
+          <Text style={styles.title}>{t("addsheet.title")}{mealLabel ? ` · ${mealLabel}` : ""}</Text>
+          <Text style={styles.sub}>{t("addsheet.sub")}</Text>
 
           <View style={styles.searchWrap}>
             <Ionicons name="search" size={18} color={colors.textMuted} />
@@ -54,7 +57,7 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
                 setQ(v);
                 onSearch(v);
               }}
-              placeholder="Search dish name…"
+              placeholder={t("addsheet.search")}
               placeholderTextColor={colors.textMuted}
               style={styles.searchInput}
               testID="add-dish-search"
@@ -67,10 +70,14 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
             </View>
           ) : list.length === 0 ? (
             <View style={{ padding: spacing.l, alignItems: "center" }}>
-              <Text style={{ color: colors.textMuted }}>No dishes match "{q}"</Text>
+              <Text style={{ color: colors.textMuted, textAlign: "center" }}>
+                {q
+                  ? `${t("addsheet.nomatch")}: "${q}"`
+                  : t("addsheet.loadfail")}
+              </Text>
             </View>
           ) : (
-            <View style={{ maxHeight: 420 }}>
+            <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
               {list.map((opt) => (
                 <TouchableOpacity
                   key={opt.id}
@@ -79,24 +86,29 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
                   disabled={busy}
                   testID={`add-dish-option-${opt.id}`}
                 >
-                  <FoodAvatar kind="dish" id={opt.id} category={opt.category} size={44} style={{ marginRight: 12 }} />
+                  <FoodAvatar kind="dish" id={opt.id} category={opt.category} size={58} style={{ marginRight: 12 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rowTitle} numberOfLines={1}>{opt.name_en}</Text>
                     {opt.name_ta ? <Text style={styles.rowTa} numberOfLines={1}>{opt.name_ta}</Text> : null}
-                    {opt._score?.zero_shop ? (
-                      <Text style={styles.rowGood}>0 shopping</Text>
-                    ) : (
-                      <Text style={styles.rowMuted}>{Math.round((opt._score?.pantry_ratio ?? 0) * 100)}% in pantry</Text>
-                    )}
+                    {opt._score ? (
+                      opt._score.zero_shop ? (
+                        <Text style={styles.rowGood}>0 shopping</Text>
+                      ) : (
+                        <Text style={styles.rowMuted}>{Math.round((opt._score.pantry_ratio ?? 0) * 100)}% in pantry</Text>
+                      )
+                    ) : null}
                   </View>
-                  <Text style={styles.rowKcal}>{opt.nutrition?.kcal ?? 0} kcal</Text>
+                  <View style={styles.rowMacros}>
+                    <Text style={styles.rowKcal}>{opt.nutrition?.kcal ?? 0} kcal</Text>
+                    <Text style={styles.rowProtein}>P {opt.nutrition?.protein_g ?? 0}g</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
-            </View>
+            </ScrollView>
           )}
 
           <TouchableOpacity onPress={onClose} style={styles.cancelBtn} disabled={busy}>
-            <Text style={styles.cancelText}>Close</Text>
+            <Text style={styles.cancelText}>{t("addsheet.close")}</Text>
           </TouchableOpacity>
         </Pressable>
       </Pressable>
@@ -129,16 +141,18 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 64,
+    minHeight: 74,
     paddingVertical: 10,
     paddingHorizontal: 6,
     borderRadius: radius.m,
     marginBottom: 4,
   },
-  rowTitle: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  rowTitle: { fontSize: 17, fontWeight: "700", color: colors.textPrimary },
   rowTa: { fontFamily: fonts.bodyTa, fontSize: 12, color: colors.textMuted, marginTop: 1 },
   rowGood: { fontSize: 11, color: colors.bananaLeaf, fontWeight: "700", marginTop: 2 },
   rowMuted: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  rowMacros: { alignItems: "flex-end" },
+  rowProtein: { fontSize: 13, color: colors.chili, fontWeight: "800", marginTop: 2 },
   rowKcal: { fontFamily: fonts.headingEn, fontSize: 14, color: colors.textPrimary, marginLeft: spacing.s },
   cancelBtn: { minHeight: 48, alignItems: "center", justifyContent: "center", marginTop: spacing.s },
   cancelText: { color: colors.textMuted, fontWeight: "700", fontSize: 15 },

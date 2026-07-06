@@ -4,6 +4,7 @@ import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors } from "@/src/theme";
+import { useI18n } from "@/src/i18n";
 import { CharmerProvider } from "@/src/components/capt-charmer";
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -21,6 +22,7 @@ export default function TabsLayout() {
   // never sits underneath it (fixes hard-to-tap tabs on gesture-nav phones).
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, Platform.OS === "ios" ? 20 : 10);
+  const { t } = useI18n();
 
   return (
     <CharmerProvider>
@@ -40,11 +42,11 @@ export default function TabsLayout() {
           },
         })}
       >
-        <Tabs.Screen name="index" options={{ title: "Home" }} />
-        <Tabs.Screen name="pantry" options={{ title: "Pantry" }} />
-        <Tabs.Screen name="plan" options={{ title: "Plan" }} />
-        <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
-        <Tabs.Screen name="grocery" options={{ title: "Grocery" }} />
+        <Tabs.Screen name="index" options={{ title: t("tab.home") }} />
+        <Tabs.Screen name="pantry" options={{ title: t("tab.pantry") }} />
+        <Tabs.Screen name="plan" options={{ title: t("tab.plan") }} />
+        <Tabs.Screen name="calendar" options={{ title: t("tab.calendar") }} />
+        <Tabs.Screen name="grocery" options={{ title: t("tab.grocery") }} />
       </Tabs>
     </CharmerProvider>
   );

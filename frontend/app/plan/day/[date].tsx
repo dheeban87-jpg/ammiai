@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,8 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { MealCard, MEAL_META, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
+import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
+import { useAuth } from "@/src/auth-context";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -51,6 +54,8 @@ export default function DayEditScreen() {
   const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
   const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
   const [addBusy, setAddBusy] = useState(false);
+  const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
+  const { profile } = useAuth();
 
   const load = useCallback(async () => {
     if (!date) return;
@@ -109,25 +114,17 @@ export default function DayEditScreen() {
     setAddCtx({ meal, date });
     setAddOptions(null);
     try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${date}&meal=${meal}`,
-      );
-      setAddOptions(r.options);
+      const all = await loadDishCatalog();
+      setCatalog(all);
+      setAddOptions(filterDishes(all, { diet: profile?.diet }));
     } catch {
       setAddOptions([]);
     }
   };
 
-  const searchAddDish = async (q: string) => {
-    if (!addCtx) return;
-    try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${addCtx.date}&meal=${addCtx.meal}&q=${encodeURIComponent(q)}`,
-      );
-      setAddOptions(r.options);
-    } catch {
-      /* keep list */
-    }
+  const searchAddDish = (q: string) => {
+    if (!catalog) return;
+    setAddOptions(filterDishes(catalog, { q, diet: profile?.diet }));
   };
 
   const pickAddDish = async (opt: MealItem) => {
@@ -155,8 +152,14 @@ export default function DayEditScreen() {
         recipe_id: item.id,
       });
       setPlan(updated);
-    } catch {
-      /* noop */
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      Alert.alert(
+        "Couldn't remove",
+        item.static && (msg.includes("404") || msg.includes("fixed base"))
+          ? "Removing rice/curd unlocks with the next backend update."
+          : "Please try again.",
+      );
     }
   };
 

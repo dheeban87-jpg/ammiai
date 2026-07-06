@@ -3882,5 +3882,39 @@
    "kz_sambar"
   ],
   "notes": "Weekend/festival treat; pairs with sambar and chutney"
+ },
+ {
+  "id": "nv_boiled_egg",
+  "name_en": "Boiled Egg (2 pc)",
+  "name_ta": "வேக வைத்த முட்டை",
+  "category": "nonveg",
+  "diet": "nonveg",
+  "spice_level": "mild",
+  "prep_time_min": 12,
+  "ingredients": [
+   {
+    "ingredient_id": "eggs",
+    "qty": 2,
+    "unit": "pc"
+   }
+  ],
+  "staple_spices": [
+   "black_pepper",
+   "salt"
+  ],
+  "nutrition": {
+   "kcal": 155,
+   "protein_g": 13,
+   "carbs_g": 1,
+   "fat_g": 11,
+   "fiber_g": 0
+  },
+  "health_tags": [
+   "high_protein",
+   "light",
+   "quick"
+  ],
+  "combo_partners": [],
+  "notes": "Simple protein boost — pairs with any meal. Sprinkle pepper + salt."
  }
 ]

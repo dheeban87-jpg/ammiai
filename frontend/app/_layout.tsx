@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth-context";
+import { LanguageProvider } from "@/src/i18n";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
@@ -86,7 +87,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <View style={{ flex: 1, backgroundColor: colors.riceWhite }}>
         <AuthProvider>
-          <RootStack />
+          <LanguageProvider>
+            <RootStack />
+          </LanguageProvider>
         </AuthProvider>
       </View>
     </SafeAreaProvider>

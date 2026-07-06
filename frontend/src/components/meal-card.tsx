@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { FoodAvatar } from "@/src/food-visual";
 
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
+import { useI18n } from "@/src/i18n";
 
 export type MealItem = {
   id: string;
@@ -71,6 +72,7 @@ export function MealCard({
   onCooked,
   onRemove,
   onAddDish,
+  onSuggest,
   testIDPrefix,
 }: {
   meal: Meal;
@@ -78,10 +80,12 @@ export function MealCard({
   onCooked?: (item: MealItem) => void;
   onRemove?: (item: MealItem) => void;
   onAddDish?: () => void;
+  onSuggest?: () => void;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
   const meta = MEAL_META[meal.key];
+  const { t, lang } = useI18n();
   const isEmpty = meal.items.length === 0 || meal.items.every((it) => it.static);
   return (
     <View style={styles.mealCard} testID={testIDPrefix}>
@@ -91,13 +95,13 @@ export function MealCard({
             <Ionicons name={meta.icon} size={20} color={colors.bananaLeaf} />
           </View>
           <View>
-            <Text style={styles.mealTitle}>{meta.title}</Text>
-            <Text style={styles.mealTa}>{meta.ta}</Text>
+            <Text style={styles.mealTitle}>{lang === "ta" ? meta.ta : meta.title}</Text>
+            <Text style={styles.mealTa}>{lang === "ta" ? meta.title : meta.ta}</Text>
           </View>
         </View>
         <View style={[styles.chipTag, { backgroundColor: chip.bg }]} testID={`${testIDPrefix}-chip`}>
           <Ionicons name={chip.icon} size={12} color={chip.color} />
-          <Text style={[styles.chipTagText, { color: chip.color }]}>{chip.label}</Text>
+          <Text style={[styles.chipTagText, { color: chip.color }]}>{t(`nut.${meal.chip}` as any)}</Text>
         </View>
       </View>
 
@@ -108,7 +112,7 @@ export function MealCard({
           testID={`${testIDPrefix}-plan-empty`}
         >
           <Ionicons name="add-circle-outline" size={22} color={colors.bananaLeaf} />
-          <Text style={styles.emptyStateText}>Plan this meal — tap to add a dish</Text>
+          <Text style={styles.emptyStateText}>{t("dish.add")}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -125,7 +129,7 @@ export function MealCard({
             kind="dish"
             id={it.id}
             category={(it as any).category}
-            size={40}
+            size={56}
             style={{ marginRight: 10 }}
           />
           <View style={{ flex: 1 }}>
@@ -143,7 +147,7 @@ export function MealCard({
               {it.cooked ? (
                 <View style={styles.cookedBadge} testID={`${testIDPrefix}-cooked-${it.id}`}>
                   <Ionicons name="checkmark" size={10} color={colors.riceWhite} />
-                  <Text style={styles.cookedBadgeText}>Cooked</Text>
+                  <Text style={styles.cookedBadgeText}>{t("dish.cooked")}</Text>
                 </View>
               ) : null}
             </View>
@@ -168,8 +172,21 @@ export function MealCard({
             ) : null}
           </View>
           {it.static ? (
-            <View style={styles.staticTag}>
-              <Text style={styles.staticTagText}>Base</Text>
+            <View style={styles.actionsCol}>
+              <View style={styles.staticTag}>
+                <Text style={styles.staticTagText}>{t("dish.base")}</Text>
+              </View>
+              {onRemove ? (
+                <TouchableOpacity
+                  testID={`${testIDPrefix}-remove-${it.id}`}
+                  style={styles.baseRemoveBtn}
+                  onPress={() => onRemove(it)}
+                  hitSlop={10}
+                  accessibilityLabel={`Remove ${it.name_en}`}
+                >
+                  <Ionicons name="trash-outline" size={15} color={colors.textMuted} />
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : (
             <View style={styles.actionsCol}>
@@ -181,7 +198,7 @@ export function MealCard({
                   hitSlop={10}
                 >
                   <Ionicons name="checkmark-circle-outline" size={16} color={colors.chili} />
-                  <Text style={styles.cookBtnText}>Cooked</Text>
+                  <Text style={styles.cookBtnText}>{t("dish.cooked")}</Text>
                 </TouchableOpacity>
               ) : null}
               <View style={{ flexDirection: "row", gap: 6 }}>
@@ -192,7 +209,7 @@ export function MealCard({
                   hitSlop={10}
                 >
                   <Ionicons name="swap-horizontal" size={16} color={colors.bananaLeaf} />
-                  <Text style={styles.swapBtnText}>Swap</Text>
+                  <Text style={styles.swapBtnText}>{t("dish.swap")}</Text>
                 </TouchableOpacity>
                 {onRemove ? (
                   <TouchableOpacity
@@ -209,6 +226,18 @@ export function MealCard({
           )}
         </View>
       ))}
+
+      {!isEmpty && onSuggest ? (
+        <TouchableOpacity
+          style={styles.suggestBtn}
+          onPress={onSuggest}
+          testID={`${testIDPrefix}-suggest`}
+          hitSlop={8}
+        >
+          <Ionicons name="sparkles" size={17} color={colors.riceWhite} />
+          <Text style={styles.suggestText}>{`Captain's suggestion`}</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {!isEmpty && onAddDish ? (
         <TouchableOpacity
@@ -264,7 +293,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: spacing.s,
   },
-  mealTitle: { fontFamily: fonts.headingEn, fontSize: 18, color: colors.textPrimary },
+  mealTitle: { fontFamily: fonts.headingEn, fontSize: 21, color: colors.textPrimary },
   mealTa: { fontFamily: fonts.bodyTa, fontSize: 12, color: colors.textMuted },
   chipTag: {
     flexDirection: "row",
@@ -283,7 +312,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.border,
   },
-  dishEn: { fontSize: 15.5, fontWeight: "700", color: colors.textPrimary },
+  dishEn: { fontSize: 17.5, fontWeight: "700", color: colors.textPrimary },
   dishAvatar: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 10 },
   dishAvatarEmoji: { fontSize: 22 },
   dishQty: { fontSize: 11, color: colors.textMuted, fontWeight: "400" },
@@ -340,6 +369,17 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.bananaLeaf}08`,
   },
   emptyStateText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
+  suggestBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 50,
+    marginTop: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.turmeric,
+  },
+  suggestText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
   addDishBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -367,6 +407,15 @@ const styles = StyleSheet.create({
     color: colors.riceWhite,
     fontSize: 9,
     fontWeight: "700",
+  },
+  baseRemoveBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surfaceSoft,
+    marginTop: 6,
   },
   staticTag: {
     paddingVertical: 4,

@@ -18,6 +18,10 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
+import { loadDishCatalog, filterDishes, type CatalogRecipe } from "@/src/dish-catalog";
+import { SuggestSheet, pickSuggestion, type Suggestion, type PantryInfo } from "@/src/components/suggest-sheet";
+import { useAuth } from "@/src/auth-context";
+import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 
@@ -38,6 +42,8 @@ type Plan = {
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { profile } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<"today" | "week">("today");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [week, setWeek] = useState<Plan[] | null>(null);
@@ -55,6 +61,30 @@ export default function PlanScreen() {
   const [addCtx, setAddCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
   const [addOptions, setAddOptions] = useState<MealItem[] | null>(null);
   const [addBusy, setAddBusy] = useState(false);
+  const [suggestCtx, setSuggestCtx] = useState<{ meal: Meal["key"]; date: string } | null>(null);
+  const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [suggestSkip, setSuggestSkip] = useState<string[]>([]);
+  const [suggestBusy, setSuggestBusy] = useState(false);
+  const [pantryInfo, setPantryInfo] = useState<PantryInfo | null>(null);
+
+  const loadPantryInfo = async (): Promise<PantryInfo | null> => {
+    if (pantryInfo) return pantryInfo;
+    try {
+      const rows = await api.get<{ ingredient_id: string; days_left: number | null }[]>("/api/pantry");
+      const info: PantryInfo = {
+        ids: new Set(rows.map((r) => r.ingredient_id)),
+        expiring: new Set(
+          rows.filter((r) => r.days_left != null && r.days_left <= 2).map((r) => r.ingredient_id),
+        ),
+      };
+      setPantryInfo(info);
+      return info;
+    } catch {
+      return null;
+    }
+  };
+  const [addQuery, setAddQuery] = useState("");
+  const [catalog, setCatalog] = useState<CatalogRecipe[] | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMeta, setAiMeta] = useState<{
     source?: "ai" | "fallback";
@@ -204,26 +234,20 @@ export default function PlanScreen() {
   const openAddDish = async (meal: Meal["key"], date: string) => {
     setAddCtx({ meal, date });
     setAddOptions(null);
+    setAddQuery("");
     try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${date}&meal=${meal}`,
-      );
-      setAddOptions(r.options);
+      const all = await loadDishCatalog();
+      setCatalog(all);
+      setAddOptions(filterDishes(all, { diet: profile?.diet }));
     } catch {
       setAddOptions([]);
     }
   };
 
-  const searchAddDish = async (q: string) => {
-    if (!addCtx) return;
-    try {
-      const r = await api.get<{ options: MealItem[] }>(
-        `/api/plan/add-dish-options?date=${addCtx.date}&meal=${addCtx.meal}&q=${encodeURIComponent(q)}`,
-      );
-      setAddOptions(r.options);
-    } catch {
-      /* keep previous list on transient error */
-    }
+  const searchAddDish = (q: string) => {
+    setAddQuery(q);
+    if (!catalog) return;
+    setAddOptions(filterDishes(catalog, { q, diet: profile?.diet }));
   };
 
   const pickAddDish = async (opt: MealItem) => {
@@ -243,6 +267,49 @@ export default function PlanScreen() {
     }
   };
 
+  const openSuggest = async (mealKey: Meal["key"], date: string) => {
+    if (!plan) return;
+    setSuggestCtx({ meal: mealKey, date });
+    setSuggestSkip([]);
+    try {
+      const all = catalog ?? (await loadDishCatalog());
+      if (!catalog) setCatalog(all);
+      const pInfo = await loadPantryInfo();
+      const mealObj = (plan as any)[mealKey] as Meal;
+      const exclude = mealObj.items.map((i) => i.id);
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude, [], pInfo));
+    } catch {
+      setSuggestion(null);
+    }
+  };
+
+  const suggestAnother = () => {
+    if (!suggestCtx || !catalog || !plan) return;
+    const mealObj = (plan as any)[suggestCtx.meal] as Meal;
+    const exclude = mealObj.items.map((i) => i.id);
+    const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
+    setSuggestSkip(skip);
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip, pantryInfo));
+  };
+
+  const addSuggested = async () => {
+    if (!suggestCtx || !suggestion) return;
+    setSuggestBusy(true);
+    try {
+      const updated = await api.post<Plan>("/api/plan/add-dish", {
+        date: suggestCtx.date,
+        meal: suggestCtx.meal,
+        recipe_id: suggestion.recipe.id,
+      });
+      if (mode === "today") setPlan(updated);
+      else loadWeek();
+      setSuggestCtx(null);
+      setSuggestion(null);
+    } finally {
+      setSuggestBusy(false);
+    }
+  };
+
   const removeDish = async (mealKey: Meal["key"], item: MealItem, date: string) => {
     try {
       const updated = await api.post<Plan>("/api/plan/remove-dish", {
@@ -252,8 +319,14 @@ export default function PlanScreen() {
       });
       if (mode === "today") setPlan(updated);
       else loadWeek();
-    } catch {
-      /* noop */
+    } catch (e: any) {
+      const msg = String(e?.message ?? "");
+      setStreakToast(
+        item.static && (msg.includes("404") || msg.includes("fixed base"))
+          ? "Removing rice/curd unlocks with the next backend update 🐼"
+          : "Couldn't remove that dish — try again",
+      );
+      setTimeout(() => setStreakToast(null), 3200);
     }
   };
 
@@ -278,7 +351,7 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.screen} testID="plan-screen">
-      <AppHeader title="Plan" subtitleTa="இன்றைய உணவு திட்டம்" />
+      <AppHeader title={t("plan.title")} subtitleTa={t("plan.subtitle")} />
 
       <View style={styles.segmentWrap} testID="plan-mode-toggle">
         <View style={styles.segment}>
@@ -290,7 +363,7 @@ export default function PlanScreen() {
               onPress={() => setMode(m)}
             >
               <Text style={[styles.segText, mode === m && { color: colors.riceWhite }]}>
-                {m === "today" ? "Today" : "This week"}
+                {m === "today" ? t("plan.today") : t("plan.week")}
               </Text>
             </TouchableOpacity>
           ))}
@@ -333,6 +406,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("breakfast", it)}
             onRemove={(it) => removeDish("breakfast", it, plan.date)}
             onAddDish={() => openAddDish("breakfast", plan.date)}
+            onSuggest={() => openSuggest("breakfast", plan.date)}
             testIDPrefix="meal-breakfast"
           />
           <MealCard
@@ -341,6 +415,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("lunch", it)}
             onRemove={(it) => removeDish("lunch", it, plan.date)}
             onAddDish={() => openAddDish("lunch", plan.date)}
+            onSuggest={() => openSuggest("lunch", plan.date)}
             testIDPrefix="meal-lunch"
           />
           <MealCard
@@ -349,6 +424,7 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("dinner", it)}
             onRemove={(it) => removeDish("dinner", it, plan.date)}
             onAddDish={() => openAddDish("dinner", plan.date)}
+            onSuggest={() => openSuggest("dinner", plan.date)}
             testIDPrefix="meal-dinner"
           />
 
@@ -430,7 +506,7 @@ export default function PlanScreen() {
             ) : (
               <>
                 <Ionicons name="refresh" size={18} color={colors.riceWhite} />
-                <Text style={styles.fabText}>Regenerate</Text>
+                <Text style={styles.fabText}>{t("plan.regenerate")}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -455,6 +531,16 @@ export default function PlanScreen() {
         onPick={pickAddDish}
         onSearch={searchAddDish}
         busy={addBusy}
+      />
+
+      <SuggestSheet
+        visible={suggestCtx != null}
+        suggestion={suggestion}
+        mealLabel={suggestCtx ? MEAL_META[suggestCtx.meal].title : ""}
+        busy={suggestBusy}
+        onAdd={addSuggested}
+        onAnother={suggestAnother}
+        onClose={() => { setSuggestCtx(null); setSuggestion(null); }}
       />
 
       {streakToast ? (

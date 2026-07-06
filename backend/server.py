@@ -16,6 +16,7 @@ import httpx
 from meal_engine import (
     PantrySnapshot,
     PlannerContext,
+    STAPLE_ALWAYS,
     cook_now as engine_cook_now,
     daily_targets,
     plan_day as engine_plan_day,

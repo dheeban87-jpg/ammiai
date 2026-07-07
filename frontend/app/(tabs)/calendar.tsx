@@ -27,8 +27,31 @@ type Plan = {
   breakfast: Meal;
   lunch: Meal;
   dinner: Meal;
-  day_totals?: { kcal: number };
+  day_totals?: { kcal: number; protein_g?: number; fiber_g?: number };
+  day_targets?: { kcal: number; protein_g: number; fiber_g: number };
 };
+
+/** What was actually EATEN that day: nutrition of cooked dishes, plus base
+ *  rice/curd for any meal where at least one dish was cooked. */
+function consumedNutrition(plan: Plan) {
+  let kcal = 0, protein = 0, fiber = 0, cookedCount = 0, balanced = 0, mealsWithFood = 0;
+  for (const mk of ["breakfast", "lunch", "dinner"] as const) {
+    const meal: any = (plan as any)[mk];
+    if (!meal?.items) continue;
+    const anyCooked = meal.items.some((i: any) => i.cooked && !i.static);
+    if (meal.items.some((i: any) => !i.static)) mealsWithFood++;
+    if (meal.chip === "balanced") balanced++;
+    for (const it of meal.items) {
+      const eat = it.static ? anyCooked : !!it.cooked;
+      if (!eat) continue;
+      kcal += it.nutrition?.kcal ?? 0;
+      protein += it.nutrition?.protein_g ?? 0;
+      fiber += (it.nutrition as any)?.fiber_g ?? 0;
+      if (!it.static) cookedCount++;
+    }
+  }
+  return { kcal: Math.round(kcal), protein: Math.round(protein), fiber: Math.round(fiber), cookedCount, balanced, mealsWithFood };
+}
 
 type MonthResp = {
   year: number;
@@ -382,8 +405,13 @@ export default function CalendarScreen() {
                       activeOpacity={0.85}
                       disabled={busy === w.iso}
                       onPress={() => {
-                        if (plan) router.push(`/plan/day/${w.iso}`);
-                        else planDay(w.iso);
+                        if (!plan) {
+                          planDay(w.iso);
+                        } else if (w.iso <= todayIso) {
+                          router.push(`/plan/review/${w.iso}`);
+                        } else {
+                          router.push(`/plan/day/${w.iso}`);
+                        }
                       }}
                     >
                       <View style={[styles.weekDateBadge, w.wd === 0 && { backgroundColor: "#F6DBD2" }, w.wd === 6 && { backgroundColor: "#D6E2F2" }]}>
@@ -393,21 +421,50 @@ export default function CalendarScreen() {
                       {busy === w.iso ? (
                         <ActivityIndicator color={colors.bananaLeaf} style={{ flex: 1 }} />
                       ) : plan ? (
-                        <View style={styles.weekMealsCol}>
-                          {([["sunny", bf], ["restaurant", lu], ["moon", dn]] as const).map(([icon, dish], i) => (
-                            <View key={i} style={styles.weekMealLine}>
-                              <Ionicons name={icon as any} size={13} color={colors.bananaLeafSoft} style={{ width: 18 }} />
-                              {dish ? (
-                                <FoodAvatar kind="dish" id={dish.id} category={dish.category} size={30} style={{ marginRight: 8 }} />
-                              ) : (
-                                <View style={{ width: 38 }} />
-                              )}
-                              <Text style={styles.weekMealName} numberOfLines={1}>
-                                {shortName(dish?.name) || "—"}
+                        (() => {
+                          const c = consumedNutrition(plan);
+                          const tgt = plan.day_targets;
+                          const isPastOrToday = w.iso <= todayIso;
+                          return (
+                            <View style={styles.weekMealsCol}>
+                              <View style={styles.nutHeadRow}>
+                                <Text style={styles.nutHeadText}>
+                                  {isPastOrToday
+                                    ? c.cookedCount > 0
+                                      ? "Nutrition taken"
+                                      : "Nothing marked cooked"
+                                    : "Planned"}
+                                </Text>
+                                <View style={[styles.balancePill, c.balanced === 3 ? styles.balanceGood : c.balanced >= 1 ? styles.balanceMid : styles.balanceLow]}>
+                                  <Text style={styles.balancePillText}>{c.balanced}/3 balanced</Text>
+                                </View>
+                              </View>
+                              <View style={styles.macroTriple}>
+                                <View style={styles.macroCell}>
+                                  <Text style={[styles.macroVal, { color: colors.bananaLeafDark }]}>
+                                    {isPastOrToday ? c.kcal : Math.round(plan.day_totals?.kcal ?? 0)}
+                                  </Text>
+                                  <Text style={styles.macroLbl}>kcal{tgt ? ` /${Math.round(tgt.kcal)}` : ""}</Text>
+                                </View>
+                                <View style={styles.macroCell}>
+                                  <Text style={[styles.macroVal, { color: colors.chili }]}>
+                                    {isPastOrToday ? c.protein : Math.round((plan.day_totals as any)?.protein_g ?? 0)}g
+                                  </Text>
+                                  <Text style={styles.macroLbl}>protein{tgt ? ` /${Math.round(tgt.protein_g)}` : ""}</Text>
+                                </View>
+                                <View style={styles.macroCell}>
+                                  <Text style={[styles.macroVal, { color: colors.turmeric }]}>
+                                    {isPastOrToday ? c.fiber : Math.round((plan.day_totals as any)?.fiber_g ?? 0)}g
+                                  </Text>
+                                  <Text style={styles.macroLbl}>fiber{tgt ? ` /${Math.round(tgt.fiber_g)}` : ""}</Text>
+                                </View>
+                              </View>
+                              <Text style={styles.reviewHint}>
+                                {isPastOrToday ? "Tap to review · improve · coach advice" : "Tap to edit the plan"}
                               </Text>
                             </View>
-                          ))}
-                        </View>
+                          );
+                        })()
                       ) : (
                         <View style={styles.weekEmptyCol}>
                           <Ionicons name="add-circle-outline" size={22} color={colors.bananaLeaf} />
@@ -718,6 +775,18 @@ const styles = StyleSheet.create({
   weekDateNum: { fontFamily: fonts.headingBold, fontSize: 25, color: colors.textPrimary, lineHeight: 29 },
   weekDateWd: { fontSize: 13.5, fontWeight: "800", color: colors.textSecondary },
   weekMealsCol: { flex: 1, gap: 6 },
+  nutHeadRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  nutHeadText: { fontSize: 12.5, fontWeight: "800", color: colors.textMuted, textTransform: "uppercase", letterSpacing: 0.3 },
+  balancePill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill },
+  balanceGood: { backgroundColor: `${colors.bananaLeaf}22` },
+  balanceMid: { backgroundColor: `${colors.turmeric}26` },
+  balanceLow: { backgroundColor: `${colors.chili}1E` },
+  balancePillText: { fontSize: 11.5, fontWeight: "800", color: colors.textPrimary },
+  macroTriple: { flexDirection: "row", gap: 8 },
+  macroCell: { flex: 1, alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: radius.m, paddingVertical: 8 },
+  macroVal: { fontFamily: fonts.headingBold, fontSize: 18 },
+  macroLbl: { fontSize: 10.5, fontWeight: "700", color: colors.textMuted, marginTop: 1 },
+  reviewHint: { fontSize: 11.5, color: colors.bananaLeaf, fontWeight: "700" },
   weekMealLine: { flexDirection: "row", alignItems: "center" },
   weekMealName: { flex: 1, fontSize: 17, fontWeight: "700", color: colors.textPrimary },
   weekEmptyCol: { flex: 1, alignItems: "center", gap: 4, paddingVertical: 8 },

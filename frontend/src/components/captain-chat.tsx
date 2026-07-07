@@ -32,12 +32,30 @@ const STARTERS = [
   "Is today's plan healthy?",
 ];
 
-export function CaptainChat({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function CaptainChat({
+  visible,
+  onClose,
+  initialMessage,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  initialMessage?: string;
+}) {
   const insets = useSafeAreaInsets();
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const listRef = useRef<FlatList<Msg>>(null);
+  const sentInitial = useRef(false);
+
+  React.useEffect(() => {
+    if (visible && initialMessage && !sentInitial.current && msgs.length === 0 && !busy) {
+      sentInitial.current = true;
+      send(initialMessage);
+    }
+    if (!visible) sentInitial.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, initialMessage]);
 
   const send = async (text?: string) => {
     const message = (text ?? input).trim();

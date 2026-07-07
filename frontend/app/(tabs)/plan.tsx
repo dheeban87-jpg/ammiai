@@ -374,22 +374,6 @@ export default function PlanScreen() {
     <View style={styles.screen} testID="plan-screen">
       <AppHeader title={t("plan.title")} subtitleTa={t("plan.subtitle")} />
 
-      <View style={styles.segmentWrap} testID="plan-mode-toggle">
-        <View style={styles.segment}>
-          {(["today", "week"] as const).map((m) => (
-            <TouchableOpacity
-              key={m}
-              testID={`toggle-${m}`}
-              style={[styles.segBtn, mode === m && styles.segBtnActive]}
-              onPress={() => setMode(m)}
-            >
-              <Text style={[styles.segText, mode === m && { color: colors.riceWhite }]}>
-                {m === "today" ? t("plan.today") : t("plan.week")}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
 
       {loading ? (
         <View style={styles.center}>

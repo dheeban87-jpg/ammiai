@@ -2248,7 +2248,7 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
                     "data": payload.image_base64,
                 }},
                 {"type": "text", "text": (
-                    "This is a grocery bill/receipt (may be Tamil or English, possibly handwritten). "
+                    "This is a grocery bill, receipt, or an online order summary screenshot (Blinkit/Zepto/Instamart etc.), Tamil or English, possibly handwritten. "
                     "Extract every line item with its price in INR. Respond ONLY with JSON, no prose, "
                     "no markdown fences: {\"items\": [{\"name\": str, \"price_inr\": number}], "
                     "\"total_inr\": number or null}"
@@ -2270,21 +2270,44 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name_en": 1}).to_list(1000)
     ing_names = {i["id"]: (i.get("name_en") or "").lower() for i in ingredients}
 
+    # Token-based matcher: real store names ("WOW! Coco Fresh Grated Coconut",
+    # "Sambar Onion Peeled (Chinna Vengayam)", "Lady Finger (Vendikaai)")
+    # must land on catalog ingredients. Score = overlap of significant tokens
+    # across BOTH English and Tamil-transliteration parts of our names.
+    STOP = {"fresh", "organic", "local", "pack", "unit", "peeled", "cleaned",
+            "without", "roots", "premium", "select", "wow", "the", "and", "with"}
+    SYNONYM = {
+        "lady": "ladies", "coco": "coconut", "brinjal": "brinjal",
+        "capsicum": "capsicum", "dhania": "coriander", "pudina": "mint",
+    }
+
+    def _tokens(s: str) -> set:
+        import re as _re
+        toks = set()
+        for t in _re.split(r"[^a-z]+", s.lower()):
+            if len(t) < 3 or t in STOP:
+                continue
+            toks.add(SYNONYM.get(t, t))
+        return toks
+
+    # Build searchable token sets: list items first (higher priority), then catalog
+    list_tok = [(g.get("ingredient_id"), _tokens(str(g.get("name") or ing_names.get(g.get("ingredient_id", ""), "")))) for g in glist]
+    cat_tok = [(iid, _tokens(nm)) for iid, nm in ing_names.items()]
+
     def _match(bill_name: str) -> Optional[str]:
-        b = bill_name.lower().strip()
-        if not b:
+        bt = _tokens(bill_name)
+        if not bt:
             return None
-        # Prefer items already on the list
-        for g in glist:
-            gn = (g.get("name") or ing_names.get(g.get("ingredient_id", ""), "")).lower()
-            base = gn.split(" (")[0]
-            if base and (base in b or b in gn):
-                return g.get("ingredient_id")
-        for iid, nm in ing_names.items():
-            base = nm.split(" (")[0]
-            if base and (base in b or b in nm):
-                return iid
-        return None
+        best_id, best_score = None, 0
+        for iid, toks in list_tok:
+            sc = len(bt & toks) * 2  # list items win ties
+            if sc > best_score:
+                best_id, best_score = iid, sc
+        for iid, toks in cat_tok:
+            sc = len(bt & toks)
+            if sc > best_score:
+                best_id, best_score = iid, sc
+        return best_id if best_score >= 1 else None
 
     matches: Dict[str, float] = {}
     unmatched: List[Dict[str, Any]] = []

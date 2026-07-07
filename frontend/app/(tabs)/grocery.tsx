@@ -155,10 +155,11 @@ function GroceryScreenInner() {
     return data.groups.flatMap((g) => g.items).filter((it) => checked.has(it.ingredient_id));
   }, [data, checked]);
 
-  const selectedCost = useMemo(
-    () => selected.reduce((sum, it) => sum + (it?.estimated_inr ?? 0), 0),
-    [selected],
-  );
+  const selectedCost = useMemo(() => {
+    let sum = 0;
+    for (const it of selected) sum += it?.estimated_inr ?? 0;
+    return sum;
+  }, [selected]);
 
   const allIds = useMemo(
     () => (data ? data.groups.flatMap((g) => g.items.map((it) => it.ingredient_id)) : []),
@@ -286,11 +287,12 @@ function GroceryScreenInner() {
     openConfirmWithPrices("local_shop");
   };
 
-  const pricesTotal = selected.reduce((sum, it) => {
-    if (!it) return sum;
-    const v = parseFloat(prices[it.ingredient_id] ?? "");
-    return sum + (isNaN(v) ? 0 : v);
-  }, 0);
+  let pricesTotal = 0;
+  for (const it of selected) {
+    if (!it) continue;
+    const v = parseFloat((prices ?? {})[it.ingredient_id] ?? "");
+    if (!isNaN(v)) pricesTotal += v;
+  }
 
   const scanBill = async () => {
     try {
@@ -445,6 +447,7 @@ function GroceryScreenInner() {
 
   return (
     <View style={styles.screen} testID="grocery-screen">
+      <ScreenErrorBoundary name="Grocery/header">
       <AppHeader
         title={t("grocery.title")}
         subtitleTa={t("grocery.subtitle")}
@@ -458,6 +461,7 @@ function GroceryScreenInner() {
           ) : null
         }
       />
+      </ScreenErrorBoundary>
 
       {/* Range toggle */}
       <View style={styles.segmentWrap}>
@@ -690,6 +694,7 @@ function GroceryScreenInner() {
       ) : null}
 
       {/* Order vendor modal */}
+      <ScreenErrorBoundary name="Grocery/order-modal">
       <Modal visible={orderModal != null} transparent animationType="fade" onRequestClose={() => setOrderModal(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setOrderModal(null)}>
           <Pressable
@@ -785,8 +790,10 @@ function GroceryScreenInner() {
           </Pressable>
         </Pressable>
       </Modal>
+      </ScreenErrorBoundary>
 
       {/* Order-placed confirmation */}
+      <ScreenErrorBoundary name="Grocery/confirm-modal">
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setConfirmVisible(false)}>
           <Pressable style={styles.confirmCard} onPress={(e) => e.stopPropagation()} testID="confirm-order">
@@ -900,7 +907,9 @@ function GroceryScreenInner() {
           </Pressable>
         </Pressable>
       </Modal>
+      </ScreenErrorBoundary>
 
+      <ScreenErrorBoundary name="Grocery/add-item-modal">
       {/* Add item search modal */}
       <Modal visible={addItemVisible} transparent animationType="fade" onRequestClose={() => setAddItemVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setAddItemVisible(false)}>
@@ -950,6 +959,7 @@ function GroceryScreenInner() {
           </Pressable>
         </Pressable>
       </Modal>
+      </ScreenErrorBoundary>
 
       {toast ? (
         <View style={[styles.toast, { bottom: insets.bottom + 240 }]} testID="grocery-toast">

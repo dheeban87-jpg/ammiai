@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -49,6 +50,7 @@ export default function PantryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [actionItem, setActionItem] = useState<PantryItem | null>(null);
+  const [qtyEdit, setQtyEdit] = useState("");
   const [busy, setBusy] = useState(false);
   const [waste, setWaste] = useState<{ total_estimated_inr: number } | null>(null);
 
@@ -99,6 +101,23 @@ export default function PantryScreen() {
     () => items.filter((i) => i.freshness === "red" || i.freshness === "yellow").length,
     [items],
   );
+
+  const setQtyDirect = async (item: PantryItem, newQty: number) => {
+    setBusy(true);
+    try {
+      if (newQty <= 0) {
+        await api.del(`/api/pantry/${item.id}`);
+        setActionItem(null);
+      } else {
+        await api.patch(`/api/pantry/${item.id}`, { qty: newQty });
+        setActionItem({ ...item, qty: newQty });
+        setQtyEdit(String(newQty));
+      }
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const onUsed = async (item: PantryItem) => {
     setBusy(true);
@@ -286,6 +305,57 @@ export default function PantryScreen() {
                     <Text style={styles.modalSub}>
                       {actionItem.qty} {actionItem.unit} · {actionItem.storage}
                     </Text>
+                  </View>
+                </View>
+
+                {/* Quick quantity control — user feedback: direct entry + steppers */}
+                <View style={styles.qtyRow}>
+                  <TouchableOpacity
+                    testID="qty-minus"
+                    style={styles.qtyBtn}
+                    disabled={busy}
+                    onPress={() => setQtyDirect(actionItem, Math.max(0, actionItem.qty - 1))}
+                  >
+                    <Ionicons name="remove" size={22} color={colors.chili} />
+                  </TouchableOpacity>
+                  <View style={styles.qtyInputWrap}>
+                    <TextInput
+                      testID="qty-input"
+                      style={styles.qtyInput}
+                      keyboardType="numeric"
+                      defaultValue={String(actionItem.qty)}
+                      onChangeText={(v) => setQtyEdit(v.replace(/[^0-9.]/g, ""))}
+                      onSubmitEditing={() => {
+                        const n = parseFloat(qtyEdit);
+                        if (!isNaN(n)) setQtyDirect(actionItem, n);
+                      }}
+                      returnKeyType="done"
+                    />
+                    <Text style={styles.qtyUnit}>{actionItem.unit}</Text>
+                  </View>
+                  <TouchableOpacity
+                    testID="qty-plus"
+                    style={styles.qtyBtn}
+                    disabled={busy}
+                    onPress={() => setQtyDirect(actionItem, actionItem.qty + 1)}
+                  >
+                    <Ionicons name="add" size={22} color={colors.bananaLeaf} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    testID="qty-set"
+                    style={styles.qtySetBtn}
+                    disabled={busy}
+                    onPress={() => {
+                      const n = parseFloat(qtyEdit);
+                      if (!isNaN(n)) setQtyDirect(actionItem, n);
+                    }}
+                  >
+                    <Text style={styles.qtySetText}>Set</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ display: "none" }}>
+                  <View>
                   </View>
                 </View>
 
@@ -540,6 +610,45 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 16, fontWeight: "700", color: colors.textPrimary },
   modalSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  qtyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: spacing.m,
+    marginBottom: spacing.s,
+  },
+  qtyBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.surface,
+  },
+  qtyInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.m,
+    minHeight: 52,
+    paddingHorizontal: 12,
+    backgroundColor: colors.surface,
+  },
+  qtyInput: { flex: 1, fontSize: 20, fontWeight: "800", color: colors.textPrimary, textAlign: "center", padding: 0 },
+  qtyUnit: { fontSize: 14, fontWeight: "700", color: colors.textMuted, marginLeft: 6 },
+  qtySetBtn: {
+    minHeight: 52,
+    paddingHorizontal: 18,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bananaLeaf,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtySetText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
   actionBtn: {
     flexDirection: "row",
     alignItems: "center",

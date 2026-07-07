@@ -3,7 +3,9 @@
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -40,6 +42,7 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
           style={[styles.card, { paddingBottom: insets.bottom + spacing.m, maxHeight: "82%" }]}
@@ -124,6 +127,7 @@ export function AddDishSheet({ visible, mealLabel, options, onClose, onPick, onS
           </TouchableOpacity>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

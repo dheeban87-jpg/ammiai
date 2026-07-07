@@ -98,7 +98,7 @@ export function CustomDishSheet({
           onPress={(e) => e.stopPropagation()}
           testID="custom-dish-sheet"
         >
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ maxHeight: "100%" }}>
             <ScrollView keyboardShouldPersistTaps="handled">
               <Text style={styles.title}>My own dish</Text>
               <Text style={styles.sub}>

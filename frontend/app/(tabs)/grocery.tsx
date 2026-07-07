@@ -18,6 +18,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Sharing from "expo-sharing";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
 import { ScreenErrorBoundary } from "@/src/components/error-boundary";
@@ -91,6 +92,7 @@ const VENDOR_META: Record<
 };
 
 function GroceryScreenInner() {
+  const router = useRouter();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const [days, setDays] = useState<7 | 14>(7);
@@ -435,9 +437,13 @@ function GroceryScreenInner() {
         }),
       });
       setConfirmVisible(false);
-      setToast(`${selected.length} items added to pantry`);
-      setTimeout(() => setToast(null), 3000);
+      const n = selected.length;
+      setToast(`${n} item${n > 1 ? "s" : ""} moved to pantry ✓ — opening Pantry`);
       await load(); // list will now be empty
+      setTimeout(() => {
+        setToast(null);
+        router.push("/pantry"); // backbone made visible: bought → pantry
+      }, 1400);
     } finally {
       setBusy(false);
     }

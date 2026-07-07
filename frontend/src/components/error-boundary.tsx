@@ -41,7 +41,13 @@ export class ScreenErrorBoundary extends React.Component<
         </Text>
         <ScrollView style={styles.box}>
           <Text style={styles.err}>{String(this.state.error?.message)}</Text>
-          <Text style={styles.stack}>{String(this.state.error?.stack ?? "").slice(0, 900)}</Text>
+          <Text style={styles.stack}>{String(this.state.error?.stack ?? "").slice(0, 600)}</Text>
+          {this.state.info ? (
+            <>
+              <Text style={[styles.err, { marginTop: 8 }]}>Component trail:</Text>
+              <Text style={styles.stack}>{this.state.info.slice(0, 700)}</Text>
+            </>
+          ) : null}
         </ScrollView>
         <TouchableOpacity style={styles.btn} onPress={this.copy} testID="crash-copy-btn">
           <Ionicons name="copy-outline" size={16} color={colors.riceWhite} />

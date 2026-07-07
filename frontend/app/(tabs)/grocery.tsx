@@ -111,7 +111,21 @@ function GroceryScreenInner() {
 
   const load = useCallback(async () => {
     try {
-      const d = await api.get<GroceryList>(`/api/grocery/list?days=${days}`);
+      const raw = await api.get<GroceryList>(`/api/grocery/list?days=${days}`);
+      // Defensive normalisation: drop any null/undefined rows the backend
+      // (or a mid-deploy response) might contain — a single undefined item
+      // in render was enough to crash release builds silently.
+      const d: GroceryList = {
+        ...raw,
+        groups: (raw.groups ?? [])
+          .filter((g) => g && Array.isArray(g.items))
+          .map((g) => ({ ...g, items: g.items.filter((it) => it && it.ingredient_id) })),
+        covered_items: Array.isArray(raw.covered_items)
+          ? raw.covered_items.filter((c) => c && c.name)
+          : [],
+        total_items: raw.total_items ?? 0,
+        total_estimated_inr: raw.total_estimated_inr ?? 0,
+      };
       setData(d);
       // Default: every item pre-selected — the whole list is "what you need".
       // Unchecking = "I'll skip this one" / already sorted elsewhere.
@@ -142,7 +156,7 @@ function GroceryScreenInner() {
   }, [data, checked]);
 
   const selectedCost = useMemo(
-    () => selected.reduce((sum, it) => sum + (it.estimated_inr ?? 0), 0),
+    () => selected.reduce((sum, it) => sum + (it?.estimated_inr ?? 0), 0),
     [selected],
   );
 
@@ -273,6 +287,7 @@ function GroceryScreenInner() {
   };
 
   const pricesTotal = selected.reduce((sum, it) => {
+    if (!it) return sum;
     const v = parseFloat(prices[it.ingredient_id] ?? "");
     return sum + (isNaN(v) ? 0 : v);
   }, 0);

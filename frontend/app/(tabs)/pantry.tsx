@@ -253,14 +253,29 @@ export default function PantryScreen() {
           }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.bananaLeaf} />}
           ListHeaderComponent={
-            waste && waste.total_estimated_inr > 0 ? (
-              <View style={styles.wasteBanner} testID="waste-banner">
-                <Ionicons name="trash-bin-outline" size={16} color={colors.chili} />
-                <Text style={styles.wasteBannerText}>
-                  ₹{waste.total_estimated_inr.toFixed(0)} in food waste logged. Plan meals to save more.
-                </Text>
-              </View>
-            ) : null
+            <>
+              {waste && waste.total_estimated_inr > 0 ? (
+                <View style={styles.wasteBanner} testID="waste-banner">
+                  <Ionicons name="trash-bin-outline" size={16} color={colors.chili} />
+                  <Text style={styles.wasteBannerText}>
+                    ₹{waste.total_estimated_inr.toFixed(0)} in food waste logged. Plan meals to save more.
+                  </Text>
+                </View>
+              ) : null}
+              <TouchableOpacity
+                testID="pantry-what-to-cook"
+                style={styles.cookChainBtn}
+                onPress={() => router.push("/cook")}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="restaurant" size={20} color={colors.riceWhite} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cookChainTitle}>What can I cook?</Text>
+                  <Text style={styles.cookChainSub}>Dishes you can make from your pantry now</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={colors.riceWhite} />
+              </TouchableOpacity>
+            </>
           }
           renderItem={({ item: [groupName, rows] }) => (
             <View style={styles.group}>
@@ -531,6 +546,17 @@ const styles = StyleSheet.create({
     borderRadius: radius.m,
   },
   emptyBtnText: { color: colors.textOnPrimary, fontWeight: "700" },
+  cookChainBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: colors.bananaLeaf,
+    borderRadius: radius.l,
+    padding: 14,
+    marginBottom: spacing.m,
+  },
+  cookChainTitle: { fontFamily: fonts.headingEn, fontSize: 16, color: colors.riceWhite },
+  cookChainSub: { fontSize: 12, color: "rgba(251,248,239,0.85)", marginTop: 1 },
   wasteBanner: {
     backgroundColor: "#FBECE4",
     padding: spacing.m,

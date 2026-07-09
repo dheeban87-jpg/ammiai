@@ -1433,6 +1433,89 @@ def _health_rules() -> Dict[str, Any]:
     return _HEALTH_RULES
 
 
+# ---------- Bulk chain: pantry -> dishes, and health-focus -> supportive dishes ---------- #
+@api_router.get("/dishes/from-pantry")
+async def dishes_from_pantry(current=Depends(get_current_user)):
+    """THE pantry->dish chain, made visible. For each dish, compute how much of
+    its ingredients the user already has in pantry, and rank by readiness."""
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    diet = profile.get("diet") or "veg"
+    allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+    pantry = {p["ingredient_id"] async for p in db.pantry.find({"user_id": current["user_id"]}, {"ingredient_id": 1})}
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
+
+    DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
+    allowed = DIET_OK.get(diet, {"veg"})
+
+    out = []
+    for r in recipes:
+        if r.get("diet") not in allowed:
+            continue
+        ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
+        if allergies & set(ing_ids):
+            continue
+        need = [i for i in ing_ids if i not in STAPLE_ALWAYS]
+        have = [i for i in need if i in pantry]
+        missing = [i for i in need if i not in pantry]
+        readiness = round(100 * len(have) / len(need)) if need else 100
+        out.append({
+            "id": r["id"], "name": r.get("name_en"), "name_ta": r.get("name_ta"),
+            "category": r.get("category"), "nutrition": r.get("nutrition", {}),
+            "health_tags": r.get("health_tags", []),
+            "readiness": readiness,
+            "have": have, "missing": missing,
+        })
+    out.sort(key=lambda d: -d["readiness"])
+    return {"dishes": out[:40], "pantry_count": len(pantry)}
+
+
+@api_router.get("/dishes/for-health")
+async def dishes_for_health(current=Depends(get_current_user)):
+    """Health-focus -> SUPPORTIVE dishes (never 'curative'). Maps the user's
+    focus areas to dishes tagged/ingredient-matched for that focus."""
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    goals = list((profile.get("health") or {}).get("goals") or []) or ["balanced"]
+    diet = profile.get("diet") or "veg"
+    allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+    rules = _health_rules().get("focuses", {})
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
+
+    DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
+    allowed = DIET_OK.get(diet, {"veg"})
+
+    groups = []
+    for g in goals:
+        f = rules.get(g)
+        if not f:
+            continue
+        want_tags = set(f.get("recipe_tags", []))
+        favour = set(f.get("grocery_favour", []))
+        picks = []
+        for r in recipes:
+            if r.get("diet") not in allowed:
+                continue
+            ing_ids = set(i["ingredient_id"] for i in r.get("ingredients", []))
+            if allergies & ing_ids:
+                continue
+            tag_hit = bool(want_tags & set(r.get("health_tags", [])))
+            ing_hit = bool(favour & ing_ids)
+            if not (tag_hit or ing_hit):
+                continue
+            score = (2 if tag_hit else 0) + (len(favour & ing_ids))
+            picks.append((score, {
+                "id": r["id"], "name": r.get("name_en"), "name_ta": r.get("name_ta"),
+                "category": r.get("category"), "nutrition": r.get("nutrition", {}),
+                "why": f.get("reason", ""),
+            }))
+        picks.sort(key=lambda x: -x[0])
+        groups.append({
+            "focus": f.get("label", g),
+            "guidance": f.get("guidance", ""),
+            "dishes": [p[1] for p in picks[:8]],
+        })
+    return {"groups": groups, "note": "Dishes that SUPPORT your focus — not medical treatment; consult your doctor."}
+
+
 @api_router.get("/grocery/suggest-health")
 async def grocery_suggest_health(current=Depends(get_current_user)):
     """Capt. Charmer's health-driven buy list: profile focus areas -> favoured

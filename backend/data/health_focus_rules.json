@@ -25,7 +25,10 @@
     "peanuts"
    ],
    "reason": "high measured protein — muscle repair",
-   "guidance": "Protein target raised, soldier. Dal, egg, paneer daily; pair dal with rice for complete protein."
+   "guidance": "Protein target raised, soldier. Dal, egg, paneer daily; pair dal with rice for complete protein.",
+   "recipe_tags": [
+    "high_protein"
+   ]
   },
   "diabetic_friendly": {
    "label": "Managing Sugar",
@@ -51,7 +54,12 @@
    ],
    "limit_note": "smaller white-rice portions; no sugary drinks",
    "reason": "low glycemic load / high fiber — steady sugar",
-   "guidance": "Smaller rice, more millets and greens. No sugary drinks. This supports steady energy — your doctor guides treatment."
+   "guidance": "Smaller rice, more millets and greens. No sugary drinks. This supports steady energy — your doctor guides treatment.",
+   "recipe_tags": [
+    "diabetic_friendly",
+    "high_fiber",
+    "light"
+   ]
   },
   "bp_friendly": {
    "label": "Heart-healthy / Low oil",
@@ -76,7 +84,11 @@
    ],
    "limit_note": "oil ≤25-30g/day; easy on pickle, papad, fried",
    "reason": "supports heart & BP — low salt/oil pattern",
-   "guidance": "Less oil, less salt — steam and boil, soldier. Nuts and greens for the heart; your doctor leads."
+   "guidance": "Less oil, less salt — steam and boil, soldier. Nuts and greens for the heart; your doctor leads.",
+   "recipe_tags": [
+    "heart_healthy",
+    "light"
+   ]
   },
   "iron_support": {
    "label": "Iron / Energy support",
@@ -101,7 +113,10 @@
    ],
    "pairing": "always add a vitamin-C item (lemon/tomato/amla) — triples iron absorption; no tea/coffee at mealtime",
    "reason": "iron-rich + vitamin-C pairing for absorption",
-   "guidance": "Iron greens WITH lemon or tomato, soldier — and no tea at mealtime, it blocks iron. Supports your levels; follow your doctor's treatment."
+   "guidance": "Iron greens WITH lemon or tomato, soldier — and no tea at mealtime, it blocks iron. Supports your levels; follow your doctor's treatment.",
+   "recipe_tags": [
+    "high_fiber"
+   ]
   },
   "bone_calcium": {
    "label": "Bone / Calcium",
@@ -120,7 +135,10 @@
     "drumstick"
    ],
    "reason": "high measured calcium",
-   "guidance": "Ragi, curd, sesame, greens — strong bones, soldier. Morning sun for vitamin D."
+   "guidance": "Ragi, curd, sesame, greens — strong bones, soldier. Morning sun for vitamin D.",
+   "recipe_tags": [
+    "high_protein"
+   ]
   },
   "digestion_fiber": {
    "label": "Digestion / Fiber",
@@ -141,7 +159,10 @@
     "oats"
    ],
    "reason": "high fiber — gut health",
-   "guidance": "More fibre — millets, dals, greens, and water, soldier. Gut stays strong."
+   "guidance": "More fibre — millets, dals, greens, and water, soldier. Gut stays strong.",
+   "recipe_tags": [
+    "high_fiber"
+   ]
   },
   "weight_loss": {
    "label": "Weight loss",
@@ -166,7 +187,12 @@
    ],
    "limit_note": "measured oil; 2-3 meals, no grazing",
    "reason": "high satiety, low calorie",
-   "guidance": "Half plate greens, protein every meal, measured oil, soldier. Steady wins."
+   "guidance": "Half plate greens, protein every meal, measured oil, soldier. Steady wins.",
+   "recipe_tags": [
+    "weight_loss",
+    "light",
+    "high_fiber"
+   ]
   },
   "balanced": {
    "label": "General wellness",
@@ -185,7 +211,8 @@
     "lemon"
    ],
    "reason": "variety across food groups (ICMR My Plate)",
-   "guidance": "Variety across the plate, soldier — greens, dal, curd, one fruit a day."
+   "guidance": "Variety across the plate, soldier — greens, dal, curd, one fruit a day.",
+   "recipe_tags": []
   }
  },
  "activity_multiplier": {

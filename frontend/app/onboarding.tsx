@@ -308,7 +308,7 @@ export default function Onboarding() {
                   style={styles.stepperBtn}
                   onPress={() => setHousehold((n) => Math.max(1, n - 1))}
                 >
-                  <Ionicons name="remove" size={22} color={colors.textPrimary} />
+                  <Ionicons name="remove" size={32} color={colors.riceWhite} />
                 </TouchableOpacity>
                 <Text style={styles.stepperValue} testID="household-value">
                   {household}
@@ -318,7 +318,7 @@ export default function Onboarding() {
                   style={styles.stepperBtn}
                   onPress={() => setHousehold((n) => Math.min(10, n + 1))}
                 >
-                  <Ionicons name="add" size={22} color={colors.textPrimary} />
+                  <Ionicons name="add" size={32} color={colors.riceWhite} />
                 </TouchableOpacity>
               </View>
 
@@ -719,18 +719,18 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   stepperBtn: {
-    width: 42,
-    height: 42,
+    width: 64,
+    height: 64,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceSoft,
+    backgroundColor: colors.bananaLeaf,
     alignItems: "center",
     justifyContent: "center",
   },
   stepperValue: {
-    fontFamily: fonts.headingEn,
-    fontSize: 34,
+    fontFamily: fonts.headingBold,
+    fontSize: 48,
     color: colors.textPrimary,
-    minWidth: 60,
+    minWidth: 90,
     textAlign: "center",
   },
   chipRow: { flexDirection: "row", gap: spacing.s },

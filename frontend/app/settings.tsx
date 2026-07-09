@@ -261,7 +261,7 @@ export default function Settings() {
           </View>
           <Text style={[styles.fieldLabel, { marginTop: spacing.m }]}>Goals</Text>
           <View style={styles.chipRow}>
-            {["weight_loss", "diabetic_friendly", "bp_friendly", "high_protein", "balanced"].map((g) => {
+            {["high_protein", "diabetic_friendly", "bp_friendly", "iron_support", "bone_calcium", "digestion_fiber", "weight_loss", "balanced"].map((g) => {
               const on = goals.includes(g);
               return (
                 <TouchableOpacity

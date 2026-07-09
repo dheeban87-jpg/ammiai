@@ -59,11 +59,14 @@ const ALLERGY_CHIPS: { key: string; label: string }[] = [
 ];
 
 const GOAL_CHIPS: { key: string; label: string }[] = [
+  { key: "high_protein", label: "High-protein / Gym" },
+  { key: "diabetic_friendly", label: "Managing sugar" },
+  { key: "bp_friendly", label: "Heart / low-oil" },
+  { key: "iron_support", label: "Iron / energy" },
+  { key: "bone_calcium", label: "Bone / calcium" },
+  { key: "digestion_fiber", label: "Digestion / fiber" },
   { key: "weight_loss", label: "Weight loss" },
-  { key: "diabetic_friendly", label: "Diabetic-friendly" },
-  { key: "bp_friendly", label: "BP-friendly" },
-  { key: "high_protein", label: "High-protein" },
-  { key: "balanced", label: "Balanced" },
+  { key: "balanced", label: "General wellness" },
 ];
 
 const TOTAL_STEPS = 6; // 5 profile steps + pantry quick-add
@@ -85,6 +88,9 @@ export default function Onboarding() {
   const [heightCm, setHeightCm] = useState<string>("");
   const [weightKg, setWeightKg] = useState<string>("");
   const [goals, setGoals] = useState<string[]>([]);
+  const [sex, setSex] = useState<string | null>(null);
+  const [activity, setActivity] = useState<string | null>(null);
+  const [ageBand, setAgeBand] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -158,6 +164,9 @@ export default function Onboarding() {
           weight_kg: weightKg ? parseFloat(weightKg) : undefined,
           bmi: bmi ?? undefined,
           goals,
+          sex: sex ?? undefined,
+          age_band: ageBand ?? undefined,
+          activity: activity ?? undefined,
         },
       });
       setStep(5);
@@ -462,7 +471,35 @@ export default function Onboarding() {
                 </View>
               ) : null}
 
-              <Text style={[styles.subLabel, { marginTop: spacing.l }]}>Goals</Text>
+              <Text style={[styles.subLabel, { marginTop: spacing.l }]}>Sex (for calorie & protein targets)</Text>
+              <View style={styles.chipsWrap}>
+                {[["male", "Male"], ["female", "Female"]].map(([k, lbl]) => (
+                  <TouchableOpacity
+                    key={k}
+                    testID={`sex-${k}`}
+                    style={[styles.selChip, sex === k && styles.selChipOn]}
+                    onPress={() => setSex(k)}
+                  >
+                    <Text style={[styles.selChipText, sex === k && styles.selChipTextOn]}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.subLabel, { marginTop: spacing.m }]}>Activity level</Text>
+              <View style={styles.chipsWrap}>
+                {[["sedentary", "Mostly sitting"], ["moderate", "Moderately active"], ["active", "Very active / gym"]].map(([k, lbl]) => (
+                  <TouchableOpacity
+                    key={k}
+                    testID={`act-${k}`}
+                    style={[styles.selChip, activity === k && styles.selChipOn]}
+                    onPress={() => setActivity(k)}
+                  >
+                    <Text style={[styles.selChipText, activity === k && styles.selChipTextOn]}>{lbl}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={[styles.subLabel, { marginTop: spacing.l }]}>Health focus (pick any)</Text>
               <View style={styles.chipsWrap}>
                 {GOAL_CHIPS.map((g) => {
                   const on = goals.includes(g.key);
@@ -718,6 +755,17 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  selChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  selChipOn: { backgroundColor: colors.bananaLeaf, borderColor: colors.bananaLeaf },
+  selChipText: { fontSize: 14, fontWeight: "700", color: colors.textSecondary },
+  selChipTextOn: { color: colors.riceWhite },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   dishChip: {
     backgroundColor: colors.surface,

@@ -102,6 +102,11 @@ function GroceryScreenInner() {
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [addItemVisible, setAddItemVisible] = useState(false);
+  const [healthVisible, setHealthVisible] = useState(false);
+  const [healthItems, setHealthItems] = useState<any[]>([]);
+  const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
+  const [healthSel, setHealthSel] = useState<Record<string, boolean>>({});
+  const [healthBusy, setHealthBusy] = useState(false);
   const [addQuery, setAddQuery] = useState("");
   const [addResults, setAddResults] = useState<
     { ingredient_id: string; name: string; category: string }[] | null
@@ -449,6 +454,51 @@ function GroceryScreenInner() {
     }
   };
 
+  const openHealthList = async () => {
+    setHealthVisible(true);
+    setHealthBusy(true);
+    try {
+      const r = await api.get<{ items: any[]; guidance: string[] }>("/api/grocery/suggest-health");
+      setHealthItems(r.items ?? []);
+      setHealthGuidance(r.guidance ?? []);
+      const pre: Record<string, boolean> = {};
+      (r.items ?? []).forEach((it) => (pre[it.ingredient_id] = true));
+      setHealthSel(pre);
+    } catch (e: any) {
+      setHealthItems([]);
+      setToast(
+        e?.status === 404
+          ? "Captain's list activates after the next backend update"
+          : "Couldn't load Captain's list",
+      );
+      setTimeout(() => setToast(null), 2600);
+      setHealthVisible(false);
+    } finally {
+      setHealthBusy(false);
+    }
+  };
+
+  const addHealthSelected = async () => {
+    const chosen = healthItems.filter((it) => healthSel[it.ingredient_id]);
+    if (chosen.length === 0) return;
+    setHealthBusy(true);
+    try {
+      for (const it of chosen) {
+        await api.post("/api/grocery/add-item", {
+          ingredient_id: it.ingredient_id,
+          qty: it.qty ?? 100,
+          unit: it.unit ?? "g",
+        });
+      }
+      setHealthVisible(false);
+      setToast(`${chosen.length} of Captain's picks added ✓`);
+      setTimeout(() => setToast(null), 2600);
+      await load();
+    } finally {
+      setHealthBusy(false);
+    }
+  };
+
   const empty = !loading && data && data.total_items === 0;
 
   return (
@@ -548,6 +598,20 @@ function GroceryScreenInner() {
               </Text>
             </View>
           ) : null}
+
+          <TouchableOpacity
+            style={styles.captainListBtn}
+            onPress={openHealthList}
+            testID="grocery-captain-health"
+            activeOpacity={0.85}
+          >
+            <Text style={styles.captainListEmoji}>🐼</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.captainListTitle}>Captain&apos;s health list</Text>
+              <Text style={styles.captainListSub}>Groceries picked for your health focus</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.bananaLeafDark} />
+          </TouchableOpacity>
 
           <View style={styles.toolRow}>
             <TouchableOpacity style={styles.toolBtn} onPress={selectAll} testID="grocery-select-all" hitSlop={8}>
@@ -916,6 +980,65 @@ function GroceryScreenInner() {
       </ScreenErrorBoundary>
 
       <ScreenErrorBoundary name="Grocery/add-item-modal">
+      {/* Captain's health list sheet */}
+      <Modal visible={healthVisible} transparent animationType="slide" onRequestClose={() => setHealthVisible(false)}>
+        <ScreenErrorBoundary name="Grocery/health-sheet">
+        <Pressable style={styles.modalBackdrop} onPress={() => setHealthVisible(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>🐼 Captain&apos;s health list</Text>
+            {healthGuidance.map((g, i) => (
+              <Text key={i} style={styles.healthGuidance}>{g}</Text>
+            ))}
+            {healthBusy && healthItems.length === 0 ? (
+              <ActivityIndicator color={colors.bananaLeaf} style={{ marginVertical: 24 }} />
+            ) : (
+              <ScrollView style={{ maxHeight: 380 }} keyboardShouldPersistTaps="handled">
+                {healthItems.map((it) => {
+                  const on = !!healthSel[it.ingredient_id];
+                  return (
+                    <TouchableOpacity
+                      key={it.ingredient_id}
+                      style={styles.healthRow}
+                      onPress={() => setHealthSel((p) => ({ ...p, [it.ingredient_id]: !on }))}
+                      testID={`health-item-${it.ingredient_id}`}
+                    >
+                      <Ionicons
+                        name={on ? "checkbox" : "square-outline"}
+                        size={22}
+                        color={on ? colors.bananaLeaf : colors.textMuted}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.healthName}>{it.name}</Text>
+                        <Text style={styles.healthReason}>{it.focus} · {it.reason}</Text>
+                      </View>
+                      <Text style={styles.healthQty}>
+                        {it.qty}{it.unit}{it.estimated_inr ? ` · ₹${Math.round(it.estimated_inr)}` : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                {healthItems.length === 0 && !healthBusy ? (
+                  <Text style={styles.healthEmpty}>Set a health focus in Settings to get Captain&apos;s picks.</Text>
+                ) : null}
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={[styles.sheetPrimary, healthBusy && { opacity: 0.6 }]}
+              onPress={addHealthSelected}
+              disabled={healthBusy || healthItems.length === 0}
+              testID="health-add-selected"
+            >
+              <Text style={styles.sheetPrimaryText}>Add selected to grocery</Text>
+            </TouchableOpacity>
+            <Text style={styles.healthDisclaimer}>
+              Guidance based on ICMR-NIN 2024 — not medical advice; consult your doctor.
+            </Text>
+          </Pressable>
+        </Pressable>
+        </ScreenErrorBoundary>
+      </Modal>
+
       {/* Add item search modal */}
       <Modal visible={addItemVisible} transparent animationType="fade" onRequestClose={() => setAddItemVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setAddItemVisible(false)}>
@@ -986,6 +1109,27 @@ function GroceryScreenInner() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
+  captainListBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: `${colors.bananaLeaf}14`,
+    borderWidth: 1.5,
+    borderColor: `${colors.bananaLeaf}44`,
+    borderRadius: radius.l,
+    padding: 14,
+    marginBottom: spacing.m,
+  },
+  captainListEmoji: { fontSize: 30 },
+  captainListTitle: { fontFamily: fonts.headingEn, fontSize: 17, color: colors.bananaLeafDark },
+  captainListSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 1 },
+  healthGuidance: { fontSize: 13.5, color: colors.textSecondary, fontStyle: "italic", marginBottom: 8, lineHeight: 19 },
+  healthRow: { flexDirection: "row", alignItems: "center", gap: 11, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  healthName: { fontSize: 15.5, fontWeight: "700", color: colors.textPrimary },
+  healthReason: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  healthQty: { fontSize: 13, fontWeight: "800", color: colors.bananaLeafDark },
+  healthEmpty: { fontSize: 14, color: colors.textMuted, textAlign: "center", paddingVertical: 20 },
+  healthDisclaimer: { fontSize: 11, color: colors.textMuted, textAlign: "center", marginTop: 10, lineHeight: 15 },
   headerBadge: {
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -1289,6 +1433,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  sheetHandle: {
+    width: 44, height: 5, borderRadius: 3, backgroundColor: colors.border,
+    alignSelf: "center", marginBottom: 14,
+  },
+  sheetTitle: { fontFamily: fonts.headingBold, fontSize: 21, color: colors.textPrimary, marginBottom: 10 },
+  sheetPrimary: {
+    minHeight: 54, borderRadius: 999, backgroundColor: colors.bananaLeaf,
+    alignItems: "center", justifyContent: "center", marginTop: 14,
+  },
+  sheetPrimaryText: { color: colors.riceWhite, fontWeight: "800", fontSize: 16 },
   modalCard: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 22,

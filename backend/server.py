@@ -16,6 +16,7 @@ import httpx
 from meal_engine import (
     PantrySnapshot,
     PlannerContext,
+    STAPLE_ALWAYS,
     cook_now as engine_cook_now,
     daily_targets,
     plan_day as engine_plan_day,
@@ -367,6 +368,10 @@ class HealthProfile(BaseModel):
     weight_kg: Optional[float] = None
     bmi: Optional[float] = None
     goals: List[str] = Field(default_factory=list)
+    # B17 backbone: sex/age/activity personalise the ICMR base targets
+    sex: Optional[str] = None            # "male" | "female"
+    age_band: Optional[str] = None       # "18-30" | "31-45" | "46-60" | "60+"
+    activity: Optional[str] = None       # "sedentary" | "moderate" | "active"
 
 
 class ProfileIn(BaseModel):
@@ -1417,6 +1422,75 @@ async def grocery_list(
     }
 
 
+# ---------- B17: health -> grocery suggestion (the backbone head) ---------- #
+_HEALTH_RULES: Dict[str, Any] = {}
+
+def _health_rules() -> Dict[str, Any]:
+    global _HEALTH_RULES
+    if not _HEALTH_RULES:
+        with open(DATA_DIR / "health_focus_rules.json", "r", encoding="utf-8") as f:
+            _HEALTH_RULES = json.load(f)
+    return _HEALTH_RULES
+
+
+@api_router.get("/grocery/suggest-health")
+async def grocery_suggest_health(current=Depends(get_current_user)):
+    """Capt. Charmer's health-driven buy list: profile focus areas -> favoured
+    ingredients (ICMR-NIN grounded, IDs verified against the catalog) with a
+    reason per item. Filtered by diet/allergies, priced, deduped."""
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    goals = list((profile.get("health") or {}).get("goals") or [])
+    rules = _health_rules()
+    focuses = rules.get("focuses", {})
+    if not goals:
+        goals = ["balanced"]
+    diet = profile.get("diet") or "veg"
+    avoid = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+
+    NONVEG = {"eggs", "chicken", "fish"}
+    ing_docs = {i["ingredient_id"]: i for i in await db.ingredients.find({}, {"_id": 0}).to_list(500)}
+
+    picked: Dict[str, Dict[str, Any]] = {}
+    guidance: List[str] = []
+    for g in goals:
+        f = focuses.get(g)
+        if not f:
+            continue
+        if f.get("guidance"):
+            guidance.append(f["guidance"])
+        for iid in f.get("grocery_favour", []):
+            if iid in picked or iid in avoid:
+                continue
+            if diet == "veg" and iid in NONVEG:
+                continue
+            if diet == "egg" and iid in {"chicken", "fish"}:
+                continue
+            ing = ing_docs.get(iid)
+            if not ing:
+                continue
+            qty, unit = (250, "g")
+            if iid in {"milk"}: qty, unit = (500, "ml")
+            if iid in {"eggs"}: qty, unit = (6, "pc")
+            if iid in {"lemon", "drumstick"}: qty, unit = (4, "pc")
+            est = _price_for(iid, float(qty), unit)
+            picked[iid] = {
+                "ingredient_id": iid,
+                "name": ing.get("name", iid.replace("_", " ").title()),
+                "category": ing.get("category"),
+                "qty": qty, "unit": unit,
+                "reason": f.get("reason", ""),
+                "focus": f.get("label", g),
+                "estimated_inr": round(est, 2) if est else None,
+            }
+    items = list(picked.values())[:18]
+    return {
+        "items": items,
+        "guidance": guidance[:3],
+        "focuses": [focuses.get(g, {}).get("label", g) for g in goals if g in focuses],
+        "note": "Guidance based on ICMR-NIN 2024 — not medical advice; consult your doctor.",
+    }
+
+
 class GroceryRemoveIn(BaseModel):
     ingredient_id: str
 
@@ -2143,6 +2217,8 @@ async def captain_chat(payload: CaptainChatIn, current=Depends(get_current_user)
         "pantry items or dishes not in context. End actionable answers with a short order like "
         "'Carry on, soldier.'\n\n"
         f"KITCHEN CONTEXT:\nprofile: {json.dumps({k: profile.get(k) for k in ('name','diet','household_size','spice_level') if k in profile})}\n"
+        f"health_focuses: {json.dumps([_health_rules().get('focuses', {}).get(g, {}).get('label', g) for g in (profile.get('health') or {}).get('goals', [])])}\n"
+        f"focus_guidance: {json.dumps([_health_rules().get('focuses', {}).get(g, {}).get('guidance') for g in (profile.get('health') or {}).get('goals', []) if _health_rules().get('focuses', {}).get(g)])}\n"
         f"today_plan: {json.dumps(plan_brief)}\n"
         f"pantry: {json.dumps(pantry_brief)}"
     )

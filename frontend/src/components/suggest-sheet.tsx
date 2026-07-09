@@ -51,7 +51,19 @@ export function pickSuggestion(
   excludeIds: string[],
   skipIds: string[] = [],
   pantry?: PantryInfo | null,
+  goals: string[] = [],
 ): Suggestion | null {
+  const FOCUS_TAGS: Record<string, string[]> = {
+    high_protein: ["high_protein", "protein"],
+    diabetic_friendly: ["diabetic_friendly", "high_fiber", "light"],
+    bp_friendly: ["bp_friendly", "light", "low_oil"],
+    iron_support: ["iron_rich", "greens"],
+    bone_calcium: ["calcium_rich"],
+    digestion_fiber: ["high_fiber"],
+    weight_loss: ["weight_loss", "light", "high_fiber"],
+    balanced: ["balanced"],
+  };
+  const wantTags = new Set(goals.flatMap((g) => FOCUS_TAGS[g] ?? []));
   const excluded = new Set([...excludeIds, ...skipIds]);
   const allowedCats = new Set(MEAL_CATEGORIES[meal.key] ?? []);
   const inMealCats = new Set(
@@ -78,6 +90,12 @@ export function pickSuggestion(
       if (k > kcalRoom) score -= (k - kcalRoom) / 15;
       // Variety: don't stack another dish of a category already on the plate
       if (inMealCats.has(r.category)) score -= 8;
+      // Health focus: reward dishes tagged for the user's focus areas
+      if (wantTags.size > 0) {
+        const rtags: string[] = ((r as any).health_tags ?? (r as any).tags ?? []) as string[];
+        const overlap = rtags.filter((t) => wantTags.has(t)).length;
+        score += overlap * 6;
+      }
       // Pantry awareness: reward dishes cookable from what's at home,
       // and heavily reward rescuing expiring items.
       let pantryHits = 0;

@@ -88,7 +88,7 @@ export default function DayEditScreen() {
       if (!catalog) setCatalog(all);
       const pInfo = await loadPantryInfo();
       const mealObj = (plan as any)[mealKey] as Meal;
-      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, mealObj.items.map((i) => i.id), [], pInfo));
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, mealObj.items.map((i) => i.id), [], pInfo, profile?.health?.goals ?? []));
     } catch {
       setSuggestion(null);
     }
@@ -99,7 +99,7 @@ export default function DayEditScreen() {
     const mealObj = (plan as any)[suggestMeal] as Meal;
     const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
     setSuggestSkip(skip);
-    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, mealObj.items.map((i) => i.id), skip, pantryInfo));
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, mealObj.items.map((i) => i.id), skip, pantryInfo, profile?.health?.goals ?? []));
   };
 
   const addSuggested = async () => {

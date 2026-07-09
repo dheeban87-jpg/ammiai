@@ -262,24 +262,46 @@ def check_avoid_rules(
 
 # --------------------- Nutrition & targets --------------------- #
 def daily_targets(rules: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, float]:
+    """B17 backbone: targets personalised by sex, weight, activity and health
+    focuses (ICMR-NIN bases; focus mods from health_focus_rules.json)."""
     icmr = rules.get("daily_nutrition_targets_icmr", {})
-    # Default sedentary adult female (more conservative). Users can override later.
-    base = icmr.get("adult_female", {"kcal": 1660, "protein_g": 46, "fiber_g": 25}).copy()
+    health = profile.get("health", {}) or {}
 
-    # gender heuristic — we don't ask gender in onboarding, use goal signal only
-    weight = profile.get("health", {}).get("weight_kg")
+    sex = (health.get("sex") or "female").lower()
+    key = "adult_male" if sex == "male" else "adult_female"
+    base = icmr.get(key, {"kcal": 1660, "protein_g": 46, "fiber_g": 25}).copy()
+
+    # Activity scales energy need
+    activity = (health.get("activity") or "sedentary").lower()
+    act_mult = {"sedentary": 1.0, "moderate": 1.12, "active": 1.25}.get(activity, 1.0)
+    base["kcal"] = int(base["kcal"] * act_mult)
+
+    weight = health.get("weight_kg")
     if weight:
-        # 0.83 g/kg minimum for protein guard
         base["protein_g"] = max(base.get("protein_g", 46), round(0.83 * weight, 1))
 
-    goals = set(profile.get("health", {}).get("goals", []))
+    goals = set(health.get("goals", []))
+    # Legacy modifiers (rules json) still apply
     mods = icmr.get("goal_modifiers", {})
+    # Focus mods from the dedicated health rules file, if present
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        hf = _json.load(open(_Path(__file__).parent / "data" / "health_focus_rules.json"))
+        focus_mods = {k: v.get("target_mods", {}) for k, v in hf.get("focuses", {}).items()}
+    except Exception:
+        focus_mods = {}
+
     for g in goals:
-        m = mods.get(g, {})
-        if "kcal_multiplier" in m:
-            base["kcal"] = int(base["kcal"] * m["kcal_multiplier"])
-        if "protein_g_min" in m:
-            base["protein_g"] = max(base["protein_g"], m["protein_g_min"])
+        for m in (mods.get(g, {}), focus_mods.get(g, {})):
+            if "kcal_multiplier" in m:
+                base["kcal"] = int(base["kcal"] * m["kcal_multiplier"])
+            if "protein_g_min" in m:
+                base["protein_g"] = max(base["protein_g"], m["protein_g_min"])
+            if "protein_per_kg" in m and weight:
+                base["protein_g"] = max(base["protein_g"], round(m["protein_per_kg"] * weight, 1))
+            if "fiber_g_min" in m:
+                base["fiber_g"] = max(base.get("fiber_g", 25), m["fiber_g_min"])
     return base
 
 

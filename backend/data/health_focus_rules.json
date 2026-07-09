@@ -1,0 +1,209 @@
+{
+ "focuses": {
+  "high_protein": {
+   "label": "High Protein / Muscle & Gym",
+   "label_ta": "அதிக புரதம்",
+   "prefer_tags": [
+    "high_protein",
+    "protein"
+   ],
+   "target_mods": {
+    "protein_per_kg": 1.4,
+    "protein_g_min": 75
+   },
+   "grocery_favour": [
+    "moong_dal",
+    "urad_dal",
+    "toor_dal",
+    "chana_dal",
+    "eggs",
+    "paneer",
+    "curd",
+    "milk",
+    "chicken",
+    "fish",
+    "peanuts"
+   ],
+   "reason": "high measured protein — muscle repair",
+   "guidance": "Protein target raised, soldier. Dal, egg, paneer daily; pair dal with rice for complete protein."
+  },
+  "diabetic_friendly": {
+   "label": "Managing Sugar",
+   "label_ta": "சர்க்கரை கட்டுப்பாடு",
+   "prefer_tags": [
+    "diabetic_friendly",
+    "high_fiber",
+    "light"
+   ],
+   "target_mods": {
+    "fiber_g_min": 30,
+    "kcal_multiplier": 0.95
+   },
+   "grocery_favour": [
+    "millet_ragi",
+    "millet_foxtail",
+    "moong_dal",
+    "spinach_palak",
+    "bitter_gourd",
+    "cucumber",
+    "curd",
+    "methi_leaves"
+   ],
+   "limit_note": "smaller white-rice portions; no sugary drinks",
+   "reason": "low glycemic load / high fiber — steady sugar",
+   "guidance": "Smaller rice, more millets and greens. No sugary drinks. This supports steady energy — your doctor guides treatment."
+  },
+  "bp_friendly": {
+   "label": "Heart-healthy / Low oil",
+   "label_ta": "இதய நலம்",
+   "prefer_tags": [
+    "bp_friendly",
+    "light",
+    "low_oil"
+   ],
+   "target_mods": {
+    "kcal_multiplier": 0.97
+   },
+   "grocery_favour": [
+    "oats",
+    "spinach_palak",
+    "garlic",
+    "sesame_seeds",
+    "raw_banana",
+    "curd",
+    "drumstick",
+    "bottle_gourd"
+   ],
+   "limit_note": "oil ≤25-30g/day; easy on pickle, papad, fried",
+   "reason": "supports heart & BP — low salt/oil pattern",
+   "guidance": "Less oil, less salt — steam and boil, soldier. Nuts and greens for the heart; your doctor leads."
+  },
+  "iron_support": {
+   "label": "Iron / Energy support",
+   "label_ta": "இரும்புச்சத்து",
+   "prefer_tags": [
+    "iron_rich",
+    "greens"
+   ],
+   "target_mods": {
+    "iron_focus": true
+   },
+   "grocery_favour": [
+    "spinach_palak",
+    "amaranth_keerai",
+    "mulaikeerai",
+    "methi_leaves",
+    "dates",
+    "jaggery",
+    "lemon",
+    "tomato",
+    "drumstick"
+   ],
+   "pairing": "always add a vitamin-C item (lemon/tomato/amla) — triples iron absorption; no tea/coffee at mealtime",
+   "reason": "iron-rich + vitamin-C pairing for absorption",
+   "guidance": "Iron greens WITH lemon or tomato, soldier — and no tea at mealtime, it blocks iron. Supports your levels; follow your doctor's treatment."
+  },
+  "bone_calcium": {
+   "label": "Bone / Calcium",
+   "label_ta": "எலும்பு வலிமை",
+   "prefer_tags": [
+    "calcium_rich"
+   ],
+   "target_mods": {},
+   "grocery_favour": [
+    "millet_ragi",
+    "milk",
+    "curd",
+    "paneer",
+    "sesame_seeds",
+    "amaranth_keerai",
+    "drumstick"
+   ],
+   "reason": "high measured calcium",
+   "guidance": "Ragi, curd, sesame, greens — strong bones, soldier. Morning sun for vitamin D."
+  },
+  "digestion_fiber": {
+   "label": "Digestion / Fiber",
+   "label_ta": "செரிமானம்",
+   "prefer_tags": [
+    "high_fiber"
+   ],
+   "target_mods": {
+    "fiber_g_min": 30
+   },
+   "grocery_favour": [
+    "moong_dal",
+    "millet_ragi",
+    "spinach_palak",
+    "banana_stem",
+    "carrot",
+    "green_beans",
+    "oats"
+   ],
+   "reason": "high fiber — gut health",
+   "guidance": "More fibre — millets, dals, greens, and water, soldier. Gut stays strong."
+  },
+  "weight_loss": {
+   "label": "Weight loss",
+   "label_ta": "எடை குறைப்பு",
+   "prefer_tags": [
+    "weight_loss",
+    "light",
+    "high_fiber"
+   ],
+   "target_mods": {
+    "kcal_multiplier": 0.85,
+    "protein_per_kg": 1.0
+   },
+   "grocery_favour": [
+    "spinach_palak",
+    "cucumber",
+    "bottle_gourd",
+    "ridge_gourd",
+    "curd",
+    "eggs",
+    "moong_dal"
+   ],
+   "limit_note": "measured oil; 2-3 meals, no grazing",
+   "reason": "high satiety, low calorie",
+   "guidance": "Half plate greens, protein every meal, measured oil, soldier. Steady wins."
+  },
+  "balanced": {
+   "label": "General wellness",
+   "label_ta": "பொது நலம்",
+   "prefer_tags": [
+    "balanced"
+   ],
+   "target_mods": {},
+   "grocery_favour": [
+    "spinach_palak",
+    "toor_dal",
+    "curd",
+    "tomato",
+    "carrot",
+    "eggs",
+    "lemon"
+   ],
+   "reason": "variety across food groups (ICMR My Plate)",
+   "guidance": "Variety across the plate, soldier — greens, dal, curd, one fruit a day."
+  }
+ },
+ "activity_multiplier": {
+  "sedentary": 1.0,
+  "moderate": 1.12,
+  "active": 1.25
+ },
+ "base_targets": {
+  "male": {
+   "kcal": 2110,
+   "protein_g": 54,
+   "fiber_g": 30
+  },
+  "female": {
+   "kcal": 1660,
+   "protein_g": 46,
+   "fiber_g": 25
+  }
+ },
+ "source": "ICMR-NIN Dietary Guidelines for Indians 2024 + IFCT 2017; guidance framing only — not medical advice"
+}

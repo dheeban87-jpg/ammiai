@@ -298,7 +298,7 @@ export default function PlanScreen() {
       const pInfo = await loadPantryInfo();
       const mealObj = (plan as any)[mealKey] as Meal;
       const exclude = mealObj.items.map((i) => i.id);
-      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude, [], pInfo));
+      setSuggestion(pickSuggestion(all, mealObj, profile?.diet, exclude, [], pInfo, profile?.health?.goals ?? []));
     } catch {
       setSuggestion(null);
     }
@@ -310,7 +310,7 @@ export default function PlanScreen() {
     const exclude = mealObj.items.map((i) => i.id);
     const skip = suggestion ? [...suggestSkip, suggestion.recipe.id] : suggestSkip;
     setSuggestSkip(skip);
-    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip, pantryInfo));
+    setSuggestion(pickSuggestion(catalog, mealObj, profile?.diet, exclude, skip, pantryInfo, profile?.health?.goals ?? []));
   };
 
   const addSuggested = async () => {

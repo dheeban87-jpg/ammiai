@@ -5,6 +5,7 @@
 import React, { createContext, useContext, useMemo, useRef, useState } from "react";
 import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 
 import { colors, fonts, radius, spacing } from "@/src/theme";
@@ -124,7 +125,12 @@ export function CharmerProvider({ children }: { children: React.ReactNode }) {
         onPress={() => api.show(badge.current ? "whistle" : "idle")}
         testID="charmer-fab"
       >
-        <Image source={POSTER_IDLE} style={styles.fabImg} resizeMode="cover" />
+        <View style={styles.fabDisc}>
+          <Image source={POSTER_IDLE} style={styles.fabImg} resizeMode="cover" />
+        </View>
+        <View style={styles.fabChatDot}>
+          <Ionicons name="chatbubble-ellipses" size={12} color="#fff" />
+        </View>
       </PressableScale>
 
       {/* Overlay */}
@@ -173,20 +179,43 @@ const styles = StyleSheet.create({
   fab: {
     position: "absolute",
     right: spacing.l,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.bananaLeaf,
+    elevation: 8,
+    shadowColor: colors.bananaLeafDark ?? "#1E4A2C",
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  fabDisc: {
     width: 58,
     height: 58,
     borderRadius: 29,
     overflow: "hidden",
+    backgroundColor: colors.riceWhite ?? "#FBF8EF",
     borderWidth: 2,
-    borderColor: colors.turmeric,
-    backgroundColor: "#fff",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
   },
   fabImg: { width: "100%", height: "100%" },
+  fabChatDot: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.chili ?? "#B8432F",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(20,30,20,0.55)",

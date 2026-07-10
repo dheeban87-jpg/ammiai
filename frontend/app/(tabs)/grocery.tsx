@@ -808,7 +808,7 @@ function GroceryScreenInner() {
             activeOpacity={0.85}
           >
             <Ionicons name="restaurant-outline" size={19} color="#FFFFFF" />
-            <Text style={styles.zomatoBtnText}>Captain\u2019s approved meals (Zomato)</Text>
+            <Text style={styles.zomatoBtnText}>Captain{"\u2019"}s approved meals (Zomato)</Text>
           </TouchableOpacity>
           <View style={styles.ondcRow}>
             <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
@@ -924,6 +924,7 @@ function GroceryScreenInner() {
       {/* Order-placed confirmation */}
       <ScreenErrorBoundary name="Grocery/confirm-modal">
       <Modal visible={confirmVisible} transparent animationType="fade" onRequestClose={() => setConfirmVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         <Pressable style={styles.modalBackdrop} onPress={() => setConfirmVisible(false)}>
           <Pressable style={styles.confirmCard} onPress={(e) => e.stopPropagation()} testID="confirm-order">
             <View style={styles.confirmIcon}>
@@ -1035,6 +1036,7 @@ function GroceryScreenInner() {
             </View>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
       </ScreenErrorBoundary>
 

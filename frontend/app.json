@@ -2,7 +2,7 @@
   "expo": {
     "name": "AmmiAI",
     "slug": "ammiai",
-    "version": "1.6.1",
+    "version": "1.6.6",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ammiai",
@@ -34,7 +34,7 @@
           ]
         }
       ],
-      "versionCode": 26
+      "versionCode": 31
     },
     "web": {
       "bundler": "metro",

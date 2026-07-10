@@ -4,6 +4,7 @@ import {
   Linking,
   Platform,
   Pressable,
+  KeyboardAvoidingView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -159,8 +160,14 @@ export default function Settings() {
         <View style={{ width: 30 }} />
       </View>
 
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <ScrollView
-        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]}
+        contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 120 }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
       >
         {/* Premium banner */}
         {premium ? (
@@ -389,6 +396,7 @@ export default function Settings() {
 
         <Text style={styles.tinyFooter}>AmmiAI · v1.0 · Made with 🌿</Text>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

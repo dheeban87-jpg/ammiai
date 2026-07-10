@@ -11,7 +11,6 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { dishEmoji } from "@/src/food-emoji";
 import { FoodAvatar } from "@/src/food-visual";
 import { useCharmer } from "@/src/components/capt-charmer";
-import { PandaRoom } from "@/src/components/panda-room";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
@@ -90,7 +89,259 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen} testID="home-screen">
-      <PandaRoom name={name} />
+      <AppHeader
+        title="AmmiAI"
+        subtitleTa="உங்கள் தமிழ் சமையலறை உதவியாளர்"
+        onLongPress={() => router.push("/settings")}
+        right={
+          <TouchableOpacity
+            testID="home-dev-menu"
+            onPress={() => router.push("/settings")}
+            style={styles.iconBtn}
+            hitSlop={10}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.riceWhite} />
+          </TouchableOpacity>
+        }
+      />
+
+      <ScrollView
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.welcome} testID="home-welcome">
+          {timeLabel} {timeEmoji}{"\n"}{name}
+        </Text>
+
+
+        {/* Balance rings (from today's plan) */}
+        {plan ? (
+          <View style={styles.ringsCard} testID="home-rings">
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Today&apos;s balance</Text>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/plan")} testID="home-see-plan">
+                <Text style={styles.linkText}>See plan →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.ringsRow}>
+              <NutritionRing delay={0}
+                testID="home-ring-kcal"
+                size={82}
+                strokeWidth={9}
+                progress={plan.rings.kcal}
+                color={colors.bananaLeaf}
+                label="Calories"
+                value={`${Math.round(plan.day_totals.kcal)}`}
+                hint={`/ ${Math.round(plan.day_targets.kcal)}`}
+              />
+              <NutritionRing delay={140}
+                testID="home-ring-protein"
+                size={82}
+                strokeWidth={9}
+                progress={plan.rings.protein_g}
+                color={colors.chili}
+                label="Protein"
+                value={`${Math.round(plan.day_totals.protein_g)}g`}
+                hint={`/ ${Math.round(plan.day_targets.protein_g)}g`}
+              />
+              <NutritionRing delay={280}
+                testID="home-ring-fiber"
+                size={82}
+                strokeWidth={9}
+                progress={plan.rings.fiber_g}
+                color={colors.turmeric}
+                label="Fiber"
+                value={`${Math.round(plan.day_totals.fiber_g)}g`}
+                hint={`/ ${Math.round(plan.day_targets.fiber_g)}g`}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {/* Stat pills */}
+        <View style={styles.pillsRow}>
+          <View style={styles.pillCard}>
+            <Ionicons name="cube-outline" size={16} color={colors.bananaLeaf} />
+            <Text style={styles.pillValue}>{items?.length ?? "—"}</Text>
+            <Text style={styles.pillLabel}>Pantry items</Text>
+          </View>
+          <View style={styles.pillCard}>
+            <Ionicons name="alarm" size={16} color={colors.turmeric} />
+            <Text style={[styles.pillValue, { color: colors.turmeric }]}>
+              {expiring.length}
+            </Text>
+            <Text style={styles.pillLabel}>Expiring soon</Text>
+          </View>
+          <View style={styles.pillCard}>
+            <Ionicons name="trash-bin-outline" size={16} color={colors.chili} />
+            <Text style={[styles.pillValue, { color: colors.chili }]}>
+              ₹{waste?.total_estimated_inr?.toFixed(0) ?? "0"}
+            </Text>
+            <Text style={styles.pillLabel}>Waste so far</Text>
+          </View>
+        </View>
+
+        {/* Expiring rescue */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>Expiring soon</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/pantry")} testID="see-all-expiring">
+            <Text style={styles.linkText}>See pantry →</Text>
+          </TouchableOpacity>
+        </View>
+
+        {items === null && !error ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.bananaLeaf} />
+          </View>
+        ) : expiring.length === 0 ? (
+          <View style={styles.emptyCard} testID="home-no-expiring">
+            <Ionicons name="checkmark-circle" size={22} color={colors.bananaLeaf} />
+            <Text style={styles.emptyCardText}>
+              {items && items.length > 0
+                ? "Nothing expiring — your pantry looks fresh."
+                : "Add items to your pantry to see freshness alerts."}
+            </Text>
+          </View>
+        ) : (
+          <>
+            {expiring.slice(0, 3).map((item) => (
+              <View
+                key={item.id}
+                style={[
+                  styles.expRow,
+                  { borderLeftColor: item.freshness === "red" ? colors.chili : colors.turmeric },
+                ]}
+                testID={`home-expiring-${item.id}`}
+              >
+                <MaterialCommunityIcons
+                  name={iconFor(item.ingredient_id, item.category)}
+                  size={22}
+                  color={colors.bananaLeaf}
+                />
+                <View style={{ flex: 1, marginLeft: spacing.m }}>
+                  <Text style={styles.expTitle}>{item.ingredient_name}</Text>
+                  <Text style={styles.expSub}>
+                    {item.qty} {item.unit} · {item.storage}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.expDays,
+                    { color: item.freshness === "red" ? colors.chili : colors.turmeric },
+                  ]}
+                >
+                  {item.days_left != null && item.days_left <= 0
+                    ? "expired"
+                    : `${item.days_left ?? "?"}d`}
+                </Text>
+              </View>
+            ))}
+
+            {/* Rescue dishes (recipes that use expiring items) */}
+            {rescue && rescue.length > 0 ? (
+              <View style={styles.rescueCard} testID="rescue-card">
+                <View style={styles.rescueHeader}>
+                  <Ionicons name="sparkles" size={16} color={colors.turmeric} />
+                  <Text style={styles.rescueTitle}>Rescue dishes</Text>
+                </View>
+                <Text style={styles.rescueHint}>
+                  Cook these to use expiring items before they spoil.
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rescueScroll}>
+                  {rescue.slice(0, 6).map((r) => (
+                    <View key={r.id} style={styles.dishChipCard} testID={`rescue-${r.id}`}>
+                      <Text style={styles.dishChipTitle} numberOfLines={1}>{r.name_en}</Text>
+                      {r.name_ta && r.name_ta !== r.name_en ? (
+                        <Text style={styles.dishChipTa} numberOfLines={1}>{r.name_ta}</Text>
+                      ) : null}
+                      <View style={styles.dishChipMeta}>
+                        <Text style={styles.dishChipMetaText}>
+                          uses {r.expiring_hits?.length ?? 0} expiring
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            ) : null}
+          </>
+        )}
+
+        {/* Cook now — zero shopping */}
+        {cookNow && cookNow.length > 0 ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Cook now from your kitchen</Text>
+            </View>
+            <Text style={styles.sectionSub}>
+              Zero shopping — you have every ingredient.
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rescueScroll}>
+              {cookNow.map((r) => (
+                <View key={r.id} style={[styles.dishChipCard, styles.cookCard]} testID={`cook-${r.id}`}>
+                  <View style={styles.zeroTag}>
+                    <Text style={styles.zeroTagText}>0 shopping</Text>
+                  </View>
+                  <FoodAvatar kind="dish" id={r.id} category={r.category} size={44} style={{ marginTop: 6, marginBottom: 2 }} />
+                  <Text style={styles.dishChipTitle} numberOfLines={1}>{r.name_en}</Text>
+                  {r.name_ta && r.name_ta !== r.name_en ? (
+                    <Text style={styles.dishChipTa} numberOfLines={1}>{r.name_ta}</Text>
+                  ) : null}
+                  <Text style={styles.dishChipMetaText}>
+                    {r.nutrition?.kcal ?? "—"} kcal · {r.category}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </>
+        ) : null}
+
+        {/* Profile summary */}
+        {profile ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionLabel}>Your kitchen</Text>
+            </View>
+            <View style={styles.profileCard} testID="home-profile-card">
+              <ProfileRow
+                icon="restaurant-outline"
+                label="Diet"
+                value={
+                  profile.diet === "veg"
+                    ? "Vegetarian"
+                    : profile.diet === "nonveg"
+                      ? "Non-veg"
+                      : profile.diet === "eggetarian"
+                        ? "Eggetarian"
+                        : "—"
+                }
+              />
+              <ProfileRow
+                icon="people-outline"
+                label="Household"
+                value={`${profile.household_size ?? "—"} people`}
+              />
+              <ProfileRow
+                icon="flame-outline"
+                label="Spice"
+                value={profile.spice_level ?? "—"}
+              />
+              {profile.favorites?.length ? (
+                <ProfileRow
+                  icon="heart-outline"
+                  label="Favorites"
+                  value={`${profile.favorites.length} dishes`}
+                />
+              ) : null}
+            </View>
+          </>
+        ) : null}
+
+        <View style={styles.footerHint}>
+          <Ionicons name="sparkles" size={16} color={colors.turmeric} style={{ marginRight: 6 }} />
+          <Text style={styles.footerHintText}>Slice 2 · plan engine online</Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }

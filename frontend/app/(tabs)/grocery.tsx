@@ -55,7 +55,7 @@ type GroceryList = {
   total_estimated_inr: number;
 };
 
-type OrderVendor = "blinkit" | "instamart" | "zepto";
+type OrderVendor = "instamart" | "zepto";
 
 const VENDOR_META: Record<
   OrderVendor,
@@ -67,13 +67,6 @@ const VENDOR_META: Record<
     appUrl?: (q: string) => string; // native app scheme, tried first
   }
 > = {
-  blinkit: {
-    label: "Blinkit",
-    color: "#F8CB46",
-    icon: "flash",
-    searchUrl: (q) => `https://blinkit.com/s/?q=${encodeURIComponent(q)}`,
-    appUrl: (q) => `blinkit://search?q=${encodeURIComponent(q)}`,
-  },
   instamart: {
     label: "Instamart",
     color: "#F15A29",
@@ -107,6 +100,9 @@ function GroceryScreenInner() {
   const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
   const [healthSel, setHealthSel] = useState<Record<string, boolean>>({});
   const [healthBusy, setHealthBusy] = useState(false);
+  const [mealsVisible, setMealsVisible] = useState(false);
+  const [approvedMeals, setApprovedMeals] = useState<any[]>([]);
+  const [mealsBusy, setMealsBusy] = useState(false);
   const [addQuery, setAddQuery] = useState("");
   const [addResults, setAddResults] = useState<
     { ingredient_id: string; name: string; category: string }[] | null
@@ -134,9 +130,9 @@ function GroceryScreenInner() {
         total_estimated_inr: raw.total_estimated_inr ?? 0,
       };
       setData(d);
-      // Default: every item pre-selected — the whole list is "what you need".
-      // Unchecking = "I'll skip this one" / already sorted elsewhere.
-      setChecked(new Set(d.groups.flatMap((g) => g.items.map((it) => it.ingredient_id))));
+      // No auto-selection — the list starts empty. Users select deliberately,
+      // or tap Captain's health list to auto-select the suggested items.
+      setChecked(new Set());
     } catch (e: any) {
       setError(e?.message ?? "Couldn't load list");
     } finally {
@@ -294,13 +290,6 @@ function GroceryScreenInner() {
     openConfirmWithPrices("local_shop");
   };
 
-  let pricesTotal = 0;
-  for (const it of selected) {
-    if (!it) continue;
-    const v = parseFloat((prices ?? {})[it.ingredient_id] ?? "");
-    if (!isNaN(v)) pricesTotal += v;
-  }
-
   const scanBill = async () => {
     try {
       // Lazy import: if this APK build predates the expo-image-picker
@@ -386,6 +375,55 @@ function GroceryScreenInner() {
     Linking.openURL(webUrl);
   };
 
+  // Zomato: order a healthy PREPARED MEAL (restaurant food, not grocery items).
+  // Deep-link into Zomato (like Zepto search), then log the spend to the food
+  // budget via the same confirm flow (no delivery app exposes price to auto-read).
+  const openApprovedMeals = async () => {
+    setMealsVisible(true);
+    setMealsBusy(true);
+    try {
+      const r = await api.get<{ meals: any[] }>("/api/meals/approved");
+      setApprovedMeals(r.meals ?? []);
+    } catch (e: any) {
+      setApprovedMeals([]);
+      setToast(
+        e?.status === 404
+          ? "Captain's meals activate after the next backend update"
+          : "Couldn't load Captain's meals",
+      );
+      setTimeout(() => setToast(null), 2600);
+      setMealsVisible(false);
+    } finally {
+      setMealsBusy(false);
+    }
+  };
+
+  const orderApprovedMeal = async (meal: any) => {
+    // Search this exact approved dish on Zomato (deep-link like Zepto).
+    const q = meal.name;
+    const appUrl = `zomato://search?q=${encodeURIComponent(q)}`;
+    const webUrl = `https://www.zomato.com/search?q=${encodeURIComponent(q)}`;
+    try {
+      if (Platform.OS === "web") {
+        window.open(webUrl, "_blank");
+      } else {
+        try {
+          await Linking.openURL(appUrl);
+        } catch {
+          await Linking.openURL(webUrl);
+        }
+      }
+    } finally {
+      // Record the dish immediately; amount is logged later via spend entry.
+      try {
+        await api.post("/api/meals/order-log", { dish_id: meal.id, dish_name: meal.name });
+      } catch {}
+      setMealsVisible(false);
+      setToast(`${meal.name} recorded. Come back and log the amount for your budget.`);
+      setTimeout(() => setToast(null), 4000);
+    }
+  };
+
   // Guided shopping wizard: there is no public cart API for Blinkit/Zepto/
   // Instamart, so the honest, workable pattern is one-item-at-a-time with
   // AmmiAI acting as the checklist: show item N, open its search in the
@@ -395,6 +433,14 @@ function GroceryScreenInner() {
   const [prices, setPrices] = useState<Record<string, string>>({});
   const [totalPaid, setTotalPaid] = useState("");
   const [showItemPrices, setShowItemPrices] = useState(false);
+
+  // Sum of user-entered item prices (declared AFTER `prices` to avoid TDZ).
+  let pricesTotal = 0;
+  for (const it of selected) {
+    if (!it) continue;
+    const v = parseFloat(prices[it.ingredient_id] ?? "");
+    if (!isNaN(v)) pricesTotal += v;
+  }
   const [scanBusy, setScanBusy] = useState(false);
   const [wizardDone, setWizardDone] = useState<Set<string>>(new Set());
 
@@ -491,9 +537,11 @@ function GroceryScreenInner() {
         });
       }
       setHealthVisible(false);
-      setToast(`${chosen.length} of Captain's picks added ✓`);
+      setToast(`${chosen.length} of Captain's picks added & selected ✓`);
       setTimeout(() => setToast(null), 2600);
       await load();
+      // Select exactly the Captain's picks (the list itself stays unselected).
+      setChecked(new Set(chosen.map((it) => it.ingredient_id)));
     } finally {
       setHealthBusy(false);
     }
@@ -750,6 +798,17 @@ function GroceryScreenInner() {
           >
             <Ionicons name="storefront-outline" size={19} color={colors.bananaLeafDark} />
             <Text style={styles.localShopText}>Bought at local shop — enter prices</Text>
+          </TouchableOpacity>
+
+          {/* Order a healthy prepared meal (Zomato) — separate from groceries */}
+          <TouchableOpacity
+            testID="order-zomato-meal"
+            style={styles.zomatoBtn}
+            onPress={openApprovedMeals}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="restaurant-outline" size={19} color="#FFFFFF" />
+            <Text style={styles.zomatoBtnText}>Captain\u2019s approved meals (Zomato)</Text>
           </TouchableOpacity>
           <View style={styles.ondcRow}>
             <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
@@ -1039,6 +1098,55 @@ function GroceryScreenInner() {
         </ScreenErrorBoundary>
       </Modal>
 
+      {/* Captain's approved meals sheet (Zomato) */}
+      <Modal visible={mealsVisible} transparent animationType="slide" onRequestClose={() => setMealsVisible(false)}>
+        <ScreenErrorBoundary name="Grocery/meals-sheet">
+        <Pressable style={styles.modalBackdrop} onPress={() => setMealsVisible(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>🐼 Captain&apos;s approved meals</Text>
+            <Text style={styles.healthGuidance}>
+              Order these healthy dishes on Zomato, soldier. Only dietician-approved
+              meals — I don&apos;t offer junk. Tap one to search it.
+            </Text>
+            {mealsBusy && approvedMeals.length === 0 ? (
+              <ActivityIndicator color={colors.bananaLeaf} style={{ marginVertical: 24 }} />
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }} keyboardShouldPersistTaps="handled">
+                {approvedMeals.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={styles.mealRow}
+                    onPress={() => orderApprovedMeal(m)}
+                    testID={`meal-${m.id}`}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.healthName}>{m.name}</Text>
+                      <Text style={styles.healthReason}>
+                        {(m.tags || []).join(" · ") || "healthy"}
+                        {m.nutrition?.kcal ? ` · ${m.nutrition.kcal} kcal` : ""}
+                      </Text>
+                    </View>
+                    <View style={styles.mealSearchTag}>
+                      <Ionicons name="search" size={15} color="#E23744" />
+                      <Text style={styles.mealSearchText}>Zomato</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+                {approvedMeals.length === 0 && !mealsBusy ? (
+                  <Text style={styles.healthEmpty}>Set a health focus in Settings to get Captain&apos;s meals.</Text>
+                ) : null}
+              </ScrollView>
+            )}
+            <Text style={styles.healthDisclaimer}>
+              Captain-approved healthy meals — not medical treatment. The dish is
+              recorded; log the amount to track your food budget.
+            </Text>
+          </Pressable>
+        </Pressable>
+        </ScreenErrorBoundary>
+      </Modal>
+
       {/* Add item search modal */}
       <Modal visible={addItemVisible} transparent animationType="fade" onRequestClose={() => setAddItemVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setAddItemVisible(false)}>
@@ -1130,6 +1238,24 @@ const styles = StyleSheet.create({
   healthQty: { fontSize: 13, fontWeight: "800", color: colors.bananaLeafDark },
   healthEmpty: { fontSize: 14, color: colors.textMuted, textAlign: "center", paddingVertical: 20 },
   healthDisclaimer: { fontSize: 11, color: colors.textMuted, textAlign: "center", marginTop: 10, lineHeight: 15 },
+  mealRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  mealSearchTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: radius.pill,
+    backgroundColor: "#E2374415",
+  },
+  mealSearchText: { fontSize: 13, fontWeight: "800", color: "#E23744" },
   headerBadge: {
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -1336,6 +1462,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.s,
   },
   coveredText: { flex: 1, fontSize: 13.5, lineHeight: 19, color: colors.bananaLeafDark, fontWeight: "600" },
+  zomatoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    minHeight: 56,
+    borderRadius: radius.pill,
+    backgroundColor: "#E23744",
+    marginTop: spacing.s,
+  },
+  zomatoBtnText: { color: "#FFFFFF", fontWeight: "800", fontSize: 16 },
   ondcRow: {
     flexDirection: "row",
     alignItems: "center",

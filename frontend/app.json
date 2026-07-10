@@ -2,7 +2,7 @@
   "expo": {
     "name": "AmmiAI",
     "slug": "ammiai",
-    "version": "1.3.0",
+    "version": "1.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "ammiai",
@@ -34,7 +34,7 @@
           ]
         }
       ],
-      "versionCode": 19
+      "versionCode": 24
     },
     "web": {
       "bundler": "metro",
@@ -46,15 +46,20 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-image.png",
-          "imageWidth": 200,
+          "image": "./assets/veeran/home/splash.png",
+          "backgroundColor": "#FBF8EF",
           "resizeMode": "contain",
-          "backgroundColor": "#000000"
+          "imageWidth": 300
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "splash": {
+      "image": "./assets/veeran/home/splash.png",
+      "backgroundColor": "#FBF8EF",
+      "resizeMode": "contain"
     }
   }
 }

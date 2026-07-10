@@ -1516,6 +1516,72 @@ async def dishes_for_health(current=Depends(get_current_user)):
     return {"groups": groups, "note": "Dishes that SUPPORT your focus — not medical treatment; consult your doctor."}
 
 
+@api_router.get("/meals/approved")
+async def approved_meals(current=Depends(get_current_user)):
+    """Capt. Charmer's approved healthy meals to order out. Only dishes tagged
+    healthy (high-protein / heart-healthy / light / diabetic-friendly) are
+    offered — junk is simply never presented. Filtered by diet & focus."""
+    profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
+    goals = list((profile.get("health") or {}).get("goals") or []) or ["balanced"]
+    diet = profile.get("diet") or "veg"
+    allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+    rules = _health_rules().get("focuses", {})
+    recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
+
+    DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
+    allowed = DIET_OK.get(diet, {"veg"})
+    HEALTHY = {"high_protein", "heart_healthy", "light", "diabetic_friendly", "high_fiber"}
+
+    # tags favoured by the user's focuses (for ranking)
+    want = set()
+    for g in goals:
+        want |= set(rules.get(g, {}).get("recipe_tags", []))
+
+    out = []
+    for r in recipes:
+        if r.get("diet") not in allowed:
+            continue
+        tags = set(r.get("health_tags", []))
+        if not (tags & HEALTHY):
+            continue  # Captain blocks anything not healthy-tagged
+        ing_ids = set(i["ingredient_id"] for i in r.get("ingredients", []))
+        if allergies & ing_ids:
+            continue
+        score = len(tags & want) * 2 + len(tags & HEALTHY)
+        out.append((score, {
+            "id": r["id"], "name": r.get("name_en"), "name_ta": r.get("name_ta"),
+            "category": r.get("category"), "nutrition": r.get("nutrition", {}),
+            "tags": sorted(tags & HEALTHY),
+        }))
+    out.sort(key=lambda x: -x[0])
+    return {
+        "meals": [m for _, m in out[:20]],
+        "note": "Captain-approved healthy meals. Order these to keep your focus on track — consult your doctor for any condition.",
+    }
+
+
+class MealOrderIn(BaseModel):
+    dish_id: str
+    dish_name: str
+    amount_inr: Optional[float] = None
+
+
+@api_router.post("/meals/order-log")
+async def meal_order_log(body: MealOrderIn, current=Depends(get_current_user)):
+    """Record that the user ordered an approved meal out (dish auto-recorded;
+    amount optional — logged to the food budget when provided)."""
+    doc = {
+        "user_id": current["user_id"],
+        "dish_id": body.dish_id,
+        "dish_name": body.dish_name,
+        "amount_inr": body.amount_inr,
+        "source": "zomato",
+        "ts": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.meal_orders.insert_one(doc)
+    return {"ok": True, "logged": body.dish_name}
+
+
 @api_router.get("/grocery/suggest-health")
 async def grocery_suggest_health(current=Depends(get_current_user)):
     """Capt. Charmer's health-driven buy list: profile focus areas -> favoured

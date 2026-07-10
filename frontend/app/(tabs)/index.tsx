@@ -11,6 +11,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { dishEmoji } from "@/src/food-emoji";
 import { FoodAvatar } from "@/src/food-visual";
 import { useCharmer } from "@/src/components/capt-charmer";
+import { HomeHero } from "@/src/components/home-hero";
 import { useFocusEffect, useRouter } from "expo-router";
 
 import { AppHeader } from "@/src/components/app-header";
@@ -109,6 +110,9 @@ export default function HomeScreen() {
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
       >
+        {/* Dr. Charmer's office — tap to consult */}
+        <HomeHero />
+
         <Text style={styles.welcome} testID="home-welcome">
           {timeLabel} {timeEmoji}{"\n"}{name}
         </Text>

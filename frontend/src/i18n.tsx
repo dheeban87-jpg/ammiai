@@ -88,7 +88,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      const saved = await storage.getItem(LANG_KEY, "en");
+      const saved = await storage.getItem<Lang>(LANG_KEY, "en");
       if (saved === "ta" || saved === "en") setLangState(saved);
     })();
   }, []);

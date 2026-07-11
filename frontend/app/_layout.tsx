@@ -15,6 +15,7 @@ import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth-context";
 import { LanguageProvider } from "@/src/i18n";
 import { CrashGate } from "@/src/crash-guard";
+import { IntroGate } from "@/src/components/intro-gate";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
@@ -95,6 +96,8 @@ export default function RootLayout() {
           </AuthProvider>
         </CrashGate>
       </View>
+      {/* Overlay on top of the app so it warm-starts behind the intro. */}
+      <IntroGate />
     </SafeAreaProvider>
   );
 }

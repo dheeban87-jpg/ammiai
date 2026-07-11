@@ -98,6 +98,10 @@ async def _ensure_indexes() -> None:
     await db.ai_weekly_plans.create_index(
         [("user_id", 1), ("week_start", 1)], unique=True
     )
+    await db.habit_log.create_index(
+        [("user_id", 1), ("habit", 1), ("date", 1)], unique=True
+    )
+    await db.habit_log.create_index([("user_id", 1), ("date", 1)])
 
 
 @app.on_event("startup")
@@ -366,6 +370,7 @@ async def auth_logout(authorization: Optional[str] = Header(default=None)):
 class HealthProfile(BaseModel):
     height_cm: Optional[float] = None
     weight_kg: Optional[float] = None
+    target_weight_kg: Optional[float] = None  # goal weight; drives "Your path" pacing
     bmi: Optional[float] = None
     goals: List[str] = Field(default_factory=list)
     # B17 backbone: sex/age/activity personalise the ICMR base targets
@@ -2063,6 +2068,7 @@ async def account_delete(current=Depends(get_current_user)):
         "user_streaks",
         "plan_gen_log",
         "ai_weekly_plans",
+        "habit_log",
     ):
         await db[coll].delete_many({"user_id": uid})
     # users doc keyed by user_id
@@ -2729,6 +2735,329 @@ async def ai_plan_week_clear(current=Depends(get_current_user)):
     uid = current["user_id"]
     await db.ai_weekly_plans.delete_many({"user_id": uid})
     return {"cleared": True}
+
+
+# ------------------------- Habits & Insights ------------------------- #
+# Manual habit / activity check-in (no phone sensors — owner's explicit design).
+# METs are standard reference values; kcal is an ESTIMATE only.
+HABIT_METS = {
+    "walk": 3.5, "post_meal_walk": 3.0, "jog": 7.0, "cycle": 6.8,
+    "gym": 5.0, "swim": 7.0, "yoga": 2.5, "stretch": 2.0, "water": 0.0,
+}
+# Exercise habits ask for a duration; the rest are instant toggles.
+HABIT_DURATION = {"walk", "post_meal_walk", "jog", "cycle", "gym", "swim", "yoga", "stretch"}
+HABIT_LABELS = {
+    "walk": "Walk", "post_meal_walk": "Post-meal walk", "jog": "Jog",
+    "cycle": "Cycle", "gym": "Gym", "swim": "Swim", "yoga": "Yoga",
+    "stretch": "Stretch", "water": "Water 8x",
+}
+HABIT_ICONS = {
+    "walk": "walk", "post_meal_walk": "footsteps", "jog": "fitness",
+    "cycle": "bicycle", "gym": "barbell", "swim": "water",
+    "yoga": "body", "stretch": "accessibility", "water": "water-outline",
+}
+# Focus → suggested habit order (master brief B2). Union across focuses, deduped.
+FOCUS_HABITS = {
+    "weight_loss": ["jog", "gym", "cycle", "walk", "water"],
+    "diabetic_friendly": ["post_meal_walk", "walk", "yoga", "water"],
+    "bp_friendly": ["walk", "yoga", "swim", "water"],
+    "high_protein": ["gym", "jog", "water", "stretch"],
+    "iron_support": ["walk", "yoga", "water", "stretch"],
+    "bone_calcium": ["walk", "yoga", "water", "stretch"],
+    "digestion_fiber": ["walk", "yoga", "water", "stretch"],
+    "balanced": ["walk", "yoga", "water", "stretch"],
+}
+DEFAULT_HABIT_ORDER = [
+    "walk", "post_meal_walk", "jog", "cycle", "gym", "swim", "yoga", "stretch", "water",
+]
+DEFAULT_WEIGHT_KG = 60.0
+SAFE_PACE_KG_WEEK = 0.5  # never present an aggressive-deficit projection (CLAUDE.md rule 5)
+
+
+def _habit_order_for(goals: List[str]) -> List[str]:
+    order: List[str] = []
+    for g in goals or []:
+        for h in FOCUS_HABITS.get(g, []):
+            if h not in order:
+                order.append(h)
+    for h in DEFAULT_HABIT_ORDER:
+        if h not in order:
+            order.append(h)
+    return order
+
+
+def _habit_kcal(habit: str, minutes: Optional[int], weight_kg: Optional[float]) -> int:
+    met = HABIT_METS.get(habit, 0.0)
+    if not met or not minutes:
+        return 0
+    w = weight_kg or DEFAULT_WEIGHT_KG
+    return int(round(met * w * (minutes / 60.0)))
+
+
+def _streak_from_dates(days: set, today) -> int:
+    """Consecutive days ending today (if logged) or yesterday (still-alive streak)."""
+    if not days:
+        return 0
+    cur = today if today.isoformat() in days else today - timedelta(days=1)
+    streak = 0
+    while cur.isoformat() in days:
+        streak += 1
+        cur = cur - timedelta(days=1)
+    return streak
+
+
+class HabitLogIn(BaseModel):
+    habit: str
+    minutes: Optional[int] = None
+
+
+@api_router.get("/habits/today")
+async def habits_today(current=Depends(get_current_user)):
+    uid = current["user_id"]
+    today = _now().date()
+    date = today.isoformat()
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    health = profile.get("health") or {}
+    goals = list(health.get("goals") or [])
+    order = _habit_order_for(goals)
+
+    since = (today - timedelta(days=90)).isoformat()
+    recent = await db.habit_log.find(
+        {"user_id": uid, "date": {"$gte": since}}, {"_id": 0}
+    ).to_list(2000)
+    by_habit: Dict[str, set] = {}
+    today_logs: Dict[str, Dict[str, Any]] = {}
+    for r in recent:
+        by_habit.setdefault(r["habit"], set()).add(r["date"])
+        if r["date"] == date:
+            today_logs[r["habit"]] = r
+
+    habits = []
+    total_kcal = 0
+    streaks: Dict[str, int] = {}
+    for h in order:
+        log = today_logs.get(h)
+        done = log is not None
+        streak = _streak_from_dates(by_habit.get(h, set()), today)
+        streaks[h] = streak
+        kcal = int(log.get("kcal_est") or 0) if log else 0
+        total_kcal += kcal
+        habits.append({
+            "habit": h,
+            "label": HABIT_LABELS.get(h, h.title()),
+            "icon": HABIT_ICONS.get(h, "ellipse"),
+            "needs_duration": h in HABIT_DURATION,
+            "done": done,
+            "minutes": log.get("minutes") if log else None,
+            "kcal_est": kcal,
+            "streak": streak,
+        })
+    return {
+        "habits": habits,
+        "total_kcal": total_kcal,
+        "streaks": streaks,
+        "weight_kg": health.get("weight_kg"),
+        "weight_missing": health.get("weight_kg") is None,
+        "note": "Estimates for general wellness — not medical advice.",
+    }
+
+
+@api_router.post("/habits/log")
+async def habits_log(payload: HabitLogIn, current=Depends(get_current_user)):
+    uid = current["user_id"]
+    habit = (payload.habit or "").strip()
+    if habit not in HABIT_METS:
+        raise HTTPException(status_code=400, detail="Unknown habit")
+    today = _now().date()
+    date = today.isoformat()
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    weight = (profile.get("health") or {}).get("weight_kg")
+    minutes = payload.minutes if (payload.minutes and payload.minutes > 0) else None
+    if habit in HABIT_DURATION and not minutes:
+        minutes = 30  # sensible default if the picker was skipped
+    kcal = _habit_kcal(habit, minutes or 0, weight)
+    doc = {
+        "user_id": uid, "habit": habit, "date": date,
+        "minutes": minutes, "kcal_est": kcal, "ts": _now(),
+    }
+    await db.habit_log.update_one(
+        {"user_id": uid, "habit": habit, "date": date}, {"$set": doc}, upsert=True
+    )
+    # Streak (server-side, includes today) for milestone toasts
+    dates = await db.habit_log.find(
+        {"user_id": uid, "habit": habit,
+         "date": {"$gte": (today - timedelta(days=90)).isoformat()}},
+        {"_id": 0, "date": 1},
+    ).to_list(200)
+    streak = _streak_from_dates({d["date"] for d in dates}, today)
+    milestone = streak in (7, 21, 30)
+    return {
+        "ok": True, "habit": habit, "minutes": minutes, "kcal_est": kcal,
+        "streak": streak, "milestone": milestone, "weight_missing": weight is None,
+    }
+
+
+@api_router.delete("/habits/log")
+async def habits_unlog(habit: str, current=Depends(get_current_user)):
+    """Undo today's tap. `habit` passed as a query param (DELETE has no body)."""
+    uid = current["user_id"]
+    date = _now().date().isoformat()
+    await db.habit_log.delete_one({"user_id": uid, "habit": habit, "date": date})
+    return {"ok": True, "habit": habit}
+
+
+def _consumed_kcal(plan: Dict[str, Any]) -> Optional[float]:
+    """Sum kcal of dishes actually cooked in a plan doc; None if nothing cooked."""
+    total = 0.0
+    any_cooked = False
+    for m in ("breakfast", "lunch", "dinner"):
+        for it in (plan.get(m) or {}).get("items", []):
+            if it.get("cooked"):
+                any_cooked = True
+                total += float((it.get("nutrition") or {}).get("kcal") or 0)
+    return total if any_cooked else None
+
+
+@api_router.get("/insights/path")
+async def insights_path(current=Depends(get_current_user)):
+    """Forward-looking, motivational, honest, SAFE-capped weight/streak projection.
+    All pace math lives here so the 0.5 kg/week cap has a single home."""
+    uid = current["user_id"]
+    today = _now().date()
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    health = profile.get("health") or {}
+    rules = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    targets = daily_targets(rules, profile)
+    tdee = float(targets.get("kcal") or 1660)
+
+    weight = health.get("weight_kg")
+    target = health.get("target_weight_kg")
+
+    # Last 7 days: intake (cooked) + activity burn + adherence
+    dates = [(today - timedelta(days=i)).isoformat() for i in range(7)]
+    plans = await db.meal_plans.find(
+        {"user_id": uid, "date": {"$in": dates}}, {"_id": 0}
+    ).to_list(20)
+    intakes = [c for c in (_consumed_kcal(p) for p in plans) if c is not None]
+    logged_days = len(intakes)
+    on_plan_days = sum(
+        1 for c in intakes if abs(c - tdee) <= 0.25 * tdee
+    )
+    adherence = round(on_plan_days / 7.0, 2)
+
+    habit_docs = await db.habit_log.find(
+        {"user_id": uid, "date": {"$in": dates}}, {"_id": 0}
+    ).to_list(500)
+    burnt_week = int(sum(int(h.get("kcal_est") or 0) for h in habit_docs))
+    avg_burnt = burnt_week / 7.0
+
+    lines: List[Dict[str, str]] = []
+    has_target = weight is not None and target is not None
+    pace = None
+    projected_30d = None
+    eta_label = None
+
+    if has_target and target < weight:
+        avg_intake = sum(intakes) / len(intakes) if intakes else None
+        # expenditure = ICMR baseline + logged activity; deficit vs food intake
+        if avg_intake is not None:
+            daily_deficit = (tdee + avg_burnt) - avg_intake
+        else:
+            daily_deficit = avg_burnt  # honest floor: only what activity adds
+        raw_pace = max(0.0, daily_deficit * 7.0 / 7700.0)
+        pace = round(min(raw_pace, SAFE_PACE_KG_WEEK), 2)
+        capped = raw_pace > SAFE_PACE_KG_WEEK
+        if pace > 0.02:
+            projected_30d = round(pace * (30.0 / 7.0), 1)
+            weeks_to_target = (weight - target) / pace
+            eta_date = today + timedelta(weeks=min(weeks_to_target, 260))
+            eta_label = eta_date.strftime("%B %Y")
+            lines.append({
+                "icon": "trending-down",
+                "tone": "good",
+                "text": f"On your current pace: est. −{projected_30d} kg over the next 30 days.",
+            })
+            lines.append({
+                "icon": "flag",
+                "tone": "good",
+                "text": f"Target {target:g} kg reachable around {eta_label} at a healthy pace.",
+            })
+            if capped:
+                lines.append({
+                    "icon": "shield-checkmark",
+                    "tone": "info",
+                    "text": "Captain paces you at a healthy ~0.5 kg/week — steady wins, soldier.",
+                })
+        else:
+            lines.append({
+                "icon": "restaurant",
+                "tone": "info",
+                "text": "Log a few more meals and check in your habits — I'll chart your pace, soldier.",
+            })
+    elif has_target and target >= weight:
+        lines.append({
+            "icon": "barbell",
+            "tone": "good",
+            "text": "Target set. Keep your plates full and your habits steady, soldier.",
+        })
+    else:
+        lines.append({
+            "icon": "flag",
+            "tone": "info",
+            "text": "Set a target weight in Settings → I'll chart your path, soldier.",
+        })
+
+    # Consistency praise / gentle reset (never shame)
+    if logged_days >= 1:
+        if adherence >= 0.7:
+            lines.append({
+                "icon": "ribbon", "tone": "good",
+                "text": f"{on_plan_days} of 7 days on plan this week. Discipline looks good on you, soldier.",
+            })
+        elif adherence < 0.4:
+            lines.append({
+                "icon": "refresh", "tone": "info",
+                "text": "Rough week? Today resets the line. One good plate at a time.",
+            })
+
+    # Streak-forward nudge (biggest active streak near a milestone)
+    hb = await db.habit_log.find(
+        {"user_id": uid, "date": {"$gte": (today - timedelta(days=90)).isoformat()}},
+        {"_id": 0, "habit": 1, "date": 1},
+    ).to_list(2000)
+    per_habit: Dict[str, set] = {}
+    for r in hb:
+        per_habit.setdefault(r["habit"], set()).add(r["date"])
+    best_habit, best_streak = None, 0
+    for h, ds in per_habit.items():
+        s = _streak_from_dates(ds, today)
+        if s > best_streak:
+            best_habit, best_streak = h, s
+    if best_habit and best_streak >= 2:
+        for milestone in (7, 21, 30):
+            if 0 < milestone - best_streak <= 3:
+                lbl = HABIT_LABELS.get(best_habit, best_habit).lower()
+                lines.append({
+                    "icon": "flame", "tone": "good",
+                    "text": f"{milestone - best_streak} more days → {milestone}-day {lbl} streak \U0001F3C5",
+                })
+                break
+
+    return {
+        "has_target": has_target,
+        "weight_kg": weight,
+        "target_weight_kg": target,
+        "pace_kg_per_week": pace,
+        "projected_loss_30d_kg": projected_30d,
+        "eta_label": eta_label,
+        "adherence_pct": int(round(adherence * 100)),
+        "logged_days": logged_days,
+        "burnt_week_kcal": burnt_week,
+        "best_streak": best_streak,
+        "lines": lines[:4],
+        "footer": "Estimates for general wellness — not medical advice.",
+        "note": "Supports your health focus; not a diagnosis or treatment. Consult your doctor.",
+    }
 
 
 # ------------------------- Mount ------------------------- #

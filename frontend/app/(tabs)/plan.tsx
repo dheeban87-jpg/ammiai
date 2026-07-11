@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
+import { readCache, writeCache } from "@/src/hooks/use-cached-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
@@ -118,6 +119,7 @@ export default function PlanScreen() {
     try {
       const p = await api.get<Plan>("/api/plan/today");
       setPlan(p);
+      writeCache("home.plan", p); // shared cache key with Home's today plan
     } catch (e: any) {
       setError(e?.message ?? "Couldn't load plan");
     } finally {
@@ -188,9 +190,20 @@ export default function PlanScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
-      if (mode === "today") loadToday();
-      else loadWeek();
+      // R1: seed today's plan from cache for an instant paint (no 30-60s
+      // cold-Render spinner), then refresh in the background.
+      if (mode === "today") {
+        readCache<Plan>("home.plan").then((c) => {
+          if (c) {
+            setPlan(c);
+            setLoading(false);
+          }
+        });
+        loadToday();
+      } else {
+        setLoading(true);
+        loadWeek();
+      }
     }, [mode, loadToday, loadWeek]),
   );
 

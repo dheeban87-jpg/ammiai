@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppHeader } from "@/src/components/app-header";
 import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
+import { readCache, writeCache } from "@/src/hooks/use-cached-query";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { GROUP_ORDER, groupFor, iconFor } from "@/src/ingredient-icons";
 import { FoodAvatar } from "@/src/food-visual";
@@ -64,6 +65,7 @@ export default function PantryScreen() {
       ]);
       setItems(pantry);
       setWaste(wasteResp);
+      writeCache("pantry", pantry); // R1: shared key with Home's pantry cache
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -72,7 +74,13 @@ export default function PantryScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      // R1: seed from cache for an instant paint, then refresh in background.
+      readCache<PantryItem[]>("pantry").then((c) => {
+        if (c) {
+          setItems(c);
+          setLoading(false);
+        }
+      });
       load();
     }, [load]),
   );

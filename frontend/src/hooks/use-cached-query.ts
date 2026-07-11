@@ -21,6 +21,26 @@ export type CachedQuery<T> = {
   refetch: () => void;
 };
 
+// Low-level cache helpers for screens that keep their own state + mutation
+// flow (Plan/Pantry/Grocery) but still want an instant first paint: seed state
+// from readCache() on mount, and writeCache() on every successful load.
+export async function readCache<T>(key: string): Promise<T | null> {
+  try {
+    const raw = await AsyncStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    return (JSON.parse(raw) as CacheEnvelope<T>).data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCache<T>(key: string, data: T): void {
+  AsyncStorage.setItem(
+    CACHE_PREFIX + key,
+    JSON.stringify({ ts: Date.now(), data } as CacheEnvelope<T>),
+  ).catch(() => {});
+}
+
 // The storage wrapper in src/utils/storage is primitives-only; cache payloads
 // are objects, so we go straight to AsyncStorage with our own JSON envelope.
 export function useCachedQuery<T>(

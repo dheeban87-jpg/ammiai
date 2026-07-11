@@ -25,6 +25,7 @@ import { AppHeader } from "@/src/components/app-header";
 import { ScreenErrorBoundary } from "@/src/components/error-boundary";
 import { useI18n } from "@/src/i18n";
 import { api } from "@/src/api";
+import { readCache, writeCache } from "@/src/hooks/use-cached-query";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { FoodAvatar } from "@/src/food-visual";
 
@@ -131,6 +132,7 @@ function GroceryScreenInner() {
         total_estimated_inr: raw.total_estimated_inr ?? 0,
       };
       setData(d);
+      writeCache(`grocery.list.${days}`, d); // R1: instant paint next open
       // No auto-selection — the list starts empty. Users select deliberately,
       // or tap a Captain's pick (rendered inline as the first group).
       setChecked(new Set());
@@ -174,9 +176,15 @@ function GroceryScreenInner() {
 
   useFocusEffect(
     useCallback(() => {
-      setLoading(true);
+      // R1: seed from cache for an instant paint, then refresh in background.
+      readCache<GroceryList>(`grocery.list.${days}`).then((c) => {
+        if (c) {
+          setData(c);
+          setLoading(false);
+        }
+      });
       load();
-    }, [load]),
+    }, [load, days]),
   );
 
   const onRefresh = () => {

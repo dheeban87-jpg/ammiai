@@ -96,11 +96,10 @@ function GroceryScreenInner() {
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [addItemVisible, setAddItemVisible] = useState(false);
-  const [healthVisible, setHealthVisible] = useState(false);
   const [healthItems, setHealthItems] = useState<any[]>([]);
   const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
-  const [healthSel, setHealthSel] = useState<Record<string, boolean>>({});
-  const [healthBusy, setHealthBusy] = useState(false);
+  const [captainBusy, setCaptainBusy] = useState<Set<string>>(new Set());
+  const [actionsVisible, setActionsVisible] = useState(false);
   const [mealsVisible, setMealsVisible] = useState(false);
   const [approvedMeals, setApprovedMeals] = useState<any[]>([]);
   const [mealsBusy, setMealsBusy] = useState(false);
@@ -132,10 +131,40 @@ function GroceryScreenInner() {
       };
       setData(d);
       // No auto-selection — the list starts empty. Users select deliberately,
-      // or tap Captain's health list to auto-select the suggested items.
+      // or tap a Captain's pick (rendered inline as the first group).
       setChecked(new Set());
+      // Captain's health picks — inline first group. Fail silent if not deployed.
+      try {
+        const r = await api.get<{ items: any[]; guidance: string[] }>(
+          "/api/grocery/suggest-health",
+        );
+        setHealthItems(Array.isArray(r.items) ? r.items : []);
+        setHealthGuidance(Array.isArray(r.guidance) ? r.guidance : []);
+      } catch {
+        setHealthItems([]);
+        setHealthGuidance([]);
+      }
     } catch (e: any) {
-      setError(e?.message ?? "Couldn't load list");
+      // Deploy-lag / offline: a not-yet-live endpoint or a network blip should
+      // fail gracefully, not throw a red "404" toast for something that will
+      // exist after the next backend deploy. Show a clean empty list instead.
+      const status = e?.status;
+      if (status === 404 || status === 503 || status === 0) {
+        setData({
+          groups: [],
+          covered_items: [],
+          total_items: 0,
+          total_estimated_inr: 0,
+          start_date: "",
+          end_date: "",
+          household_size: 1,
+          days_covered: 0,
+        });
+        setChecked(new Set());
+        setError(null);
+      } else {
+        setError(e?.message ?? "Couldn't load list");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -501,50 +530,34 @@ function GroceryScreenInner() {
     }
   };
 
-  const openHealthList = async () => {
-    setHealthVisible(true);
-    setHealthBusy(true);
+  // Tapping an inline Captain's pick adds it to the list AND selects it —
+  // exactly the old addHealthSelected behaviour, but one tap per pick.
+  const addCaptainPick = async (it: any) => {
+    const id = it.ingredient_id;
+    setCaptainBusy((prev) => new Set(prev).add(id));
     try {
-      const r = await api.get<{ items: any[]; guidance: string[] }>("/api/grocery/suggest-health");
-      setHealthItems(r.items ?? []);
-      setHealthGuidance(r.guidance ?? []);
-      const pre: Record<string, boolean> = {};
-      (r.items ?? []).forEach((it) => (pre[it.ingredient_id] = true));
-      setHealthSel(pre);
+      await api.post("/api/grocery/add-item", {
+        ingredient_id: id,
+        qty: it.qty ?? 100,
+        unit: it.unit ?? "g",
+      });
+      await load(); // pick now lives in its category group
+      setChecked((prev) => new Set(prev).add(id));
+      setToast(`${it.name} added & selected ✓`);
+      setTimeout(() => setToast(null), 2000);
     } catch (e: any) {
-      setHealthItems([]);
       setToast(
         e?.status === 404
-          ? "Captain's list activates after the next backend update"
-          : "Couldn't load Captain's list",
+          ? "Captain's picks activate after the next backend update"
+          : "Couldn't add that pick",
       );
       setTimeout(() => setToast(null), 2600);
-      setHealthVisible(false);
     } finally {
-      setHealthBusy(false);
-    }
-  };
-
-  const addHealthSelected = async () => {
-    const chosen = healthItems.filter((it) => healthSel[it.ingredient_id]);
-    if (chosen.length === 0) return;
-    setHealthBusy(true);
-    try {
-      for (const it of chosen) {
-        await api.post("/api/grocery/add-item", {
-          ingredient_id: it.ingredient_id,
-          qty: it.qty ?? 100,
-          unit: it.unit ?? "g",
-        });
-      }
-      setHealthVisible(false);
-      setToast(`${chosen.length} of Captain's picks added & selected ✓`);
-      setTimeout(() => setToast(null), 2600);
-      await load();
-      // Select exactly the Captain's picks (the list itself stays unselected).
-      setChecked(new Set(chosen.map((it) => it.ingredient_id)));
-    } finally {
-      setHealthBusy(false);
+      setCaptainBusy((prev) => {
+        const n = new Set(prev);
+        n.delete(id);
+        return n;
+      });
     }
   };
 
@@ -608,7 +621,7 @@ function GroceryScreenInner() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 220 }]}
+          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 110 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.bananaLeaf} />}
           showsVerticalScrollIndicator={false}
         >
@@ -636,32 +649,6 @@ function GroceryScreenInner() {
             </View>
           </View>
 
-          {Array.isArray(data?.covered_items) && data.covered_items.length > 0 ? (
-            <View style={styles.coveredBanner} testID="pantry-covered-banner">
-              <Ionicons name="checkmark-circle" size={18} color={colors.bananaLeaf} />
-              <Text style={styles.coveredText}>
-                <Text style={{ fontWeight: "800" }}>
-                  Pantry checked — {data.covered_items.length} item{data.covered_items.length > 1 ? "s" : ""} already covered:{" "}
-                </Text>
-                {data.covered_items.map((c) => c.name).join(", ")}
-              </Text>
-            </View>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.captainListBtn}
-            onPress={openHealthList}
-            testID="grocery-captain-health"
-            activeOpacity={0.85}
-          >
-            <Text style={styles.captainListEmoji}>🐼</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.captainListTitle}>Captain&apos;s health list</Text>
-              <Text style={styles.captainListSub}>Groceries picked for your health focus</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.bananaLeafDark} />
-          </TouchableOpacity>
-
           <View style={styles.toolRow}>
             <TouchableOpacity style={styles.toolBtn} onPress={selectAll} testID="grocery-select-all" hitSlop={8}>
               <Ionicons name="checkmark-done-outline" size={16} color={colors.bananaLeaf} />
@@ -681,6 +668,67 @@ function GroceryScreenInner() {
               <Text style={[styles.toolBtnText, { color: colors.riceWhite }]}>Add item</Text>
             </TouchableOpacity>
           </View>
+
+          {(() => {
+            const existing = new Set(
+              (data?.groups ?? []).flatMap((g) => g.items.map((it) => it.ingredient_id)),
+            );
+            const picks = healthItems.filter((it) => !existing.has(it.ingredient_id));
+            if (picks.length === 0) return null;
+            return (
+              <View style={styles.captainCard} testID="captain-picks">
+                <View style={styles.captainCardHead}>
+                  <Text style={styles.captainCardEmoji}>🐼</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.captainCardTitle}>Captain&apos;s picks</Text>
+                    <Text style={styles.captainCardSub}>
+                      {healthGuidance[0] ?? "Groceries for your health focus — tap to add."}
+                    </Text>
+                  </View>
+                </View>
+                {picks.map((it) => {
+                  const busy = captainBusy.has(it.ingredient_id);
+                  return (
+                    <TouchableOpacity
+                      key={it.ingredient_id}
+                      style={styles.captainRow}
+                      onPress={() => addCaptainPick(it)}
+                      disabled={busy}
+                      testID={`captain-pick-${it.ingredient_id}`}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.checkbox}>
+                        {busy ? (
+                          <ActivityIndicator size="small" color={colors.bananaLeaf} />
+                        ) : (
+                          <Ionicons name="add" size={18} color={colors.bananaLeaf} />
+                        )}
+                      </View>
+                      <FoodAvatar
+                        kind="ingredient"
+                        id={it.ingredient_id}
+                        category={it.category}
+                        size={40}
+                        style={{ marginHorizontal: 10 }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.rowName} numberOfLines={1}>{it.name}</Text>
+                        <Text style={styles.rowSub} numberOfLines={1}>
+                          {it.focus ? `${it.focus} · ` : ""}{it.reason}
+                        </Text>
+                      </View>
+                      <Text style={styles.rowPrice}>
+                        {it.qty}{it.unit}{it.estimated_inr ? ` · ₹${Math.round(it.estimated_inr)}` : ""}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <Text style={styles.captainDisclaimer}>
+                  ICMR-NIN 2024 guidance — not medical advice; consult your doctor.
+                </Text>
+              </View>
+            );
+          })()}
 
           {data?.groups.map((g) => (
             <View key={g.category} style={styles.groupCard} testID={`group-${g.category}`}>
@@ -752,78 +800,107 @@ function GroceryScreenInner() {
         </ScrollView>
       )}
 
-      {/* Sticky action bar */}
+      {/* Compact action bar — one slim row; all actions live in the sheet */}
       {!loading && !empty && data && data.total_items > 0 ? (
-        <View style={[styles.actionBar, { paddingBottom: insets.bottom + spacing.s }]}>
-          <View style={styles.utilityRow}>
-            <TouchableOpacity
-              testID="grocery-copy"
-              style={styles.utilityBtn}
-              onPress={copyList}
-            >
-              <Ionicons name="copy-outline" size={16} color={colors.bananaLeaf} />
-              <Text style={styles.utilityText}>Copy list</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              testID="grocery-whatsapp"
-              style={styles.utilityBtn}
-              onPress={shareWhatsapp}
-            >
-              <Ionicons name="logo-whatsapp" size={16} color={colors.bananaLeaf} />
-              <Text style={styles.utilityText}>WhatsApp</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.vendorRow}>
-            {(Object.keys(VENDOR_META) as OrderVendor[]).map((v) => {
-              const m = VENDOR_META[v];
-              const disabled = selected.length === 0;
-              return (
-                <TouchableOpacity
-                  key={v}
-                  testID={`order-${v}`}
-                  style={[styles.vendorBtn, { backgroundColor: m.color }, disabled && styles.vendorBtnDisabled]}
-                  onPress={() => openOrder(v)}
-                  disabled={disabled}
-                >
-                  <Ionicons name={m.icon} size={18} color="#111" />
-                  <Text style={styles.vendorBtnText}>{m.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <TouchableOpacity
-            testID="bought-local-btn"
-            style={[styles.localShopBtn, selected.length === 0 && styles.vendorBtnDisabled]}
-            onPress={boughtLocalShop}
-            disabled={selected.length === 0}
-          >
-            <Ionicons name="storefront-outline" size={19} color={colors.bananaLeafDark} />
-            <Text style={styles.localShopText}>Bought at local shop — enter prices</Text>
-          </TouchableOpacity>
-
-          {/* Order a healthy prepared meal (Zomato) — separate from groceries */}
-          <TouchableOpacity
-            testID="order-zomato-meal"
-            style={styles.zomatoBtn}
-            onPress={openApprovedMeals}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="restaurant-outline" size={19} color="#FFFFFF" />
-            <Text style={styles.zomatoBtnText}>Captain{"\u2019"}s approved meals (Zomato)</Text>
-          </TouchableOpacity>
-          <View style={styles.ondcRow}>
-            <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
-            <Text style={styles.ondcText}>
-              Order via ONDC (open network, live kirana prices) — coming after launch
+        <View style={[styles.slimBar, { paddingBottom: insets.bottom + spacing.s }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.slimCount} testID="grocery-selected-count">
+              {selected.length} selected{selected.length ? ` · ₹${Math.round(selectedCost)}` : ""}
+            </Text>
+            <Text style={styles.slimHint}>
+              {selected.length ? "Ready to order or share" : "Select items to order"}
             </Text>
           </View>
-          {selected.length === 0 ? (
-            <Text style={styles.selectHint}>Select items above to enable ordering</Text>
-          ) : null}
+          <TouchableOpacity
+            style={styles.slimPrimary}
+            onPress={() => setActionsVisible(true)}
+            testID="grocery-open-actions"
+            activeOpacity={0.85}
+          >
+            <Ionicons name="bag-handle-outline" size={18} color={colors.riceWhite} />
+            <Text style={styles.slimPrimaryText}>Order / Share</Text>
+          </TouchableOpacity>
         </View>
       ) : null}
 
+      {/* Actions sheet — Copy / WhatsApp / vendors / local shop / Zomato / ONDC */}
+      <Modal
+        visible={actionsVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActionsVisible(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setActionsVisible(false)}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Order or share</Text>
+            <Text style={styles.actionsSub}>
+              {selected.length} item{selected.length !== 1 ? "s" : ""} selected · est. ₹
+              {Math.round(selectedCost)}
+            </Text>
+            <View style={styles.actionsGrid}>
+              <ActionTile
+                icon="copy-outline"
+                label="Copy list"
+                onPress={() => {
+                  setActionsVisible(false);
+                  copyList();
+                }}
+              />
+              <ActionTile
+                icon="logo-whatsapp"
+                label="WhatsApp"
+                onPress={() => {
+                  setActionsVisible(false);
+                  shareWhatsapp();
+                }}
+              />
+              {(Object.keys(VENDOR_META) as OrderVendor[]).map((v) => (
+                <ActionTile
+                  key={v}
+                  icon={VENDOR_META[v].icon}
+                  label={VENDOR_META[v].label}
+                  tint={VENDOR_META[v].color}
+                  disabled={selected.length === 0}
+                  onPress={() => {
+                    setActionsVisible(false);
+                    openOrder(v);
+                  }}
+                />
+              ))}
+              <ActionTile
+                icon="storefront-outline"
+                label="Local shop"
+                disabled={selected.length === 0}
+                onPress={() => {
+                  setActionsVisible(false);
+                  boughtLocalShop();
+                }}
+              />
+              <ActionTile
+                icon="restaurant-outline"
+                label="Zomato meals"
+                onPress={() => {
+                  setActionsVisible(false);
+                  openApprovedMeals();
+                }}
+              />
+            </View>
+            <View style={styles.ondcRow}>
+              <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
+              <Text style={styles.ondcText}>
+                Order via ONDC (open network, live kirana prices) — coming after launch
+              </Text>
+            </View>
+            {selected.length === 0 ? (
+              <Text style={styles.selectHint}>Select items in the list to enable ordering.</Text>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Order vendor modal */}
+
       <ScreenErrorBoundary name="Grocery/order-modal">
       <Modal visible={orderModal != null} transparent animationType="fade" onRequestClose={() => setOrderModal(null)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setOrderModal(null)}>
@@ -1042,64 +1119,6 @@ function GroceryScreenInner() {
       </ScreenErrorBoundary>
 
       <ScreenErrorBoundary name="Grocery/add-item-modal">
-      {/* Captain's health list sheet */}
-      <Modal visible={healthVisible} transparent animationType="slide" onRequestClose={() => setHealthVisible(false)}>
-        <ScreenErrorBoundary name="Grocery/health-sheet">
-        <Pressable style={styles.modalBackdrop} onPress={() => setHealthVisible(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>🐼 Captain&apos;s health list</Text>
-            {healthGuidance.map((g, i) => (
-              <Text key={i} style={styles.healthGuidance}>{g}</Text>
-            ))}
-            {healthBusy && healthItems.length === 0 ? (
-              <ActivityIndicator color={colors.bananaLeaf} style={{ marginVertical: 24 }} />
-            ) : (
-              <ScrollView style={{ maxHeight: 380 }} keyboardShouldPersistTaps="handled">
-                {healthItems.map((it) => {
-                  const on = !!healthSel[it.ingredient_id];
-                  return (
-                    <TouchableOpacity
-                      key={it.ingredient_id}
-                      style={styles.healthRow}
-                      onPress={() => setHealthSel((p) => ({ ...p, [it.ingredient_id]: !on }))}
-                      testID={`health-item-${it.ingredient_id}`}
-                    >
-                      <Ionicons
-                        name={on ? "checkbox" : "square-outline"}
-                        size={22}
-                        color={on ? colors.bananaLeaf : colors.textMuted}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.healthName}>{it.name}</Text>
-                        <Text style={styles.healthReason}>{it.focus} · {it.reason}</Text>
-                      </View>
-                      <Text style={styles.healthQty}>
-                        {it.qty}{it.unit}{it.estimated_inr ? ` · ₹${Math.round(it.estimated_inr)}` : ""}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-                {healthItems.length === 0 && !healthBusy ? (
-                  <Text style={styles.healthEmpty}>Set a health focus in Settings to get Captain&apos;s picks.</Text>
-                ) : null}
-              </ScrollView>
-            )}
-            <TouchableOpacity
-              style={[styles.sheetPrimary, healthBusy && { opacity: 0.6 }]}
-              onPress={addHealthSelected}
-              disabled={healthBusy || healthItems.length === 0}
-              testID="health-add-selected"
-            >
-              <Text style={styles.sheetPrimaryText}>Add selected to grocery</Text>
-            </TouchableOpacity>
-            <Text style={styles.healthDisclaimer}>
-              Guidance based on ICMR-NIN 2024 — not medical advice; consult your doctor.
-            </Text>
-          </Pressable>
-        </Pressable>
-        </ScreenErrorBoundary>
-      </Modal>
 
       {/* Captain's approved meals sheet (Zomato) */}
       <Modal visible={mealsVisible} transparent animationType="slide" onRequestClose={() => setMealsVisible(false)}>
@@ -1218,8 +1237,106 @@ function GroceryScreenInner() {
   );
 }
 
+function ActionTile({
+  icon,
+  label,
+  onPress,
+  disabled,
+  tint,
+}: {
+  icon: any;
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  tint?: string;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.actionTile, disabled && { opacity: 0.4 }]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.8}
+    >
+      <View style={[styles.actionTileIcon, tint ? { backgroundColor: tint } : null]}>
+        <Ionicons name={icon} size={20} color={tint ? "#111" : colors.bananaLeaf} />
+      </View>
+      <Text style={styles.actionTileLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
+  // Compact action bar
+  slimBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.m,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.m,
+    paddingTop: spacing.m,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...shadow.card,
+  },
+  slimCount: { fontFamily: fonts.headingEn, fontSize: 16, color: colors.textPrimary },
+  slimHint: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  slimPrimary: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: colors.bananaLeaf,
+    paddingHorizontal: spacing.l,
+    paddingVertical: 12,
+    borderRadius: radius.pill,
+  },
+  slimPrimaryText: { color: colors.riceWhite, fontWeight: "800", fontSize: 14.5 },
+  actionsSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.m },
+  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
+  actionTile: {
+    width: "31%",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: spacing.m,
+    borderRadius: radius.m,
+    backgroundColor: colors.surfaceSoft,
+  },
+  actionTileIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: `${colors.bananaLeaf}14`,
+  },
+  actionTileLabel: { fontSize: 12, fontWeight: "700", color: colors.textPrimary },
+  // Inline Captain's picks group
+  captainCard: {
+    backgroundColor: `${colors.bananaLeaf}0D`,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    marginBottom: spacing.m,
+    borderWidth: 1,
+    borderColor: `${colors.bananaLeaf}26`,
+  },
+  captainCardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: spacing.s },
+  captainCardEmoji: { fontSize: 22 },
+  captainCardTitle: { fontFamily: fonts.headingEn, fontSize: 15.5, color: colors.bananaLeafDark },
+  captainCardSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 1 },
+  captainRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: `${colors.bananaLeaf}1A`,
+  },
+  captainDisclaimer: { fontSize: 11, color: colors.textMuted, marginTop: spacing.s, fontStyle: "italic" },
   captainListBtn: {
     flexDirection: "row",
     alignItems: "center",

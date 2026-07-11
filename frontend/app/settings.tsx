@@ -64,6 +64,13 @@ export default function Settings() {
   const [household, setHousehold] = useState<number>(profile?.household_size ?? 2);
   const [spice, setSpice] = useState<string>(profile?.spice_level ?? "medium");
   const [goals, setGoals] = useState<string[]>(profile?.health?.goals ?? []);
+  const [weight, setWeight] = useState<string>(
+    profile?.health?.weight_kg != null ? String(profile.health.weight_kg) : "",
+  );
+  const [targetWeight, setTargetWeight] = useState<string>(
+    profile?.health?.target_weight_kg != null ? String(profile.health.target_weight_kg) : "",
+  );
+  const [activity, setActivity] = useState<string>(profile?.health?.activity ?? "");
 
   const load = useCallback(async () => {
     try {
@@ -103,11 +110,19 @@ export default function Settings() {
   const saveProfilePatch = async () => {
     setSaving(true);
     try {
+      const w = parseFloat(weight);
+      const tw = parseFloat(targetWeight);
       await saveProfile({
         name: name.trim(),
         household_size: household,
         spice_level: spice as any,
-        health: { ...(profile?.health ?? { goals: [] }), goals },
+        health: {
+          ...(profile?.health ?? { goals: [] }),
+          goals,
+          weight_kg: Number.isFinite(w) && w > 0 ? w : undefined,
+          target_weight_kg: Number.isFinite(tw) && tw > 0 ? tw : undefined,
+          activity: (activity || undefined) as any,
+        },
       });
     } finally {
       setSaving(false);
@@ -282,6 +297,53 @@ export default function Settings() {
               );
             })}
           </View>
+          {/* Health goal — powers the home "Your path" pacing + habit kcal */}
+          <View style={styles.divider} />
+          <Text style={styles.fieldLabel}>Weight & goal (kg)</Text>
+          <View style={styles.weightRow}>
+            <View style={styles.weightField}>
+              <Text style={styles.weightCap}>Current</Text>
+              <TextInput
+                testID="settings-weight"
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="numeric"
+                placeholder="—"
+                placeholderTextColor={colors.textMuted}
+                style={styles.weightInput}
+              />
+            </View>
+            <Ionicons name="arrow-forward" size={18} color={colors.textMuted} />
+            <View style={styles.weightField}>
+              <Text style={styles.weightCap}>Goal</Text>
+              <TextInput
+                testID="settings-target-weight"
+                value={targetWeight}
+                onChangeText={setTargetWeight}
+                keyboardType="numeric"
+                placeholder="—"
+                placeholderTextColor={colors.textMuted}
+                style={styles.weightInput}
+              />
+            </View>
+          </View>
+          <Text style={[styles.fieldLabel, { marginTop: spacing.m }]}>Activity level</Text>
+          <View style={styles.chipRow}>
+            {(["sedentary", "moderate", "active"] as const).map((a) => (
+              <TouchableOpacity
+                key={a}
+                onPress={() => setActivity(a)}
+                style={[styles.chip, activity === a && styles.chipActive]}
+                testID={`settings-activity-${a}`}
+              >
+                <Text style={[styles.chipText, activity === a && { color: colors.riceWhite }]}>{a}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.goalNote}>
+            Used for calorie estimates and your goal pace. Rough estimates — not medical advice.
+          </Text>
+
           <TouchableOpacity
             onPress={saveProfilePatch}
             disabled={saving}
@@ -529,6 +591,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   chipActive: { backgroundColor: colors.bananaLeaf, borderColor: colors.bananaLeaf },
+  divider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.m },
+  weightRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.m, marginTop: 6 },
+  weightField: { flex: 1 },
+  weightCap: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
+  weightInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.m,
+    padding: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    backgroundColor: colors.riceWhite,
+    textAlign: "center",
+    fontFamily: fonts.headingEn,
+  },
+  goalNote: { fontSize: 11, color: colors.textMuted, marginTop: spacing.s, fontStyle: "italic" },
   chipText: { fontSize: 12, color: colors.textPrimary, fontWeight: "600", textTransform: "capitalize" },
   primaryBtn: {
     marginTop: spacing.m,

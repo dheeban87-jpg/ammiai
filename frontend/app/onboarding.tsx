@@ -164,9 +164,9 @@ export default function Onboarding() {
           weight_kg: weightKg ? parseFloat(weightKg) : undefined,
           bmi: bmi ?? undefined,
           goals,
-          sex: sex ?? undefined,
+          sex: (sex ?? undefined) as "male" | "female" | undefined,
           age_band: ageBand ?? undefined,
-          activity: activity ?? undefined,
+          activity: (activity ?? undefined) as "sedentary" | "moderate" | "active" | undefined,
         },
       });
       setStep(5);

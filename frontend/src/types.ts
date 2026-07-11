@@ -11,8 +11,12 @@ export type User = {
 export type HealthProfile = {
   height_cm?: number;
   weight_kg?: number;
+  target_weight_kg?: number; // goal weight for "Your path" pacing
   bmi?: number;
   goals: string[];
+  sex?: "male" | "female";
+  age_band?: string;
+  activity?: "sedentary" | "moderate" | "active";
 };
 
 export type Profile = {

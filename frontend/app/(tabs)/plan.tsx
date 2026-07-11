@@ -387,7 +387,7 @@ export default function PlanScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          <DailyRings plan={plan} />
+          <RemainingToday plan={plan} />
 
           {plan.ai_reason ? (
             <View style={styles.aiReasonCard} testID="today-ai-reason">
@@ -575,21 +575,49 @@ export default function PlanScreen() {
   );
 }
 
-function DailyRings({ plan }: { plan: Plan }) {
-  const r = plan.rings ?? { kcal: 0, protein_g: 0, fiber_g: 0 };
+// "Remaining today" — the rings live on Home; Plan shows what's still left to
+// eat vs targets plus one actionable gap hint (rule-based, biggest deficit).
+function RemainingToday({ plan }: { plan: Plan }) {
   const t = plan.day_targets ?? { kcal: 0, protein_g: 0, fiber_g: 0 };
   const totals = plan.day_totals ?? { kcal: 0, protein_g: 0, fiber_g: 0 };
+  const leftK = Math.max(0, Math.round(t.kcal - totals.kcal));
+  const leftP = Math.max(0, Math.round(t.protein_g - totals.protein_g));
+  const leftF = Math.max(0, Math.round(t.fiber_g - totals.fiber_g));
+
+  // Biggest actionable gap (protein/fiber, by fraction of target left).
+  const pFrac = t.protein_g ? leftP / t.protein_g : 0;
+  const fFrac = t.fiber_g ? leftF / t.fiber_g : 0;
+  let hint: string;
+  if (leftP <= 0 && leftF <= 0 && leftK <= 0) {
+    hint = "🎯 On target — a balanced day, soldier.";
+  } else if (leftP > 0 && pFrac >= fFrac) {
+    hint = `💡 Short ~${leftP}g protein — add curd, a boiled egg, or extra dal to dinner.`;
+  } else if (leftF > 0) {
+    hint = `💡 Short ~${leftF}g fiber — add a vegetable poriyal, greens, or a fruit.`;
+  } else {
+    hint = `💡 ~${leftK} kcal left — a light dish or fruit rounds off the day.`;
+  }
+
   return (
-    <View style={styles.ringsCard} testID="daily-rings">
-      <Text style={styles.ringsTitle}>Today&apos;s balance</Text>
-      <View style={styles.ringsRow}>
-        <NutritionRing delay={0} testID="ring-kcal" progress={r.kcal} color={colors.bananaLeaf}
-          label="Calories" value={`${Math.round(totals.kcal)}`} hint={`/ ${Math.round(t.kcal)}`} />
-        <NutritionRing delay={140} testID="ring-protein" progress={r.protein_g} color={colors.chili}
-          label="Protein" value={`${Math.round(totals.protein_g)}g`} hint={`/ ${Math.round(t.protein_g)}g`} />
-        <NutritionRing delay={280} testID="ring-fiber" progress={r.fiber_g} color={colors.turmeric}
-          label="Fiber" value={`${Math.round(totals.fiber_g)}g`} hint={`/ ${Math.round(t.fiber_g)}g`} />
+    <View style={styles.ringsCard} testID="remaining-today">
+      <Text style={styles.ringsTitle}>Remaining today</Text>
+      <View style={styles.remainRow}>
+        <RemainCell value={`${leftK}`} label="kcal left" color={colors.bananaLeaf} />
+        <View style={styles.remainDivider} />
+        <RemainCell value={`${leftP}g`} label="protein" color={colors.chili} />
+        <View style={styles.remainDivider} />
+        <RemainCell value={`${leftF}g`} label="fiber" color={colors.turmeric} />
       </View>
+      <Text style={styles.remainHint}>{hint}</Text>
+    </View>
+  );
+}
+
+function RemainCell({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <View style={styles.remainCell}>
+      <Text style={[styles.remainVal, { color }]}>{value}</Text>
+      <Text style={styles.remainLbl}>{label}</Text>
     </View>
   );
 }
@@ -682,6 +710,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.m,
   },
   ringsRow: { flexDirection: "row", justifyContent: "space-around" },
+  remainRow: { flexDirection: "row", alignItems: "center" },
+  remainCell: { flex: 1, alignItems: "center", gap: 2 },
+  remainDivider: { width: 1, height: 32, backgroundColor: colors.border },
+  remainVal: { fontFamily: fonts.headingBold, fontSize: 22 },
+  remainLbl: { fontSize: 11.5, color: colors.textMuted },
+  remainHint: {
+    fontSize: 13,
+    color: colors.textPrimary,
+    marginTop: spacing.m,
+    lineHeight: 18,
+  },
   guardBanner: {
     flexDirection: "row",
     alignItems: "center",

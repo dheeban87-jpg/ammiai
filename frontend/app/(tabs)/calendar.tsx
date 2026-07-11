@@ -53,6 +53,80 @@ function consumedNutrition(plan: Plan) {
   return { kcal: Math.round(kcal), protein: Math.round(protein), fiber: Math.round(fiber), cookedCount, balanced, mealsWithFood };
 }
 
+/** Weekly insight (E5): 7-day averages, cook streak, strongest/weakest nutrient.
+ *  Derived entirely from the month data already fetched — no new endpoint. */
+function buildWeekInsight(
+  weekDates: { iso: string }[],
+  getPlan: (iso: string) => Plan | null | undefined,
+  todayIso: string,
+) {
+  const days = weekDates.filter((w) => w.iso <= todayIso);
+  let sumK = 0, sumP = 0, sumF = 0, logged = 0;
+  let targets: { kcal: number; protein_g: number; fiber_g: number } | null = null;
+  const cookedByIso: Record<string, boolean> = {};
+  for (const w of days) {
+    const plan = getPlan(w.iso);
+    if (!plan) continue;
+    if (plan.day_targets && !targets) targets = plan.day_targets;
+    const c = consumedNutrition(plan);
+    cookedByIso[w.iso] = c.cookedCount > 0;
+    if (c.cookedCount > 0) {
+      sumK += c.kcal;
+      sumP += c.protein;
+      sumF += c.fiber;
+      logged++;
+    }
+  }
+  if (logged === 0 || !targets) return null;
+  const avgK = Math.round(sumK / logged);
+  const avgP = Math.round(sumP / logged);
+  const avgF = Math.round(sumF / logged);
+  // Cook streak: consecutive logged days ending at the most recent day.
+  let streak = 0;
+  for (let i = days.length - 1; i >= 0; i--) {
+    if (cookedByIso[days[i].iso]) streak++;
+    else break;
+  }
+  const fracs = [
+    { label: "Calories", frac: targets.kcal ? avgK / targets.kcal : 0 },
+    { label: "Protein", frac: targets.protein_g ? avgP / targets.protein_g : 0 },
+    { label: "Fiber", frac: targets.fiber_g ? avgF / targets.fiber_g : 0 },
+  ].sort((a, b) => b.frac - a.frac);
+  return { logged, avgK, avgP, avgF, streak, best: fracs[0], worst: fracs[fracs.length - 1] };
+}
+
+function WeekInsightCard({ d }: { d: NonNullable<ReturnType<typeof buildWeekInsight>> }) {
+  return (
+    <View style={styles.insightCard} testID="week-insight">
+      <View style={styles.insightHead}>
+        <Ionicons name="analytics" size={16} color={colors.bananaLeaf} />
+        <Text style={styles.insightTitle}>This week so far</Text>
+        {d.streak >= 2 ? (
+          <Text style={styles.insightStreak}>🔥 {d.streak}-day cook streak</Text>
+        ) : null}
+      </View>
+      <View style={styles.insightRow}>
+        <View style={styles.insightCell}>
+          <Text style={[styles.insightVal, { color: colors.bananaLeafDark }]}>{d.avgK}</Text>
+          <Text style={styles.insightLbl}>avg kcal</Text>
+        </View>
+        <View style={styles.insightCell}>
+          <Text style={[styles.insightVal, { color: colors.chili }]}>{d.avgP}g</Text>
+          <Text style={styles.insightLbl}>avg protein</Text>
+        </View>
+        <View style={styles.insightCell}>
+          <Text style={[styles.insightVal, { color: colors.turmeric }]}>{d.avgF}g</Text>
+          <Text style={styles.insightLbl}>avg fiber</Text>
+        </View>
+      </View>
+      <Text style={styles.insightNote}>
+        Strongest: {d.best.label} · Focus area: {d.worst.label.toLowerCase()} — over{" "}
+        {d.logged} day{d.logged > 1 ? "s" : ""} logged.
+      </Text>
+    </View>
+  );
+}
+
 type MonthResp = {
   year: number;
   month: number;
@@ -391,6 +465,10 @@ export default function CalendarScreen() {
 
             {viewMode === "week" && !sharing ? (
               <View style={styles.weekList}>
+                {(() => {
+                  const ins = buildWeekInsight(weekDates, planForDate, todayIso);
+                  return ins ? <WeekInsightCard d={ins} /> : null;
+                })()}
                 {weekDates.map((w) => {
                   const plan = planForDate(w.iso);
                   const isToday = w.iso === todayIso;
@@ -754,6 +832,21 @@ const styles = StyleSheet.create({
   viewToggleText: { fontSize: 15, fontWeight: "800", color: colors.textSecondary },
   viewToggleTextActive: { color: colors.riceWhite },
   weekList: { paddingHorizontal: spacing.m, gap: 10 },
+  insightCard: {
+    backgroundColor: `${colors.bananaLeaf}0D`,
+    borderRadius: radius.l,
+    padding: spacing.m,
+    borderWidth: 1,
+    borderColor: `${colors.bananaLeaf}26`,
+  },
+  insightHead: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: spacing.m },
+  insightTitle: { flex: 1, fontFamily: fonts.headingEn, fontSize: 15, color: colors.bananaLeaf },
+  insightStreak: { fontSize: 12, fontWeight: "800", color: "#9A6A05" },
+  insightRow: { flexDirection: "row", justifyContent: "space-around" },
+  insightCell: { alignItems: "center", gap: 2 },
+  insightVal: { fontFamily: fonts.headingBold, fontSize: 22 },
+  insightLbl: { fontSize: 11.5, color: colors.textMuted },
+  insightNote: { fontSize: 12.5, color: colors.textPrimary, marginTop: spacing.m, lineHeight: 18 },
   weekCard: {
     flexDirection: "row",
     alignItems: "center",

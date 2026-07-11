@@ -65,16 +65,28 @@ class PantrySnapshot:
     """View of the user's pantry, keyed by ingredient_id."""
     have: Set[str] = field(default_factory=set)
     expiring: Set[str] = field(default_factory=set)  # yellow/red items
+    # R2: staples assumed present (not counted against readiness). Defaults to
+    # STAPLE_ALWAYS; the server passes the full staple/spice set minus the
+    # user's "ran out" toggles.
+    assumed: Set[str] = field(default_factory=lambda: set(STAPLE_ALWAYS))
 
     @classmethod
-    def from_items(cls, items: Sequence[Dict[str, Any]]) -> "PantrySnapshot":
+    def from_items(
+        cls,
+        items: Sequence[Dict[str, Any]],
+        assumed: Optional[Set[str]] = None,
+    ) -> "PantrySnapshot":
         have = {it["ingredient_id"] for it in items if it.get("qty", 0) > 0}
         expiring = {
             it["ingredient_id"]
             for it in items
             if it.get("freshness") in ("yellow", "red")
         }
-        return cls(have=have, expiring=expiring)
+        return cls(
+            have=have,
+            expiring=expiring,
+            assumed=set(assumed) if assumed is not None else set(STAPLE_ALWAYS),
+        )
 
 
 @dataclass
@@ -88,17 +100,17 @@ class PlannerContext:
 
 
 # --------------------------- Scoring --------------------------- #
-def _real_ingredients(recipe: Dict[str, Any]) -> List[str]:
+def _real_ingredients(recipe: Dict[str, Any], assumed: Set[str] = STAPLE_ALWAYS) -> List[str]:
     return [
         ing["ingredient_id"]
         for ing in recipe.get("ingredients", [])
-        if ing["ingredient_id"] not in STAPLE_ALWAYS
+        if ing["ingredient_id"] not in assumed
     ]
 
 
 def pantry_match(recipe: Dict[str, Any], pantry: PantrySnapshot) -> Tuple[int, int, float]:
     """Returns (available, required, ratio) counting only non-staple ingredients."""
-    req = _real_ingredients(recipe)
+    req = _real_ingredients(recipe, pantry.assumed)
     if not req:
         return (0, 0, 1.0)
     have = sum(1 for r in req if r in pantry.have)
@@ -107,7 +119,7 @@ def pantry_match(recipe: Dict[str, Any], pantry: PantrySnapshot) -> Tuple[int, i
 
 def uses_expiring(recipe: Dict[str, Any], pantry: PantrySnapshot) -> List[str]:
     return [
-        r for r in _real_ingredients(recipe) if r in pantry.expiring
+        r for r in _real_ingredients(recipe, pantry.assumed) if r in pantry.expiring
     ]
 
 

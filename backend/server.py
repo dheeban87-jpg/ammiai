@@ -8,7 +8,7 @@ import uuid
 import logging
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel, Field
 import httpx
@@ -662,7 +662,9 @@ async def _build_context(user_id: str, seed: Optional[int] = None) -> PlannerCon
         {"user_id": user_id}, {"_id": 0}
     ).to_list(1000)
     pantry_items = [await _enrich_item(dict(it)) for it in pantry_raw]
-    pantry = PantrySnapshot.from_items(pantry_items)
+    pantry = PantrySnapshot.from_items(
+        pantry_items, assumed=await _assumed_staples(user_id)
+    )
     # 7-day rolling history of dish IDs for variety
     week_docs = await db.meal_plans.find(
         {"user_id": user_id}
@@ -1205,6 +1207,77 @@ _GROCERY_STAPLES = {
     "sambar_powder", "rasam_powder", "curry_leaves",
 }
 
+# ---- R2: two-class pantry (staples assumed present; perishables tracked) ----
+STAPLE_CATEGORIES = {"staple", "spice"}
+_STAPLE_IDS_CACHE: Optional[Set[str]] = None
+
+
+async def _all_staple_ids() -> Set[str]:
+    """The full staple CLASS: staple/spice-category ingredients ∪ the engine's
+    STAPLE_ALWAYS. Cached (reference data doesn't change at runtime)."""
+    global _STAPLE_IDS_CACHE
+    if _STAPLE_IDS_CACHE is None:
+        from meal_engine import STAPLE_ALWAYS as _SA
+        docs = await db.ingredients.find(
+            {"category": {"$in": list(STAPLE_CATEGORIES)}},
+            {"_id": 0, "ingredient_id": 1},
+        ).to_list(500)
+        _STAPLE_IDS_CACHE = {d["ingredient_id"] for d in docs} | set(_SA)
+    return set(_STAPLE_IDS_CACHE)
+
+
+async def _ran_out_staples(user_id: str) -> Set[str]:
+    doc = await db.pantry_staples.find_one({"user_id": user_id}, {"_id": 0})
+    return set((doc or {}).get("ran_out") or [])
+
+
+async def _assumed_staples(user_id: str) -> Set[str]:
+    """Staples treated as available: the full class minus what the user flagged
+    as run-out."""
+    return (await _all_staple_ids()) - (await _ran_out_staples(user_id))
+
+
+class StapleToggleIn(BaseModel):
+    ingredient_id: str
+    ran_out: bool
+
+
+@api_router.get("/pantry/staples")
+async def get_pantry_staples(current=Depends(get_current_user)):
+    """The assumed-stocked staple list with per-item run-out flags (R2). The
+    Pantry UI shows this collapsed under 'Staples ✓ (assumed stocked)'."""
+    staple_ids = await _all_staple_ids()
+    ran_out = await _ran_out_staples(current["user_id"])
+    ing_docs = {
+        i["ingredient_id"]: i
+        for i in await db.ingredients.find(
+            {"ingredient_id": {"$in": list(staple_ids)}}, {"_id": 0}
+        ).to_list(500)
+    }
+    items = []
+    for iid in sorted(staple_ids):
+        ing = ing_docs.get(iid, {})
+        items.append({
+            "ingredient_id": iid,
+            "name": ing.get("name", iid.replace("_", " ").title()),
+            "category": ing.get("category", "staple"),
+            "ran_out": iid in ran_out,
+        })
+    return {"staples": items, "ran_out_count": len(ran_out)}
+
+
+@api_router.post("/pantry/staples")
+async def set_staple_ran_out(payload: StapleToggleIn, current=Depends(get_current_user)):
+    """Toggle a staple as run-out (needs buying) or restocked."""
+    uid = current["user_id"]
+    op = "$addToSet" if payload.ran_out else "$pull"
+    await db.pantry_staples.update_one(
+        {"user_id": uid},
+        {op: {"ran_out": payload.ingredient_id}, "$setOnInsert": {"created_at": _now()}},
+        upsert=True,
+    )
+    return {"ok": True, "ingredient_id": payload.ingredient_id, "ran_out": payload.ran_out}
+
 # Normalize any (qty, unit) pair to grams (mass), millilitres (volume) or piece.
 def _to_base(qty: float, unit: str) -> tuple[float, str]:
     u = unit.lower().strip()
@@ -1285,6 +1358,7 @@ async def grocery_list(
 
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
     household = max(1, int(profile.get("household_size", 1)))
+    assumed = await _assumed_staples(current["user_id"])  # R2: don't buy assumed staples
 
     # Sum required ingredients across all planned meals × household_size.
     required: Dict[str, Dict[str, Any]] = {}  # ing_id -> {qty_base, unit_base}
@@ -1296,7 +1370,7 @@ async def grocery_list(
                 # Get recipe def with ingredients (plan doc includes ingredients as inserted)
                 for ing in it.get("ingredients", []) or []:
                     iid = ing.get("ingredient_id")
-                    if not iid or iid in _GROCERY_STAPLES:
+                    if not iid or iid in assumed:
                         continue
                     q, u = _to_base(float(ing.get("qty", 0)) * household, ing.get("unit", "g"))
                     if iid not in required:
@@ -1446,7 +1520,8 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
     diet = profile.get("diet") or "veg"
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
-    pantry = {p["ingredient_id"] async for p in db.pantry.find({"user_id": current["user_id"]}, {"ingredient_id": 1})}
+    pantry = {p["ingredient_id"] async for p in db.pantry_items.find({"user_id": current["user_id"]}, {"ingredient_id": 1})}
+    assumed = await _assumed_staples(current["user_id"])  # R2: staples assumed present
     recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
 
     DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
@@ -1459,7 +1534,7 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
         ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
         if allergies & set(ing_ids):
             continue
-        need = [i for i in ing_ids if i not in STAPLE_ALWAYS]
+        need = [i for i in ing_ids if i not in assumed]
         have = [i for i in need if i in pantry]
         missing = [i for i in need if i not in pantry]
         readiness = round(100 * len(have) / len(need)) if need else 100
@@ -1831,10 +1906,11 @@ async def plan_cooked(date: str, payload: CookedIn, current=Depends(get_current_
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
     household = max(1, int(profile.get("household_size", 1)))
 
+    staples = await _all_staple_ids()  # R2: cooking never decrements staples
     deducted: List[Dict[str, Any]] = []
     for ing in item.get("ingredients", []) or []:
         iid = ing.get("ingredient_id")
-        if not iid or iid in _GROCERY_STAPLES:
+        if not iid or iid in staples:
             continue
         need_base_qty, need_base_unit = _to_base(
             float(ing.get("qty", 0)) * household, ing.get("unit", "g")
@@ -2069,6 +2145,7 @@ async def account_delete(current=Depends(get_current_user)):
         "plan_gen_log",
         "ai_weekly_plans",
         "habit_log",
+        "pantry_staples",
     ):
         await db[coll].delete_many({"user_id": uid})
     # users doc keyed by user_id

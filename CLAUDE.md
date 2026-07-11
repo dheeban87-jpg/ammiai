@@ -135,11 +135,27 @@ ICMR-NIN 2024 dietary guidelines.
 5. Post-v1: pill-bar tab redesign (Zomato-style, designed as "batch33" —
    rebuild on current main if owner wants it), Add-dish health-ranking,
    Google Fit steps integration, ElevenLabs Captain voice, auth migration
-   (own Google OAuth + real SMS OTP, off Emergent auth), backend migration
+   (see AUTH DECISION below), backend migration
    Emergent → Railway/Render + MongoDB Atlas free tier, nutrition KB Phase 2
    (ingredient × cooking-template dish generation), self-updating knowledge
    feature (research doc exists; central harvest + per-user personalization,
    ₹39-49 IAP).
+
+## AUTH DECISION (owner, 2026-07-11) — Google-only, no SMS ever
+
+- **Launch auth = Google Sign-In ONLY.** The future "real auth" effort is our
+  own Google Cloud OAuth client (off Emergent's `auth.emergentagent.com` /
+  `demobackend.emergentagent.com`). When that lands, **remove the phone/OTP
+  login path from the UI and backend entirely — do NOT replace it with SMS.**
+  Real SMS OTP is off the table (cost decision).
+- **Phone login is a possible post-revenue addition only**, never a launch dep.
+- Until real Google OAuth is built, the current setup stays: Google via
+  Emergent's public endpoints + the **mock OTP** (`server.py` `/auth/phone/*`
+  accepts any 6-digit code). Mock OTP is **closed-testing-only** — it is not
+  real security and must be gone before public launch.
+- The Emergent→Render/Atlas migration ships auth AS-IS (Google still calls
+  Emergent's public URLs from Render; mock OTP is self-contained). Cutting the
+  Emergent auth cord is the separate Google-only effort above.
 
 ## Working style with the owner
 

@@ -1,0 +1,27 @@
+# Render blueprint for the AmmiAI backend (Emergent → Render migration).
+# Owner connects this repo in the Render dashboard; Render reads this file and
+# auto-deploys on every push to main (this replaces the manual Emergent
+# "Deploy Now" click once cutover is complete — see the migration brief).
+services:
+  - type: web
+    name: ammiai-backend
+    runtime: python
+    region: singapore
+    plan: free # sleeps after ~15 min idle; first request ~30-60s. Upgrade to
+    #            Starter (~$7/mo) at public launch for always-on.
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    envVars:
+      # Pin the interpreter — pydantic v2 / motor / pymongo pins have reliable
+      # wheels on 3.12; Render's newer default can force slow source builds.
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # Secrets — set these in the Render dashboard, never commit them.
+      - key: MONGO_URL
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false

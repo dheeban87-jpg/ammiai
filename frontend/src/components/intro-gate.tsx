@@ -20,7 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, fonts, radius, spacing } from "@/src/theme";
 
-const INTRO_SOUND = false;
+const INTRO_SOUND = true; // owner wants the logo's sound design; flip to false to mute
 const INTRO_EVERY_OPEN = true;
 const SEEN_KEY = "intro_seen_v1";
 const COMPANY_CREDIT = "Crafted by Amazedge — Crafted to Fit";

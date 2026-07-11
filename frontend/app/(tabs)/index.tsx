@@ -82,6 +82,7 @@ export default function HomeScreen() {
   const [habitsLive, setHabitsLive] = useState(true);
   const [path, setPath] = useState<PathResp | null>(null);
   const [pathLive, setPathLive] = useState(true);
+  const [premium, setPremium] = useState<{ is_premium: boolean; plan?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [pendingHabit, setPendingHabit] = useState<HabitItem | null>(null);
@@ -114,6 +115,15 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const loadPremium = useCallback(async () => {
+    try {
+      const r = await api.get<{ is_premium: boolean; plan?: string }>("/api/premium/status");
+      setPremium(r);
+    } catch {
+      /* leave badge hidden */
+    }
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const [pantry, planResp] = await Promise.all([
@@ -128,7 +138,8 @@ export default function HomeScreen() {
     }
     loadHabits();
     loadPath();
-  }, [loadHabits, loadPath]);
+    loadPremium();
+  }, [loadHabits, loadPath, loadPremium]);
 
   useFocusEffect(
     useCallback(() => {
@@ -234,14 +245,22 @@ export default function HomeScreen() {
         subtitleTa="உங்கள் தமிழ் சமையலறை உதவியாளர்"
         onLongPress={() => router.push("/settings")}
         right={
-          <TouchableOpacity
-            testID="home-dev-menu"
-            onPress={() => router.push("/settings")}
-            style={styles.iconBtn}
-            hitSlop={10}
-          >
-            <Ionicons name="settings-outline" size={20} color={colors.riceWhite} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            {premium?.is_premium ? (
+              <View style={styles.premiumPill} testID="home-premium-badge">
+                <Ionicons name="star" size={12} color={colors.bananaLeafDark} />
+                <Text style={styles.premiumPillText}>Premium</Text>
+              </View>
+            ) : null}
+            <TouchableOpacity
+              testID="home-dev-menu"
+              onPress={() => router.push("/settings")}
+              style={styles.iconBtn}
+              hitSlop={10}
+            >
+              <Ionicons name="settings-outline" size={20} color={colors.riceWhite} />
+            </TouchableOpacity>
+          </View>
         }
       />
 
@@ -579,6 +598,20 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.14)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  premiumPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.turmeric,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+  },
+  premiumPillText: {
+    color: colors.bananaLeafDark,
+    fontSize: 12,
+    fontWeight: "800",
   },
 
   // Greeting

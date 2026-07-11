@@ -2,7 +2,9 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -301,6 +303,10 @@ export default function PantryScreen() {
         onRequestClose={() => setActionItem(null)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setActionItem(null)}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%" }}
+          >
           <Pressable
             style={[styles.modalCard, { paddingBottom: insets.bottom + spacing.m }]}
             onPress={(e) => e.stopPropagation()}
@@ -427,6 +433,7 @@ export default function PantryScreen() {
               </>
             )}
           </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
     </View>

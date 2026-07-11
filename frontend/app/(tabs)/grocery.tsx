@@ -100,6 +100,7 @@ function GroceryScreenInner() {
   const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
   const [captainBusy, setCaptainBusy] = useState<Set<string>>(new Set());
   const [actionsVisible, setActionsVisible] = useState(false);
+  const [captainExpanded, setCaptainExpanded] = useState(false);
   const [mealsVisible, setMealsVisible] = useState(false);
   const [approvedMeals, setApprovedMeals] = useState<any[]>([]);
   const [mealsBusy, setMealsBusy] = useState(false);
@@ -675,6 +676,11 @@ function GroceryScreenInner() {
             );
             const picks = healthItems.filter((it) => !existing.has(it.ingredient_id));
             if (picks.length === 0) return null;
+            // Don't dump the full list on a first-time visitor — show the top few
+            // (already ranked by the backend), rest behind an expander.
+            const CAP = 4;
+            const shown = captainExpanded ? picks : picks.slice(0, CAP);
+            const moreCount = picks.length - shown.length;
             return (
               <View style={styles.captainCard} testID="captain-picks">
                 <View style={styles.captainCardHead}>
@@ -686,7 +692,7 @@ function GroceryScreenInner() {
                     </Text>
                   </View>
                 </View>
-                {picks.map((it) => {
+                {shown.map((it) => {
                   const busy = captainBusy.has(it.ingredient_id);
                   return (
                     <TouchableOpacity
@@ -723,6 +729,22 @@ function GroceryScreenInner() {
                     </TouchableOpacity>
                   );
                 })}
+                {picks.length > CAP ? (
+                  <TouchableOpacity
+                    style={styles.captainMore}
+                    onPress={() => setCaptainExpanded((v) => !v)}
+                    testID="captain-picks-more"
+                  >
+                    <Text style={styles.captainMoreText}>
+                      {captainExpanded ? "Show less" : `Show ${moreCount} more`}
+                    </Text>
+                    <Ionicons
+                      name={captainExpanded ? "chevron-up" : "chevron-down"}
+                      size={16}
+                      color={colors.bananaLeaf}
+                    />
+                  </TouchableOpacity>
+                ) : null}
                 <Text style={styles.captainDisclaimer}>
                   ICMR-NIN 2024 guidance — not medical advice; consult your doctor.
                 </Text>
@@ -1172,6 +1194,10 @@ function GroceryScreenInner() {
       {/* Add item search modal */}
       <Modal visible={addItemVisible} transparent animationType="fade" onRequestClose={() => setAddItemVisible(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setAddItemVisible(false)}>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={{ width: "100%" }}
+          >
           <Pressable
             style={[styles.modalCard, { paddingBottom: insets.bottom + spacing.m, maxHeight: "80%" }]}
             onPress={(e) => e.stopPropagation()}
@@ -1192,7 +1218,7 @@ function GroceryScreenInner() {
                 autoFocus
               />
             </View>
-            <ScrollView style={{ maxHeight: 360 }}>
+            <ScrollView style={{ maxHeight: 360 }} keyboardShouldPersistTaps="handled">
               {addResults === null ? null : addResults.length === 0 ? (
                 <Text style={{ color: colors.textMuted, textAlign: "center", padding: spacing.l }}>
                   {addQuery ? `No match for "${addQuery}"` : "Type to search"}
@@ -1216,6 +1242,7 @@ function GroceryScreenInner() {
               <Text style={styles.cancelText}>Close</Text>
             </TouchableOpacity>
           </Pressable>
+          </KeyboardAvoidingView>
         </Pressable>
       </Modal>
       </ScreenErrorBoundary>
@@ -1336,6 +1363,17 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: `${colors.bananaLeaf}1A`,
   },
+  captainMore: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 10,
+    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: `${colors.bananaLeaf}1A`,
+  },
+  captainMoreText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 13 },
   captainDisclaimer: { fontSize: 11, color: colors.textMuted, marginTop: spacing.s, fontStyle: "italic" },
   captainListBtn: {
     flexDirection: "row",

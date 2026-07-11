@@ -87,6 +87,8 @@ export const STRINGS = {
   "home.cook_sub": { en: "Dishes ready from your pantry", ta: "உங்கள் சாமானில் இருந்து தயாராகும் உணவுகள்" },
   "home.duration_q": { en: "How long?", ta: "எவ்வளவு நேரம்?" },
   "home.err_load": { en: "Failed to load", ta: "ஏற்ற முடியவில்லை" },
+  "home.updating": { en: "updating…", ta: "புதுப்பிக்கிறது…" },
+  "home.stale": { en: "Showing yesterday's data — reconnecting…", ta: "நேற்றைய தரவைக் காட்டுகிறது — மீண்டும் இணைக்கிறது…" },
   // Captain voice (register-sensitive — owner review for "soldier" tone)
   "home.toast_logged": { en: "Logged, soldier 🫡", ta: "பதிவாச்சு, வீரா 🫡" },
   "home.toast_kcal": { en: "+~{k} kcal — logged, soldier 🫡", ta: "+~{k} கலோரி — பதிவாச்சு, வீரா 🫡" },

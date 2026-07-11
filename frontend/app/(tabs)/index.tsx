@@ -19,6 +19,7 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { PressableScale } from "@/src/components/pressable-scale";
 import { api } from "@/src/api";
 import { useAuth } from "@/src/auth-context";
+import { useCachedQuery } from "@/src/hooks/use-cached-query";
 import { useI18n } from "@/src/i18n";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import type { PantryItem } from "@/src/types";
@@ -78,14 +79,23 @@ export default function HomeScreen() {
   const { t } = useI18n();
   const charmer = useCharmer();
 
-  const [items, setItems] = useState<PantryItem[] | null>(null);
-  const [plan, setPlan] = useState<Plan | null>(null);
+  // R1: cache-first — plan + pantry paint instantly from AsyncStorage.
+  const planQ = useCachedQuery<Plan>(
+    "home.plan",
+    useCallback(() => api.get<Plan>("/api/plan/today"), []),
+  );
+  const pantryQ = useCachedQuery<PantryItem[]>(
+    "pantry",
+    useCallback(() => api.get<PantryItem[]>("/api/pantry"), []),
+  );
+  const plan = planQ.data;
+  const items = pantryQ.data;
+
   const [habits, setHabits] = useState<HabitsResp | null>(null);
   const [habitsLive, setHabitsLive] = useState(true);
   const [path, setPath] = useState<PathResp | null>(null);
   const [pathLive, setPathLive] = useState(true);
   const [premium, setPremium] = useState<{ is_premium: boolean; plan?: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const [pendingHabit, setPendingHabit] = useState<HabitItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -126,28 +136,17 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const load = useCallback(async () => {
-    try {
-      const [pantry, planResp] = await Promise.all([
-        api.get<PantryItem[]>("/api/pantry"),
-        api.get<Plan>("/api/plan/today"),
-      ]);
-      setItems(pantry);
-      setPlan(planResp);
-      setError(null);
-    } catch (e: any) {
-      if (!isSoft404(e)) setError(e?.message ?? "Failed to load");
-    }
-    loadHabits();
-    loadPath();
-    loadPremium();
-  }, [loadHabits, loadPath, loadPremium]);
-
+  // Secondary data (already degrades gracefully); refresh on focus.
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      loadHabits();
+      loadPath();
+      loadPremium();
+    }, [loadHabits, loadPath, loadPremium]),
   );
+
+  const coreStale = planQ.stale || pantryQ.stale;
+  const coreUpdating = (planQ.updating || pantryQ.updating) && (planQ.hasData || pantryQ.hasData);
 
   // ---- Habit interactions (optimistic, syncs in background) ----
   const applyOptimistic = (habit: string, patch: Partial<HabitItem>) =>
@@ -278,7 +277,10 @@ export default function HomeScreen() {
             <Text style={styles.greetHi} testID="home-greeting">
               {timeLabel}, {name}
             </Text>
-            <Text style={styles.greetDate}>{dateLabel}</Text>
+            <Text style={styles.greetDate}>
+              {dateLabel}
+              {coreUpdating ? ` · ${t("home.updating")}` : ""}
+            </Text>
           </View>
           {topStreak >= 2 ? (
             <View style={styles.streakChip} testID="home-streak">
@@ -288,10 +290,10 @@ export default function HomeScreen() {
           ) : null}
         </View>
 
-        {error ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="cloud-offline-outline" size={18} color={colors.chili} />
-            <Text style={styles.errorText}>{error}</Text>
+        {coreStale ? (
+          <View style={styles.staleBanner}>
+            <Ionicons name="cloud-offline-outline" size={16} color="#9A6A05" />
+            <Text style={styles.staleText}>{t("home.stale")}</Text>
           </View>
         ) : null}
 
@@ -637,16 +639,16 @@ const styles = StyleSheet.create({
   streakEmoji: { fontSize: 13 },
   streakText: { fontSize: 12.5, fontWeight: "800", color: "#9A6A05" },
 
-  errorCard: {
+  staleBanner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#FBECE4",
+    backgroundColor: `${colors.turmeric}1F`,
     borderRadius: radius.m,
     padding: spacing.m,
     marginTop: spacing.m,
   },
-  errorText: { color: colors.chili, flex: 1, fontSize: 13 },
+  staleText: { color: "#9A6A05", flex: 1, fontSize: 12.5 },
 
   // Hero
   hero: {

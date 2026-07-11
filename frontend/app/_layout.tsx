@@ -11,6 +11,7 @@ import { NotoSansTamil_700Bold } from "@expo-google-fonts/noto-sans-tamil";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
+import { api } from "@/src/api";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth-context";
 import { LanguageProvider } from "@/src/i18n";
@@ -82,6 +83,12 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
+
+  // R1: fire-and-forget wake-up ping to warm a sleeping Render instance while
+  // the user looks at cached data. Unauthenticated, never blocks the UI.
+  useEffect(() => {
+    api.get("/api/", false).catch(() => {});
+  }, []);
 
   if (!ready) return null;
 

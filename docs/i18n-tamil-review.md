@@ -48,5 +48,7 @@ strings are NOT here — they're in `i18n-medical-tamil-TODO.md` for you to auth
 | home.milestone 🎖️ | {n} days of {habit}. That's who you are now, soldier. 🫡 | {n} நாட்கள் {habit}. இதுதான் இப்போ நீங்க, வீரா. 🫡 | {habit} stays English (backend) |
 | home.couldnt_log | Couldn't log that — try again | பதிவு செய்ய முடியலை — மீண்டும் முயலுங்கள் | |
 | home.premium_badge | Premium | பிரீமியம் | transliteration — ok? |
+| home.updating | updating… | புதுப்பிக்கிறது… | |
+| home.stale | Showing yesterday's data — reconnecting… | நேற்றைய தரவைக் காட்டுகிறது — மீண்டும் இணைக்கிறது… | R1 offline banner |
 
 <!-- SCREENS BELOW APPENDED AS EACH IS LOCALIZED: Grocery, Settings, Calendar, Plan, Pantry, components -->

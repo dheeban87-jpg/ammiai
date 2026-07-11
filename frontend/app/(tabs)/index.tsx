@@ -19,6 +19,7 @@ import { NutritionRing } from "@/src/components/nutrition-ring";
 import { PressableScale } from "@/src/components/pressable-scale";
 import { api } from "@/src/api";
 import { useAuth } from "@/src/auth-context";
+import { useI18n } from "@/src/i18n";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import type { PantryItem } from "@/src/types";
 
@@ -74,6 +75,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { t } = useI18n();
   const charmer = useCharmer();
 
   const [items, setItems] = useState<PantryItem[] | null>(null);
@@ -168,19 +170,19 @@ export default function HomeScreen() {
         if (r.milestone) {
           charmer.show(
             "fist_pump",
-            `${r.streak} days of ${h.label.toLowerCase()}. That's who you are now, soldier. 🫡`,
+            t("home.milestone", { n: r.streak, habit: h.label.toLowerCase() }),
           );
         } else {
-          showToast(r.kcal_est ? `+~${r.kcal_est} kcal — logged, soldier 🫡` : "Logged, soldier 🫡");
+          showToast(r.kcal_est ? t("home.toast_kcal", { k: r.kcal_est }) : t("home.toast_logged"));
         }
         loadHabits();
         loadPath();
       } catch (e: any) {
         applyOptimistic(h.habit, { done: false });
-        showToast("Couldn't log that — try again");
+        showToast(t("home.couldnt_log"));
       }
     },
-    [charmer, showToast, loadHabits, loadPath],
+    [charmer, showToast, loadHabits, loadPath, t],
   );
 
   const unlogHabit = useCallback(
@@ -212,7 +214,12 @@ export default function HomeScreen() {
 
   // ---- Derived ----
   const hour = new Date().getHours();
-  const timeLabel = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const timeLabel =
+    hour < 12
+      ? t("home.greet_morning")
+      : hour < 17
+        ? t("home.greet_afternoon")
+        : t("home.greet_evening");
   const name = user?.name?.split(" ")[0] ?? "soldier";
   const dateLabel = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -249,7 +256,7 @@ export default function HomeScreen() {
             {premium?.is_premium ? (
               <View style={styles.premiumPill} testID="home-premium-badge">
                 <Ionicons name="star" size={12} color={colors.bananaLeafDark} />
-                <Text style={styles.premiumPillText}>Premium</Text>
+                <Text style={styles.premiumPillText}>{t("home.premium_badge")}</Text>
               </View>
             ) : null}
             <TouchableOpacity
@@ -276,7 +283,7 @@ export default function HomeScreen() {
           {topStreak >= 2 ? (
             <View style={styles.streakChip} testID="home-streak">
               <Text style={styles.streakEmoji}>🔥</Text>
-              <Text style={styles.streakText}>{topStreak}-day streak</Text>
+              <Text style={styles.streakText}>{t("home.streak", { n: topStreak })}</Text>
             </View>
           ) : null}
         </View>
@@ -295,8 +302,8 @@ export default function HomeScreen() {
           testID="home-hero"
         >
           <View style={styles.heroHead}>
-            <Text style={styles.heroTitle}>Today&apos;s progress</Text>
-            <Text style={styles.heroLink}>See plan →</Text>
+            <Text style={styles.heroTitle}>{t("home.today_progress")}</Text>
+            <Text style={styles.heroLink}>{t("home.see_plan")}</Text>
           </View>
 
           {plan ? (
@@ -307,7 +314,7 @@ export default function HomeScreen() {
                 strokeWidth={9}
                 progress={plan.rings.kcal}
                 color={colors.bananaLeaf}
-                label="Calories"
+                label={t("home.ring_calories")}
                 value={`${Math.round(plan.day_totals.kcal)}`}
                 hint={`/ ${Math.round(plan.day_targets.kcal)}`}
               />
@@ -317,7 +324,7 @@ export default function HomeScreen() {
                 strokeWidth={9}
                 progress={plan.rings.protein_g}
                 color={colors.chili}
-                label="Protein"
+                label={t("home.ring_protein")}
                 value={`${Math.round(plan.day_totals.protein_g)}g`}
                 hint={`/ ${Math.round(plan.day_targets.protein_g)}g`}
               />
@@ -327,7 +334,7 @@ export default function HomeScreen() {
                 strokeWidth={9}
                 progress={plan.rings.fiber_g}
                 color={colors.turmeric}
-                label="Fiber"
+                label={t("home.ring_fiber")}
                 value={`${Math.round(plan.day_totals.fiber_g)}g`}
                 hint={`/ ${Math.round(plan.day_targets.fiber_g)}g`}
               />
@@ -343,7 +350,7 @@ export default function HomeScreen() {
             <View style={styles.heroStat}>
               <Ionicons name="flame" size={15} color={colors.turmeric} />
               <Text style={styles.heroStatVal}>~{burnt}</Text>
-              <Text style={styles.heroStatLbl}>burnt today</Text>
+              <Text style={styles.heroStatLbl}>{t("home.burnt_today")}</Text>
             </View>
             <View style={styles.heroStatDivider} />
             <View style={styles.heroStat}>
@@ -366,14 +373,14 @@ export default function HomeScreen() {
               ) : (
                 <Text style={styles.heroStatVal}>—</Text>
               )}
-              <Text style={styles.heroStatLbl}>net kcal (est)</Text>
+              <Text style={styles.heroStatLbl}>{t("home.net_kcal")}</Text>
             </View>
             <View style={styles.heroStatDivider} />
             {goalDelta != null ? (
               <View style={styles.heroStat}>
                 <Ionicons name="flag" size={15} color={colors.bananaLeaf} />
                 <Text style={styles.heroStatVal}>{Math.abs(goalDelta)}kg</Text>
-                <Text style={styles.heroStatLbl}>to goal</Text>
+                <Text style={styles.heroStatLbl}>{t("home.to_goal")}</Text>
               </View>
             ) : (
               <TouchableOpacity
@@ -382,9 +389,9 @@ export default function HomeScreen() {
               >
                 <Ionicons name="flag-outline" size={15} color={colors.textMuted} />
                 <Text style={[styles.heroStatVal, { fontSize: 13, color: colors.bananaLeaf }]}>
-                  Set goal
+                  {t("home.set_goal")}
                 </Text>
-                <Text style={styles.heroStatLbl}>weight target</Text>
+                <Text style={styles.heroStatLbl}>{t("home.weight_target")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -394,8 +401,8 @@ export default function HomeScreen() {
         {habitsLive && habits ? (
           <View style={styles.habitBlock}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionLabel}>Today&apos;s habits</Text>
-              <Text style={styles.sectionHint}>tap to check in</Text>
+              <Text style={styles.sectionLabel}>{t("home.habits_title")}</Text>
+              <Text style={styles.sectionHint}>{t("home.habits_hint")}</Text>
             </View>
             <ScrollView
               horizontal
@@ -417,9 +424,7 @@ export default function HomeScreen() {
                 onPress={() => router.push("/settings")}
               >
                 <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
-                <Text style={styles.weightHintText}>
-                  Set your weight in Settings for accurate kcal estimates →
-                </Text>
+                <Text style={styles.weightHintText}>{t("home.weight_hint")}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -430,7 +435,7 @@ export default function HomeScreen() {
           <View style={styles.pathCard} testID="home-path">
             <View style={styles.pathHead}>
               <Ionicons name="trail-sign" size={16} color={colors.bananaLeaf} />
-              <Text style={styles.pathTitle}>Your path</Text>
+              <Text style={styles.pathTitle}>{t("home.path_title")}</Text>
             </View>
             {path.lines.map((ln, i) => (
               <View key={i} style={styles.pathLine}>
@@ -448,7 +453,7 @@ export default function HomeScreen() {
                 style={styles.pathCta}
                 onPress={() => router.push("/settings")}
               >
-                <Text style={styles.pathCtaText}>Set a target weight →</Text>
+                <Text style={styles.pathCtaText}>{t("home.path_cta")}</Text>
               </TouchableOpacity>
             ) : null}
             <Text style={styles.pathFooter}>{path.footer}</Text>
@@ -461,17 +466,17 @@ export default function HomeScreen() {
           tint={colors.turmeric}
           title={
             expiring.length > 0
-              ? `${expiring.length} item${expiring.length > 1 ? "s" : ""} expiring soon`
-              : "Pantry looks fresh"
+              ? t("home.expiring", { n: expiring.length })
+              : t("home.fresh")
           }
-          sub={expiring.length > 0 ? "Use them before they spoil" : "Nothing expiring today"}
+          sub={expiring.length > 0 ? t("home.expiring_sub") : t("home.fresh_sub")}
           onPress={() => router.push("/(tabs)/pantry")}
         />
         <UtilityRow
           icon="restaurant"
           tint={colors.bananaLeaf}
-          title="What can I cook?"
-          sub="Dishes ready from your pantry"
+          title={t("home.cook_title")}
+          sub={t("home.cook_sub")}
           onPress={() => router.push("/cook")}
         />
 
@@ -488,9 +493,7 @@ export default function HomeScreen() {
         <Pressable style={styles.backdrop} onPress={() => setPendingHabit(null)}>
           <Pressable style={styles.sheet} onPress={() => {}}>
             <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>
-              How long did you {pendingHabit?.label.toLowerCase()}?
-            </Text>
+            <Text style={styles.sheetTitle}>{t("home.duration_q")}</Text>
             <View style={styles.durationRow}>
               {DURATIONS.map((m) => (
                 <TouchableOpacity
@@ -504,7 +507,7 @@ export default function HomeScreen() {
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.sheetNote}>Rough estimate — bodies vary. Not medical advice.</Text>
+            <Text style={styles.sheetNote}>{t("home.est_disclaimer")}</Text>
           </Pressable>
         </Pressable>
       </Modal>

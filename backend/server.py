@@ -2684,19 +2684,22 @@ async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_curr
                     "data": payload.image_base64,
                 }},
                 {"type": "text", "text": (
-                    "This is a photo of a fridge shelf or a vegetable basket in a Tamil home kitchen. "
-                    "Identify which of the following catalog ingredients are CLEARLY visible. "
+                    "This is a photo from a Tamil home kitchen — a fridge shelf, a vegetable basket, or a "
+                    "single item. Identify which of the following catalog ingredients are present. "
                     "Catalog (id=name): " + catalog_str + ". "
-                    "Rules: use ONLY ingredient_ids from this catalog; if you cannot clearly identify an "
-                    "item as one of these, OMIT it (never guess or invent). IGNORE sealed or branded "
-                    "packets, pouches, jars, bottles, tubs and bags (packaged/processed products such as "
-                    "butter, jam, ready-to-eat pouches, pastes) — identify ONLY loose fresh produce, "
-                    "greens, whole fruits, and clearly-identifiable loose dairy. If the photo does not clearly "
-                    "show real fresh ingredients (blank, blurry, dark, or only packaged goods), return an EMPTY "
-                    "items list — do not force matches. For each visible item give a "
-                    "rough quantity class based on how much is shown: small, medium, or large. "
+                    "Use ONLY ingredient_ids from this catalog. Identify items TWO ways: (1) loose fresh "
+                    "produce, greens, whole fruits and loose dairy visible in the image; (2) items inside "
+                    "clear containers or packets that carry a printed LABEL naming their contents — READ the "
+                    "label. Indian veg vendors sell fresh produce in labelled tubs, e.g. "
+                    "'PEELED SAMBAR ONION 200g' (= shallots), 'PUMPKIN PORTION CUT 500g' (= pumpkin), "
+                    "'CHOPPED ...'. Map the labelled contents to the matching catalog ingredient, and if the "
+                    "label prints a net weight (e.g. 200g, 500g) report it as qty_grams. Only IGNORE a package "
+                    "when neither its visible contents nor its label map to a catalog ingredient (e.g. jam, "
+                    "sauces, biscuits, cooked ready-meals). Never guess or invent — if nothing maps, return an "
+                    "EMPTY list. For each item give qty_class (small/medium/large), and qty_grams (a number) "
+                    "ONLY when a net weight is printed on a label, else null. "
                     "Respond ONLY with JSON, no prose, no markdown fences: "
-                    "{\"items\": [{\"ingredient_id\": str, \"qty_class\": \"small\"|\"medium\"|\"large\"}]}"
+                    "{\"items\": [{\"ingredient_id\": str, \"qty_class\": \"small\"|\"medium\"|\"large\", \"qty_grams\": number|null}]}"
                 )},
             ],
         }],
@@ -2720,8 +2723,11 @@ async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_curr
             continue
         seen.add(iid)
         qc = it.get("qty_class") if it.get("qty_class") in ("small", "medium", "large") else "medium"
+        grams = it.get("qty_grams")
         if iid in _PHOTO_COUNT_ITEMS:
             qty, unit = _PHOTO_QTY_PC[qc], "pc"
+        elif isinstance(grams, (int, float)) and 10 <= grams <= 5000:
+            qty, unit = int(round(grams)), "g"  # trust the printed label weight
         else:
             qty, unit = _PHOTO_QTY_G[qc], "g"
         items.append({

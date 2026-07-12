@@ -2670,7 +2670,8 @@ async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_curr
     catalog_str = ", ".join(f'{i["ingredient_id"]}={i.get("name", i["ingredient_id"])}' for i in ings)
 
     client = AsyncAnthropic(api_key=key)
-    resp = await client.messages.create(
+    try:
+        resp = await client.messages.create(
         model=AI_MODEL,
         max_tokens=700,
         temperature=0,
@@ -2694,7 +2695,10 @@ async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_curr
                 )},
             ],
         }],
-    )
+        )
+    except Exception as exc:
+        logger.warning("photo-scan vision call failed: %s", exc)
+        raise HTTPException(status_code=422, detail="Couldn't read that photo — try better light and a clearer shot")
     raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
     raw = raw.replace("```json", "").replace("```", "").strip()
     try:

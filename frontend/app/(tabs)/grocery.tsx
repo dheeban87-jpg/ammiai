@@ -891,8 +891,12 @@ function GroceryScreenInner() {
                   icon={VENDOR_META[v].icon}
                   label={VENDOR_META[v].label}
                   tint={VENDOR_META[v].color}
-                  disabled={selected.length === 0}
                   onPress={() => {
+                    if (selected.length === 0) {
+                      setToast("Select items first to order");
+                      setTimeout(() => setToast(null), 2200);
+                      return;
+                    }
                     setActionsVisible(false);
                     openOrder(v);
                   }}
@@ -901,8 +905,12 @@ function GroceryScreenInner() {
               <ActionTile
                 icon="storefront-outline"
                 label="Local shop"
-                disabled={selected.length === 0}
                 onPress={() => {
+                  if (selected.length === 0) {
+                    setToast("Select items first");
+                    setTimeout(() => setToast(null), 2200);
+                    return;
+                  }
                   setActionsVisible(false);
                   boughtLocalShop();
                 }}

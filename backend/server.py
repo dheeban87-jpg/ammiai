@@ -1566,7 +1566,7 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
     # most-ready, then LOWEST effort (a solo cook won't attempt a 10-ingredient
     # spread for dinner), then most pantry used. Keep it to a glanceable handful.
     out.sort(key=lambda d: (0 if d["have"] else 1, -d["readiness"], d["effort"], -len(d["have"])))
-    return {"dishes": out[:6], "pantry_count": len(pantry)}
+    return {"dishes": out[:2], "pantry_count": len(pantry)}
 
 
 @api_router.get("/dishes/for-health")
@@ -1612,7 +1612,7 @@ async def dishes_for_health(current=Depends(get_current_user)):
         groups.append({
             "focus": f.get("label", g),
             "guidance": f.get("guidance", ""),
-            "dishes": [p[1] for p in picks[:4]],
+            "dishes": [p[1] for p in picks[:2]],
         })
     return {"groups": groups, "note": "Dishes that SUPPORT your focus — not medical treatment; consult your doctor."}
 
@@ -1743,7 +1743,7 @@ async def grocery_suggest_health(current=Depends(get_current_user)):
             continue
         per_cat[cat] = per_cat.get(cat, 0) + 1
         items.append(it)
-        if len(items) >= 6:
+        if len(items) >= 2:
             break
     return {
         "items": items,

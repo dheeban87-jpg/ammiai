@@ -88,7 +88,7 @@ strings are NOT here — they're in `i18n-medical-tamil-TODO.md` for you to auth
 | onb.scan_title | Point your camera at your vegetables | உங்கள் காய்கறிகளை நோக்கி கேமராவைக் காட்டுங்கள் | |
 | onb.scan_sub | One photo and I'll stock your fresh items — no typing. | ஒரு புகைப்படம் போதும், நான் உங்கள் புதிய பொருட்களைச் சேர்க்கிறேன் — தட்டச்சு தேவையில்லை. | |
 | onb.scan_skip | Skip — I'll add them myself | தவிர் — நானே சேர்த்துக்கொள்கிறேன் | |
-| onb.dinners_title | 3 dinners you can cook tonight | இன்றிரவு சமைக்கக்கூடிய 3 உணவுகள் | |
+| onb.dinners_title | Dinners you can cook tonight | இன்றிரவு சமைக்கக்கூடிய உணவுகள் | |
 | onb.dinners_sub 🎖️ | Straight from what you have. Welcome aboard, soldier. | உங்களிடம் உள்ளதிலிருந்தே. வரவேற்கிறேன், வீரா. | "soldier"→"வீரா" |
 
 <!-- SCREENS BELOW APPENDED AS EACH IS LOCALIZED: Grocery, Settings, Calendar, Plan, Pantry, components -->

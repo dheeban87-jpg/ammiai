@@ -111,6 +111,8 @@ export const STRINGS = {
   "scan.perm_camera": { en: "Camera permission is needed to scan.", ta: "ஸ்கேன் செய்ய கேமரா அனுமதி தேவை." },
   "scan.perm_gallery": { en: "Photo permission is needed to pick an image.", ta: "படம் தேர்ந்தெடுக்க அனுமதி தேவை." },
   "scan.error": { en: "Couldn't read that photo — try a clearer shot.", ta: "அந்த புகைப்படத்தைப் படிக்க முடியலை — தெளிவாக எடுக்கவும்." },
+  "scan.add_missed": { en: "Add a missed item", ta: "விடுபட்ட பொருளைச் சேர்" },
+  "scan.search_ph": { en: "Search vegetables, greens…", ta: "காய்கறிகள், கீரைகளைத் தேடு…" },
 
   // ---- R2 staples section (Pantry) — TA-DRAFT ----
   "staples.title": { en: "Staples ✓ assumed stocked", ta: "அடிப்படை பொருட்கள் ✓ இருப்பதாகக் கருதுகிறோம்" },

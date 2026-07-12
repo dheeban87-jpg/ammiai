@@ -67,6 +67,8 @@ strings are NOT here — they're in `i18n-medical-tamil-TODO.md` for you to auth
 | scan.perm_camera | Camera permission is needed to scan. | ஸ்கேன் செய்ய கேமரா அனுமதி தேவை. | |
 | scan.perm_gallery | Photo permission is needed to pick an image. | படம் தேர்ந்தெடுக்க அனுமதி தேவை. | |
 | scan.error | Couldn't read that photo — try a clearer shot. | அந்த புகைப்படத்தைப் படிக்க முடியலை — தெளிவாக எடுக்கவும். | colloquial "முடியலை" — ok? |
+| scan.add_missed | Add a missed item | விடுபட்ட பொருளைச் சேர் | |
+| scan.search_ph | Search vegetables, greens… | காய்கறிகள், கீரைகளைத் தேடு… | |
 
 ## R2 staples section (Pantry)
 

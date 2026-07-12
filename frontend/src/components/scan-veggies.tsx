@@ -1,6 +1,6 @@
 // R3 — "Scan my veggies": one component drives pick → scan → confirm → write.
 // Reused by the Pantry tab and the final onboarding step. All copy via t().
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -8,14 +8,17 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
+import { api } from "@/src/api";
 import { FoodAvatar } from "@/src/food-visual";
 import { useI18n } from "@/src/i18n";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
+import type { Ingredient } from "@/src/types";
 import {
   addScannedItems,
   captureAndScan,
@@ -39,6 +42,41 @@ export function ScanVeggies({
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<Ingredient[]>([]);
+  const [query, setQuery] = useState("");
+
+  // Lazily load the ingredient catalog for the "add a missed item" search.
+  useEffect(() => {
+    if (phase === "confirm" && catalog.length === 0) {
+      api.get<Ingredient[]>("/api/ingredients").then(setCatalog).catch(() => {});
+    }
+  }, [phase, catalog.length]);
+
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    const already = new Set(rows.map((r) => r.ingredient_id));
+    return catalog
+      .filter((c) => c.category !== "staple" && c.category !== "spice")
+      .filter((c) => !already.has(c.ingredient_id) && c.name.toLowerCase().includes(q))
+      .slice(0, 6);
+  }, [query, catalog, rows]);
+
+  const addRow = (ing: Ingredient) => {
+    setRows((prev) => [
+      ...prev,
+      {
+        ingredient_id: ing.ingredient_id,
+        name: ing.name,
+        category: ing.category,
+        qty_class: "medium",
+        qty: 250,
+        unit: "g",
+        include: true,
+      },
+    ]);
+    setQuery("");
+  };
 
   const open = () => {
     setError(null);
@@ -84,6 +122,7 @@ export function ScanVeggies({
     setBusy(false);
     setPhase("idle");
     setRows([]);
+    setQuery("");
     onAdded?.(n);
   };
 
@@ -181,6 +220,30 @@ export function ScanVeggies({
                 ))}
               </ScrollView>
             )}
+
+            {/* Add a missed item — one-tap fix for wrong/omitted matches */}
+            <View style={styles.addMissed}>
+              <Text style={styles.addMissedLabel}>{t("scan.add_missed")}</Text>
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder={t("scan.search_ph")}
+                placeholderTextColor={colors.textMuted}
+                style={styles.searchInput}
+                testID="scan-add-search"
+              />
+              {results.map((c) => (
+                <TouchableOpacity
+                  key={c.ingredient_id}
+                  style={styles.resultRow}
+                  onPress={() => addRow(c)}
+                  testID={`scan-add-${c.ingredient_id}`}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={colors.bananaLeaf} />
+                  <Text style={styles.resultName}>{c.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
 
             <TouchableOpacity
               style={[styles.addBtn, (includedCount === 0 || busy) && { opacity: 0.5 }]}
@@ -281,6 +344,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   qtyText: { fontSize: 13.5, fontWeight: "700", color: colors.textPrimary, minWidth: 48, textAlign: "center" },
+  addMissed: {
+    marginTop: spacing.m,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    paddingTop: spacing.m,
+  },
+  addMissedLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.m,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.textPrimary,
+    backgroundColor: colors.riceWhite,
+  },
+  resultRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  resultName: { fontSize: 15, color: colors.textPrimary },
   addBtn: {
     marginTop: spacing.m,
     backgroundColor: colors.bananaLeaf,

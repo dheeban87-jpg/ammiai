@@ -66,16 +66,14 @@ export function IntroGate() {
     }
   }, [logoPlayer, welcomePlayer]);
 
-  // Advance from the logo: first run → welcome, otherwise straight to the app.
+  // Advance from the logo → always play the welcome/seaml video next (owner:
+  // every cold open). The "Get started" card only layers on for a first run;
+  // otherwise the welcome video plays once and auto-advances to the app.
   const advanceFromLogo = useCallback(() => {
     if (advancedRef.current) return;
     advancedRef.current = true;
-    if (firstRunRef.current) {
-      setPhase("welcome");
-    } else {
-      finish();
-    }
-  }, [finish]);
+    setPhase("welcome");
+  }, []);
 
   const completeWelcome = useCallback(() => {
     AsyncStorage.setItem(SEEN_KEY, "1").catch(() => {});
@@ -103,16 +101,19 @@ export function IntroGate() {
     };
   }, [phase, finish]);
 
-  // Skip button fades in after 800ms; safety timer auto-advances the ~3s logo
-  // if the "ended" event never fires (broken asset / codec).
+  // Skip button fades in 800ms into each playing phase (logo + welcome).
+  useEffect(() => {
+    if (phase === "done") return;
+    setShowSkip(false);
+    const skipT = setTimeout(() => setShowSkip(true), 800);
+    return () => clearTimeout(skipT);
+  }, [phase]);
+
+  // Logo safety timer: auto-advance the ~3s logo if "ended" never fires.
   useEffect(() => {
     if (phase !== "logo") return;
-    const skipT = setTimeout(() => setShowSkip(true), 800);
     const maxT = setTimeout(() => advanceFromLogo(), 5000);
-    return () => {
-      clearTimeout(skipT);
-      clearTimeout(maxT);
-    };
+    return () => clearTimeout(maxT);
   }, [phase, advanceFromLogo]);
 
   // Logo playback events: end → advance; error → fail open to the app.
@@ -132,24 +133,38 @@ export function IntroGate() {
     return () => subs.forEach((s) => s.remove());
   }, [phase, logoPlayer, advanceFromLogo]);
 
-  // Start the welcome loop when we reach it; fail open on error.
+  // Welcome/seaml video: first run loops behind the "Get started" card; repeat
+  // opens play it once and auto-advance to the app. Always fails open.
   useEffect(() => {
     if (phase !== "welcome") return;
+    const firstRun = firstRunRef.current;
     try {
+      welcomePlayer.loop = firstRun; // loop while waiting for the tap; else play once
       welcomePlayer.play();
     } catch {
-      completeWelcome();
+      finish();
+      return;
     }
-    let sub: { remove: () => void } | null = null;
+    const subs: { remove: () => void }[] = [];
     try {
-      sub = welcomePlayer.addListener("statusChange", ({ status }: any) => {
-        if (status === "error") completeWelcome();
-      });
+      if (!firstRun) {
+        subs.push(welcomePlayer.addListener("playToEnd", () => finish()));
+      }
+      subs.push(
+        welcomePlayer.addListener("statusChange", ({ status }: any) => {
+          if (status === "error") (firstRun ? completeWelcome : finish)();
+        }),
+      );
     } catch {
-      /* noop */
+      /* the safety timer below still advances repeat opens */
     }
-    return () => sub?.remove();
-  }, [phase, welcomePlayer, completeWelcome]);
+    // Never trap the user on the welcome video (repeat opens only).
+    const maxT = firstRun ? null : setTimeout(() => finish(), 9000);
+    return () => {
+      subs.forEach((s) => s.remove());
+      if (maxT) clearTimeout(maxT);
+    };
+  }, [phase, welcomePlayer, completeWelcome, finish]);
 
   // Android back = skip the current step.
   useEffect(() => {
@@ -193,19 +208,33 @@ export function IntroGate() {
             contentFit="cover"
             nativeControls={false}
           />
-          {/* Bottom scrim carries the copy + CTA over the video */}
-          <View style={styles.scrim} />
-          <View style={[styles.welcomeContent, { paddingBottom: insets.bottom + spacing.l }]}>
-            <Text style={styles.captainLine}>{CAPTAIN_LINE}</Text>
+          {firstRunRef.current ? (
+            <>
+              {/* First run: bottom scrim carries the copy + CTA over the video */}
+              <View style={styles.scrim} />
+              <View style={[styles.welcomeContent, { paddingBottom: insets.bottom + spacing.l }]}>
+                <Text style={styles.captainLine}>{CAPTAIN_LINE}</Text>
+                <Pressable
+                  style={styles.getStarted}
+                  onPress={completeWelcome}
+                  testID="intro-get-started"
+                >
+                  <Text style={styles.getStartedText}>Get started</Text>
+                </Pressable>
+                <Text style={styles.credit}>{COMPANY_CREDIT}</Text>
+              </View>
+            </>
+          ) : showSkip ? (
+            // Repeat opens: no card, just a skip — the video auto-advances.
             <Pressable
-              style={styles.getStarted}
-              onPress={completeWelcome}
-              testID="intro-get-started"
+              onPress={finish}
+              style={[styles.skipBtn, { top: insets.top + spacing.s }]}
+              hitSlop={12}
+              testID="intro-skip-welcome"
             >
-              <Text style={styles.getStartedText}>Get started</Text>
+              <Text style={styles.skipText}>Skip</Text>
             </Pressable>
-            <Text style={styles.credit}>{COMPANY_CREDIT}</Text>
-          </View>
+          ) : null}
         </View>
       )}
     </View>

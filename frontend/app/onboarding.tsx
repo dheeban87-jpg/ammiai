@@ -17,8 +17,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "@/src/api";
 import { useAuth } from "@/src/auth-context";
+import { useI18n } from "@/src/i18n";
+import { FoodAvatar } from "@/src/food-visual";
+import { ScanVeggies } from "@/src/components/scan-veggies";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import type { Recipe } from "@/src/types";
+
+type TonightDish = { id: string; name_en: string; name_ta?: string; category: string };
 
 // Curated favorites — must exist in recipes_ammiaai_v2.json
 const CURATED_FAV_IDS = [
@@ -75,6 +80,17 @@ export default function Onboarding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user, saveProfile, refreshProfile } = useAuth();
+  const { t } = useI18n();
+  const [dinners, setDinners] = useState<TonightDish[]>([]);
+
+  const onScanned = async () => {
+    try {
+      const r = await api.get<{ items: TonightDish[] }>("/api/dishes/from-pantry");
+      setDinners((r.items ?? []).slice(0, 3));
+    } catch {
+      /* no dinners to surface — the finish button still works */
+    }
+  };
 
   const [step, setStep] = useState(0);
   const [name, setName] = useState(user?.name ?? "");
@@ -535,6 +551,32 @@ export default function Onboarding() {
                 Staples assumed ✓ — rice, dals, tamarind, oil and spices are taken as stocked, so you only track what actually changes. Add your fresh items (vegetables, greens, curd), or tap the starter bundle below. You can edit anytime.
               </Text>
 
+              {/* R3: fast path — one photo stocks the fresh items */}
+              <View style={styles.scanCard} testID="onb-scan-card">
+                <Ionicons name="camera" size={26} color={colors.bananaLeaf} />
+                <Text style={styles.scanTitle}>{t("onb.scan_title")}</Text>
+                <Text style={styles.scanSub}>{t("onb.scan_sub")}</Text>
+                <ScanVeggies onAdded={onScanned} />
+              </View>
+
+              {dinners.length > 0 ? (
+                <View style={styles.dinnersCard} testID="onb-dinners">
+                  <Text style={styles.dinnersTitle}>{t("onb.dinners_title")}</Text>
+                  <Text style={styles.dinnersSub}>{t("onb.dinners_sub")}</Text>
+                  {dinners.map((d) => (
+                    <View key={d.id} style={styles.dinnerRow}>
+                      <FoodAvatar kind="dish" id={d.id} category={d.category} size={40} />
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.dinnerName} numberOfLines={1}>{d.name_en}</Text>
+                        {d.name_ta && d.name_ta !== d.name_en ? (
+                          <Text style={styles.dinnerNameTa} numberOfLines={1}>{d.name_ta}</Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
               <View style={styles.bundleCard} testID="basic-bundle-card">
                 <View style={styles.bundleHeader}>
                   <View style={styles.bundleIcon}>
@@ -841,6 +883,48 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
   },
+  scanCard: {
+    backgroundColor: `${colors.bananaLeaf}0D`,
+    borderRadius: radius.l,
+    borderWidth: 1,
+    borderColor: `${colors.bananaLeaf}26`,
+    padding: spacing.l,
+    alignItems: "center",
+    gap: 6,
+    marginBottom: spacing.m,
+  },
+  scanTitle: {
+    fontFamily: fonts.headingEn,
+    fontSize: 17,
+    color: colors.bananaLeafDark,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  scanSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: spacing.s,
+  },
+  dinnersCard: {
+    backgroundColor: `${colors.turmeric}12`,
+    borderRadius: radius.l,
+    borderWidth: 1,
+    borderColor: `${colors.turmeric}40`,
+    padding: spacing.m,
+    marginBottom: spacing.m,
+  },
+  dinnersTitle: { fontFamily: fonts.headingEn, fontSize: 16, color: "#9A6A05" },
+  dinnersSub: { fontSize: 12.5, color: colors.textSecondary, marginBottom: spacing.s },
+  dinnerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: `${colors.turmeric}22`,
+  },
+  dinnerName: { fontSize: 15, fontWeight: "700", color: colors.textPrimary },
+  dinnerNameTa: { fontFamily: fonts.bodyTa, fontSize: 12, color: colors.textMuted, marginTop: 1 },
   bundleCard: {
     backgroundColor: colors.surface,
     borderRadius: radius.l,

@@ -97,6 +97,35 @@ export const STRINGS = {
   "home.premium_badge": { en: "Premium", ta: "பிரீமியம்" },
   // MEDICAL — owner authors Tamil (English placeholder keeps app safe until then)
   "home.est_disclaimer": { en: "Rough estimate — bodies vary. Not medical advice.", ta: "Rough estimate — bodies vary. Not medical advice." },
+
+  // ---- R3: fridge-photo scan (Pantry + onboarding) — TA-DRAFT ----
+  "scan.button": { en: "Scan my veggies", ta: "காய்கறிகளை ஸ்கேன் செய்" },
+  "scan.camera": { en: "Take a photo", ta: "புகைப்படம் எடு" },
+  "scan.gallery": { en: "Choose from gallery", ta: "கேலரியிலிருந்து தேர்ந்தெடு" },
+  "scan.scanning": { en: "Inspecting your supplies, soldier…", ta: "உங்கள் பொருட்களை ஆய்வு செய்கிறேன், வீரா…" },
+  "scan.confirm_title": { en: "Confirm your items", ta: "உங்கள் பொருட்களை உறுதிசெய்" },
+  "scan.confirm_sub": { en: "Tap to include, edit the amount, then add.", ta: "சேர்க்க தட்டவும், அளவை மாற்றவும், பின் சேர்க்கவும்." },
+  "scan.none": { en: "No clear items found — try better light and a closer shot.", ta: "தெளிவான பொருட்கள் இல்லை — நல்ல வெளிச்சத்தில் அருகில் எடுக்கவும்." },
+  "scan.add_n": { en: "Add {n} to pantry", ta: "{n} பொருட்களைச் சேர்" },
+  "scan.added": { en: "Added to your pantry ✓", ta: "உங்கள் சாமான் அறையில் சேர்க்கப்பட்டது ✓" },
+  "scan.perm_camera": { en: "Camera permission is needed to scan.", ta: "ஸ்கேன் செய்ய கேமரா அனுமதி தேவை." },
+  "scan.perm_gallery": { en: "Photo permission is needed to pick an image.", ta: "படம் தேர்ந்தெடுக்க அனுமதி தேவை." },
+  "scan.error": { en: "Couldn't read that photo — try a clearer shot.", ta: "அந்த புகைப்படத்தைப் படிக்க முடியலை — தெளிவாக எடுக்கவும்." },
+
+  // ---- R2 staples section (Pantry) — TA-DRAFT ----
+  "staples.title": { en: "Staples ✓ assumed stocked", ta: "அடிப்படை பொருட்கள் ✓ இருப்பதாகக் கருதுகிறோம்" },
+  "staples.sub_ok": { en: "Rice · dals · oil · spices — tap only if something ran out", ta: "அரிசி · பருப்பு · எண்ணெய் · மசாலா — தீர்ந்தால் மட்டும் தட்டவும்" },
+  "staples.sub_out": { en: "{n} marked run out — added to grocery", ta: "{n} தீர்ந்தது எனக் குறித்தீர்கள் — மளிகையில் சேர்க்கப்பட்டது" },
+  "staples.stocked": { en: "Stocked", ta: "உள்ளது" },
+  "staples.ranout": { en: "Ran out", ta: "தீர்ந்தது" },
+
+  // ---- Onboarding: fresh items + scan step — TA-DRAFT ----
+  "onb.fresh_title": { en: "Add your fresh items", ta: "உங்கள் புதிய பொருட்கள்" },
+  "onb.scan_title": { en: "Point your camera at your vegetables", ta: "உங்கள் காய்கறிகளை நோக்கி கேமராவைக் காட்டுங்கள்" },
+  "onb.scan_sub": { en: "One photo and I'll stock your fresh items — no typing.", ta: "ஒரு புகைப்படம் போதும், நான் உங்கள் புதிய பொருட்களைச் சேர்க்கிறேன் — தட்டச்சு தேவையில்லை." },
+  "onb.scan_skip": { en: "Skip — I'll add them myself", ta: "தவிர் — நானே சேர்த்துக்கொள்கிறேன்" },
+  "onb.dinners_title": { en: "3 dinners you can cook tonight", ta: "இன்றிரவு சமைக்கக்கூடிய 3 உணவுகள்" },
+  "onb.dinners_sub": { en: "Straight from what you have. Welcome aboard, soldier.", ta: "உங்களிடம் உள்ளதிலிருந்தே. வரவேற்கிறேன், வீரா." },
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

@@ -51,4 +51,42 @@ strings are NOT here — they're in `i18n-medical-tamil-TODO.md` for you to auth
 | home.updating | updating… | புதுப்பிக்கிறது… | |
 | home.stale | Showing yesterday's data — reconnecting… | நேற்றைய தரவைக் காட்டுகிறது — மீண்டும் இணைக்கிறது… | R1 offline banner |
 
+## R3 fridge-photo scan (Pantry + onboarding component)
+
+| key | en | ta (machine draft) | notes |
+|---|---|---|---|
+| scan.button | Scan my veggies | காய்கறிகளை ஸ்கேன் செய் | |
+| scan.camera | Take a photo | புகைப்படம் எடு | |
+| scan.gallery | Choose from gallery | கேலரியிலிருந்து தேர்ந்தெடு | |
+| scan.scanning 🎖️ | Inspecting your supplies, soldier… | உங்கள் பொருட்களை ஆய்வு செய்கிறேன், வீரா… | "soldier"→"வீரா" — confirm tone |
+| scan.confirm_title | Confirm your items | உங்கள் பொருட்களை உறுதிசெய் | |
+| scan.confirm_sub | Tap to include, edit the amount, then add. | சேர்க்க தட்டவும், அளவை மாற்றவும், பின் சேர்க்கவும். | |
+| scan.none | No clear items found — try better light and a closer shot. | தெளிவான பொருட்கள் இல்லை — நல்ல வெளிச்சத்தில் அருகில் எடுக்கவும். | |
+| scan.add_n | Add {n} to pantry | {n} பொருட்களைச் சேர் | |
+| scan.added | Added to your pantry ✓ | உங்கள் சாமான் அறையில் சேர்க்கப்பட்டது ✓ | |
+| scan.perm_camera | Camera permission is needed to scan. | ஸ்கேன் செய்ய கேமரா அனுமதி தேவை. | |
+| scan.perm_gallery | Photo permission is needed to pick an image. | படம் தேர்ந்தெடுக்க அனுமதி தேவை. | |
+| scan.error | Couldn't read that photo — try a clearer shot. | அந்த புகைப்படத்தைப் படிக்க முடியலை — தெளிவாக எடுக்கவும். | colloquial "முடியலை" — ok? |
+
+## R2 staples section (Pantry)
+
+| key | en | ta (machine draft) | notes |
+|---|---|---|---|
+| staples.title | Staples ✓ assumed stocked | அடிப்படை பொருட்கள் ✓ இருப்பதாகக் கருதுகிறோம் | |
+| staples.sub_ok | Rice · dals · oil · spices — tap only if something ran out | அரிசி · பருப்பு · எண்ணெய் · மசாலா — தீர்ந்தால் மட்டும் தட்டவும் | |
+| staples.sub_out | {n} marked run out — added to grocery | {n} தீர்ந்தது எனக் குறித்தீர்கள் — மளிகையில் சேர்க்கப்பட்டது | |
+| staples.stocked | Stocked | உள்ளது | |
+| staples.ranout | Ran out | தீர்ந்தது | |
+
+## Onboarding fresh-items + scan step
+
+| key | en | ta (machine draft) | notes |
+|---|---|---|---|
+| onb.fresh_title | Add your fresh items | உங்கள் புதிய பொருட்கள் | |
+| onb.scan_title | Point your camera at your vegetables | உங்கள் காய்கறிகளை நோக்கி கேமராவைக் காட்டுங்கள் | |
+| onb.scan_sub | One photo and I'll stock your fresh items — no typing. | ஒரு புகைப்படம் போதும், நான் உங்கள் புதிய பொருட்களைச் சேர்க்கிறேன் — தட்டச்சு தேவையில்லை. | |
+| onb.scan_skip | Skip — I'll add them myself | தவிர் — நானே சேர்த்துக்கொள்கிறேன் | |
+| onb.dinners_title | 3 dinners you can cook tonight | இன்றிரவு சமைக்கக்கூடிய 3 உணவுகள் | |
+| onb.dinners_sub 🎖️ | Straight from what you have. Welcome aboard, soldier. | உங்களிடம் உள்ளதிலிருந்தே. வரவேற்கிறேன், வீரா. | "soldier"→"வீரா" |
+
 <!-- SCREENS BELOW APPENDED AS EACH IS LOCALIZED: Grocery, Settings, Calendar, Plan, Pantry, components -->

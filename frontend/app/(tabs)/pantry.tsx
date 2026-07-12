@@ -26,6 +26,7 @@ import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { GROUP_ORDER, groupFor, iconFor } from "@/src/ingredient-icons";
 import { FoodAvatar } from "@/src/food-visual";
 import { PressableScale } from "@/src/components/pressable-scale";
+import { ScanVeggies } from "@/src/components/scan-veggies";
 import type { PantryItem } from "@/src/types";
 
 const FRESHNESS_COLOR: Record<string, string> = {
@@ -59,6 +60,7 @@ export default function PantryScreen() {
   const [waste, setWaste] = useState<{ total_estimated_inr: number } | null>(null);
   const [staples, setStaples] = useState<StapleRow[]>([]);
   const [staplesOpen, setStaplesOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -81,6 +83,17 @@ export default function PantryScreen() {
       /* endpoint not deployed yet — hide the section */
     }
   }, []);
+
+  const onScanned = useCallback(
+    (n: number) => {
+      if (n > 0) {
+        setToast(t("scan.added"));
+        setTimeout(() => setToast(null), 2400);
+      }
+      load();
+    },
+    [load, t],
+  );
 
   const toggleStaple = useCallback(async (s: StapleRow) => {
     const next = !s.ran_out;
@@ -274,13 +287,18 @@ export default function PantryScreen() {
               : "Try changing the filter or adding new items."}
           </Text>
           {filter === "all" && (
-            <TouchableOpacity
-              testID="pantry-empty-add"
-              style={styles.emptyBtn}
-              onPress={() => router.push("/pantry/add")}
-            >
-              <Text style={styles.emptyBtnText}>Add first item</Text>
-            </TouchableOpacity>
+            <>
+              <View style={{ alignSelf: "stretch", marginBottom: spacing.s }}>
+                <ScanVeggies onAdded={onScanned} />
+              </View>
+              <TouchableOpacity
+                testID="pantry-empty-add"
+                style={styles.emptyBtn}
+                onPress={() => router.push("/pantry/add")}
+              >
+                <Text style={styles.emptyBtnText}>Add first item</Text>
+              </TouchableOpacity>
+            </>
           )}
           <View style={{ alignSelf: "stretch", marginTop: spacing.l }}>
             <StaplesSection
@@ -311,6 +329,9 @@ export default function PantryScreen() {
                   </Text>
                 </View>
               ) : null}
+              <View style={{ marginBottom: spacing.s }}>
+                <ScanVeggies onAdded={onScanned} />
+              </View>
               <TouchableOpacity
                 testID="pantry-what-to-cook"
                 style={styles.cookChainBtn}
@@ -491,6 +512,13 @@ export default function PantryScreen() {
           </KeyboardAvoidingView>
         </Pressable>
       </Modal>
+
+      {toast ? (
+        <View style={[styles.toast, { bottom: insets.bottom + 90 }]} testID="pantry-toast">
+          <Ionicons name="checkmark-circle" size={18} color={colors.riceWhite} />
+          <Text style={styles.toastText}>{toast}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -506,6 +534,7 @@ function StaplesSection({
   onToggleOpen: () => void;
   onToggle: (s: StapleRow) => void;
 }) {
+  const { t } = useI18n();
   if (staples.length === 0) return null;
   const ranOut = staples.filter((s) => s.ran_out).length;
   return (
@@ -513,11 +542,9 @@ function StaplesSection({
       <TouchableOpacity style={styles.staplesHeader} onPress={onToggleOpen} testID="staples-header">
         <Text style={styles.staplesEmoji}>🧂</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.staplesTitle}>Staples ✓ assumed stocked</Text>
+          <Text style={styles.staplesTitle}>{t("staples.title")}</Text>
           <Text style={styles.staplesSub}>
-            {ranOut > 0
-              ? `${ranOut} marked run out — added to grocery`
-              : "Rice · dals · oil · spices — tap only if something ran out"}
+            {ranOut > 0 ? t("staples.sub_out", { n: ranOut }) : t("staples.sub_ok")}
           </Text>
         </View>
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={colors.textMuted} />
@@ -540,7 +567,7 @@ function StaplesSection({
                   color={s.ran_out ? colors.chili : colors.bananaLeaf}
                 />
                 <Text style={[styles.staplePillText, { color: s.ran_out ? colors.chili : colors.bananaLeaf }]}>
-                  {s.ran_out ? "Ran out" : "Stocked"}
+                  {s.ran_out ? t("staples.ranout") : t("staples.stocked")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -634,6 +661,20 @@ const styles = StyleSheet.create({
   staplePillOk: { backgroundColor: `${colors.bananaLeaf}14` },
   staplePillOut: { backgroundColor: `${colors.chili}14` },
   staplePillText: { fontSize: 12, fontWeight: "700" },
+  toast: {
+    position: "absolute",
+    left: spacing.m,
+    right: spacing.m,
+    backgroundColor: colors.bananaLeaf,
+    borderRadius: radius.pill,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: spacing.m,
+    paddingVertical: 12,
+    ...shadow.card,
+  },
+  toastText: { color: colors.riceWhite, flex: 1, fontSize: 13.5, fontWeight: "700" },
   addBtn: {
     width: 34,
     height: 34,

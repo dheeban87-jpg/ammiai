@@ -43,6 +43,7 @@ const FRESHNESS_LABEL: Record<string, string> = {
 };
 
 type FilterKey = "all" | "expiring" | "pantry" | "fridge";
+type StapleRow = { ingredient_id: string; name: string; category: string; ran_out: boolean };
 
 export default function PantryScreen() {
   const { t } = useI18n();
@@ -56,6 +57,8 @@ export default function PantryScreen() {
   const [qtyEdit, setQtyEdit] = useState("");
   const [busy, setBusy] = useState(false);
   const [waste, setWaste] = useState<{ total_estimated_inr: number } | null>(null);
+  const [staples, setStaples] = useState<StapleRow[]>([]);
+  const [staplesOpen, setStaplesOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -69,6 +72,27 @@ export default function PantryScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+    // R2: staples list (assumed-stocked with run-out flags). Non-blocking.
+    try {
+      const s = await api.get<{ staples: StapleRow[] }>("/api/pantry/staples");
+      setStaples(Array.isArray(s.staples) ? s.staples : []);
+    } catch {
+      /* endpoint not deployed yet — hide the section */
+    }
+  }, []);
+
+  const toggleStaple = useCallback(async (s: StapleRow) => {
+    const next = !s.ran_out;
+    setStaples((prev) =>
+      prev.map((x) => (x.ingredient_id === s.ingredient_id ? { ...x, ran_out: next } : x)),
+    );
+    try {
+      await api.post("/api/pantry/staples", { ingredient_id: s.ingredient_id, ran_out: next });
+    } catch {
+      setStaples((prev) =>
+        prev.map((x) => (x.ingredient_id === s.ingredient_id ? { ...x, ran_out: !next } : x)),
+      );
     }
   }, []);
 
@@ -90,13 +114,20 @@ export default function PantryScreen() {
     load();
   };
 
+  // R2: the main list tracks PERISHABLES only. Staples (staple/spice class) are
+  // assumed stocked and live in the collapsed section below.
+  const perishables = useMemo(
+    () => items.filter((i) => i.category !== "staple" && i.category !== "spice"),
+    [items],
+  );
+
   const filtered = useMemo(() => {
-    if (filter === "all") return items;
-    if (filter === "pantry") return items.filter((i) => i.storage === "pantry");
-    if (filter === "fridge") return items.filter((i) => i.storage === "fridge");
+    if (filter === "all") return perishables;
+    if (filter === "pantry") return perishables.filter((i) => i.storage === "pantry");
+    if (filter === "fridge") return perishables.filter((i) => i.storage === "fridge");
     // expiring: red + yellow
-    return items.filter((i) => i.freshness === "red" || i.freshness === "yellow");
-  }, [items, filter]);
+    return perishables.filter((i) => i.freshness === "red" || i.freshness === "yellow");
+  }, [perishables, filter]);
 
   const grouped = useMemo(() => {
     const g: Record<string, PantryItem[]> = {};
@@ -108,8 +139,8 @@ export default function PantryScreen() {
   }, [filtered]);
 
   const expiringCount = useMemo(
-    () => items.filter((i) => i.freshness === "red" || i.freshness === "yellow").length,
-    [items],
+    () => perishables.filter((i) => i.freshness === "red" || i.freshness === "yellow").length,
+    [perishables],
   );
 
   const setQtyDirect = async (item: PantryItem, newQty: number) => {
@@ -168,7 +199,7 @@ export default function PantryScreen() {
   };
 
   const FILTERS: { key: FilterKey; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { key: "all", label: `All ${items.length}`, icon: "apps" },
+    { key: "all", label: `All ${perishables.length}`, icon: "apps" },
     { key: "expiring", label: `Expiring ${expiringCount}`, icon: "alarm" },
     { key: "pantry", label: "Pantry", icon: "cube-outline" },
     { key: "fridge", label: "Fridge", icon: "snow-outline" },
@@ -251,6 +282,14 @@ export default function PantryScreen() {
               <Text style={styles.emptyBtnText}>Add first item</Text>
             </TouchableOpacity>
           )}
+          <View style={{ alignSelf: "stretch", marginTop: spacing.l }}>
+            <StaplesSection
+              staples={staples}
+              open={staplesOpen}
+              onToggleOpen={() => setStaplesOpen((v) => !v)}
+              onToggle={toggleStaple}
+            />
+          </View>
         </ScrollView>
       ) : (
         <FlatList
@@ -286,6 +325,14 @@ export default function PantryScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.riceWhite} />
               </TouchableOpacity>
             </>
+          }
+          ListFooterComponent={
+            <StaplesSection
+              staples={staples}
+              open={staplesOpen}
+              onToggleOpen={() => setStaplesOpen((v) => !v)}
+              onToggle={toggleStaple}
+            />
           }
           renderItem={({ item: [groupName, rows] }) => (
             <View style={styles.group}>
@@ -448,6 +495,62 @@ export default function PantryScreen() {
   );
 }
 
+function StaplesSection({
+  staples,
+  open,
+  onToggleOpen,
+  onToggle,
+}: {
+  staples: StapleRow[];
+  open: boolean;
+  onToggleOpen: () => void;
+  onToggle: (s: StapleRow) => void;
+}) {
+  if (staples.length === 0) return null;
+  const ranOut = staples.filter((s) => s.ran_out).length;
+  return (
+    <View style={styles.staplesCard} testID="staples-section">
+      <TouchableOpacity style={styles.staplesHeader} onPress={onToggleOpen} testID="staples-header">
+        <Text style={styles.staplesEmoji}>🧂</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.staplesTitle}>Staples ✓ assumed stocked</Text>
+          <Text style={styles.staplesSub}>
+            {ranOut > 0
+              ? `${ranOut} marked run out — added to grocery`
+              : "Rice · dals · oil · spices — tap only if something ran out"}
+          </Text>
+        </View>
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={20} color={colors.textMuted} />
+      </TouchableOpacity>
+      {open ? (
+        <View style={styles.staplesList}>
+          {staples.map((s) => (
+            <TouchableOpacity
+              key={s.ingredient_id}
+              style={styles.stapleRow}
+              onPress={() => onToggle(s)}
+              testID={`staple-${s.ingredient_id}`}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.stapleName, s.ran_out && styles.stapleNameOut]}>{s.name}</Text>
+              <View style={[styles.staplePill, s.ran_out ? styles.staplePillOut : styles.staplePillOk]}>
+                <Ionicons
+                  name={s.ran_out ? "cart-outline" : "checkmark"}
+                  size={13}
+                  color={s.ran_out ? colors.chili : colors.bananaLeaf}
+                />
+                <Text style={[styles.staplePillText, { color: s.ran_out ? colors.chili : colors.bananaLeaf }]}>
+                  {s.ran_out ? "Ran out" : "Stocked"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void }) {
   const dot = FRESHNESS_COLOR[item.freshness];
   const label = FRESHNESS_LABEL[item.freshness];
@@ -491,6 +594,46 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
+  // R2 staples section
+  staplesCard: {
+    backgroundColor: `${colors.bananaLeaf}0D`,
+    borderRadius: radius.l,
+    borderWidth: 1,
+    borderColor: `${colors.bananaLeaf}26`,
+    marginTop: spacing.m,
+    overflow: "hidden",
+  },
+  staplesHeader: { flexDirection: "row", alignItems: "center", gap: 10, padding: spacing.m },
+  staplesEmoji: { fontSize: 22 },
+  staplesTitle: { fontFamily: fonts.headingEn, fontSize: 15, color: colors.bananaLeafDark },
+  staplesSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 1 },
+  staplesList: {
+    borderTopWidth: 1,
+    borderTopColor: `${colors.bananaLeaf}1A`,
+    paddingHorizontal: spacing.m,
+    paddingBottom: spacing.s,
+  },
+  stapleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 9,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  stapleName: { fontSize: 14.5, color: colors.textPrimary, flex: 1 },
+  stapleNameOut: { color: colors.textMuted, textDecorationLine: "line-through" },
+  staplePill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+  },
+  staplePillOk: { backgroundColor: `${colors.bananaLeaf}14` },
+  staplePillOut: { backgroundColor: `${colors.chili}14` },
+  staplePillText: { fontSize: 12, fontWeight: "700" },
   addBtn: {
     width: 34,
     height: 34,

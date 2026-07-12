@@ -529,10 +529,10 @@ export default function Onboarding() {
 
           {step === 5 && (
             <View testID="step-pantry">
-              <Text style={styles.h1}>Stock your pantry</Text>
-              <Text style={styles.h1Ta}>சாமான் அறையை நிரப்புங்கள்</Text>
+              <Text style={styles.h1}>Add your fresh items</Text>
+              <Text style={styles.h1Ta}>உங்கள் புதிய பொருட்கள்</Text>
               <Text style={styles.paragraph}>
-                Start with a one-tap Basic Tamil Kitchen bundle: rice, dals, tamarind, onion, tomato, oil, curd. You can edit or add more anytime.
+                Staples assumed ✓ — rice, dals, tamarind, oil and spices are taken as stocked, so you only track what actually changes. Add your fresh items (vegetables, greens, curd), or tap the starter bundle below. You can edit anytime.
               </Text>
 
               <View style={styles.bundleCard} testID="basic-bundle-card">

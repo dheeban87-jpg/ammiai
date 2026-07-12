@@ -1555,14 +1555,18 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
             "category": r.get("category"), "nutrition": r.get("nutrition", {}),
             "health_tags": r.get("health_tags", []),
             "readiness": readiness,
+            "effort": len(ing_ids),  # fewer ingredients = easier; a solo cook prefers this
             "have": have, "missing": missing,
         })
     # Relevance-first: dishes that actually USE the user's fresh items rank above
     # staple-only dishes (which score readiness 100 on an empty need and would
     # otherwise flood the top and feel disconnected from the pantry). Within each
     # tier, most-ready first, then the ones using the most of your pantry.
-    out.sort(key=lambda d: (0 if d["have"] else 1, -d["readiness"], -len(d["have"])))
-    return {"dishes": out[:40], "pantry_count": len(pantry)}
+    # A curated short list beats a 40-item wall. Pantry-relevant first, then
+    # most-ready, then LOWEST effort (a solo cook won't attempt a 10-ingredient
+    # spread for dinner), then most pantry used. Keep it to a glanceable handful.
+    out.sort(key=lambda d: (0 if d["have"] else 1, -d["readiness"], d["effort"], -len(d["have"])))
+    return {"dishes": out[:6], "pantry_count": len(pantry)}
 
 
 @api_router.get("/dishes/for-health")
@@ -1602,12 +1606,13 @@ async def dishes_for_health(current=Depends(get_current_user)):
                 "id": r["id"], "name": r.get("name_en"), "name_ta": r.get("name_ta"),
                 "category": r.get("category"), "nutrition": r.get("nutrition", {}),
                 "why": f.get("reason", ""),
-            }))
-        picks.sort(key=lambda x: -x[0])
+            }, len(ing_ids)))
+        # Best fit first, then simplest to cook; a short curated set, not a dump.
+        picks.sort(key=lambda x: (-x[0], x[2]))
         groups.append({
             "focus": f.get("label", g),
             "guidance": f.get("guidance", ""),
-            "dishes": [p[1] for p in picks[:8]],
+            "dishes": [p[1] for p in picks[:4]],
         })
     return {"groups": groups, "note": "Dishes that SUPPORT your focus — not medical treatment; consult your doctor."}
 
@@ -1727,10 +1732,22 @@ async def grocery_suggest_health(current=Depends(get_current_user)):
                 "focus": f.get("label", g),
                 "estimated_inr": round(est, 2) if est else None,
             }
-    items = list(picked.values())[:18]
+    # Curated, not exhaustive: a solo cook won't act on 18 items. Keep the
+    # highest-priority picks (favour lists are already priority-ordered), max 2
+    # per category so it doesn't become four near-identical dals, capped short.
+    items: List[Dict[str, Any]] = []
+    per_cat: Dict[str, int] = {}
+    for it in picked.values():
+        cat = it.get("category") or "other"
+        if per_cat.get(cat, 0) >= 2:
+            continue
+        per_cat[cat] = per_cat.get(cat, 0) + 1
+        items.append(it)
+        if len(items) >= 6:
+            break
     return {
         "items": items,
-        "guidance": guidance[:3],
+        "guidance": guidance[:2],
         "focuses": [focuses.get(g, {}).get("label", g) for g in goals if g in focuses],
         "note": "Guidance based on ICMR-NIN 2024 — not medical advice; consult your doctor.",
     }

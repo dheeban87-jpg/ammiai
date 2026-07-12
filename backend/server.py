@@ -2637,6 +2637,100 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     return {"matches": matches, "unmatched": unmatched, "total_inr": total}
 
 
+# ------------------------- R3: fridge-photo inventory ------------------------- #
+class PantryPhotoScanIn(BaseModel):
+    image_base64: str
+    media_type: str = "image/jpeg"
+
+
+# Count-style fresh items are stocked by the piece; everything else by weight.
+_PHOTO_COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "coconut"}
+_PHOTO_QTY_G = {"small": 150, "medium": 300, "large": 500}
+_PHOTO_QTY_PC = {"small": 2, "medium": 4, "large": 6}
+
+
+@api_router.post("/pantry/photo-scan")
+async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_current_user)):
+    """Identify visible fresh items (vegetables/greens/fruits/dairy) from a
+    fridge/basket photo, grounded on AmmiAI's catalog. Returns a CONFIRMATION
+    list only — nothing is written to the pantry here (the app confirms first)."""
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+    from anthropic import AsyncAnthropic
+    from ai_planner import AI_MODEL
+
+    # Ground the model on the perishable catalog only (staples/spices excluded).
+    perishable_cats = ["vegetable", "leafy_green", "dairy", "protein"]
+    ings = await db.ingredients.find(
+        {"category": {"$in": perishable_cats}},
+        {"_id": 0, "ingredient_id": 1, "name": 1, "category": 1},
+    ).to_list(500)
+    catalog = {i["ingredient_id"]: i for i in ings}
+    catalog_str = ", ".join(f'{i["ingredient_id"]}={i.get("name", i["ingredient_id"])}' for i in ings)
+
+    client = AsyncAnthropic(api_key=key)
+    resp = await client.messages.create(
+        model=AI_MODEL,
+        max_tokens=700,
+        temperature=0,
+        messages=[{
+            "role": "user",
+            "content": [
+                {"type": "image", "source": {
+                    "type": "base64",
+                    "media_type": payload.media_type,
+                    "data": payload.image_base64,
+                }},
+                {"type": "text", "text": (
+                    "This is a photo of a fridge shelf or a vegetable basket in a Tamil home kitchen. "
+                    "Identify which of the following catalog ingredients are CLEARLY visible. "
+                    "Catalog (id=name): " + catalog_str + ". "
+                    "Rules: use ONLY ingredient_ids from this catalog; if you cannot clearly identify an "
+                    "item as one of these, OMIT it (never guess or invent). For each visible item give a "
+                    "rough quantity class based on how much is shown: small, medium, or large. "
+                    "Respond ONLY with JSON, no prose, no markdown fences: "
+                    "{\"items\": [{\"ingredient_id\": str, \"qty_class\": \"small\"|\"medium\"|\"large\"}]}"
+                )},
+            ],
+        }],
+    )
+    raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Couldn't read that photo — try better light and a clearer shot")
+
+    seen: set = set()
+    items: List[Dict[str, Any]] = []
+    for it in (parsed.get("items") or []):
+        iid = it.get("ingredient_id")
+        ing = catalog.get(iid)
+        if not ing or iid in seen:  # enforce catalog-grounding + dedupe
+            continue
+        seen.add(iid)
+        qc = it.get("qty_class") if it.get("qty_class") in ("small", "medium", "large") else "medium"
+        if iid in _PHOTO_COUNT_ITEMS:
+            qty, unit = _PHOTO_QTY_PC[qc], "pc"
+        else:
+            qty, unit = _PHOTO_QTY_G[qc], "g"
+        items.append({
+            "ingredient_id": iid,
+            "name": ing.get("name", iid.replace("_", " ").title()),
+            "category": ing.get("category"),
+            "qty_class": qc,
+            "qty": qty,
+            "unit": unit,
+        })
+
+    return {
+        "items": items,
+        "count": len(items),
+        "note": "Detected items — confirm or edit before adding. Unclear items are left out on purpose.",
+    }
+
+
 @api_router.get("/report/monthly-advice")
 async def monthly_advice(
     year: Optional[int] = None,

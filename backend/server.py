@@ -1380,6 +1380,18 @@ async def grocery_list(
                         continue
                     required[iid]["qty"] += q
 
+    # R2: staples the user marked "ran out" must appear in the buy list even when
+    # no planned dish uses them — the pantry toggle promises "added to grocery".
+    ran_out = await _ran_out_staples(current["user_id"])
+    for iid in ran_out:
+        if iid in required:
+            continue
+        if "oil" in iid or iid == "ghee":
+            q, u = _to_base(500, "ml")
+        else:
+            q, u = _to_base(500, "g")
+        required[iid] = {"qty": q, "unit_base": u}
+
     # Current pantry stock per ingredient (converted to base)
     pantry_rows = await db.pantry_items.find(
         {"user_id": current["user_id"]}, {"_id": 0}
@@ -1545,7 +1557,11 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
             "readiness": readiness,
             "have": have, "missing": missing,
         })
-    out.sort(key=lambda d: -d["readiness"])
+    # Relevance-first: dishes that actually USE the user's fresh items rank above
+    # staple-only dishes (which score readiness 100 on an empty need and would
+    # otherwise flood the top and feel disconnected from the pantry). Within each
+    # tier, most-ready first, then the ones using the most of your pantry.
+    out.sort(key=lambda d: (0 if d["have"] else 1, -d["readiness"], -len(d["have"])))
     return {"dishes": out[:40], "pantry_count": len(pantry)}
 
 

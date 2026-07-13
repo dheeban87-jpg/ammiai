@@ -1386,17 +1386,8 @@ async def grocery_list(
                         continue
                     required[iid]["qty"] += q
 
-    # R2: staples the user marked "ran out" must appear in the buy list even when
-    # no planned dish uses them — the pantry toggle promises "added to grocery".
-    ran_out = await _ran_out_staples(current["user_id"])
-    for iid in ran_out:
-        if iid in required:
-            continue
-        if "oil" in iid or iid == "ghee":
-            q, u = _to_base(500, "ml")
-        else:
-            q, u = _to_base(500, "g")
-        required[iid] = {"qty": q, "unit_base": u}
+    # S2 (supersedes R2): staples are assume-present infrastructure and NEVER
+    # appear in the grocery list — no ran-out injection.
 
     # Current pantry stock per ingredient (converted to base)
     pantry_rows = await db.pantry_items.find(

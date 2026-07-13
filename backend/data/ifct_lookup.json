@@ -1,0 +1,473 @@
+{
+  "_meta": {
+    "source": "IFCT 2017-aligned STARTER scaffold — approximate per-100g raw values; VERIFY in nutrition-KB phase before public launch",
+    "unit": "per_100g",
+    "note": "Deterministic lookup: same item -> same numbers. Never AI-generated."
+  },
+  "category_average": {
+    "vegetable": {
+      "kcal": 30,
+      "protein_g": 1.5,
+      "fiber_g": 2.5
+    },
+    "leafy_green": {
+      "kcal": 35,
+      "protein_g": 3.5,
+      "fiber_g": 3.0
+    },
+    "fruit": {
+      "kcal": 60,
+      "protein_g": 0.8,
+      "fiber_g": 2.0
+    },
+    "dairy": {
+      "kcal": 120,
+      "protein_g": 5.0,
+      "fiber_g": 0
+    },
+    "protein": {
+      "kcal": 140,
+      "protein_g": 20.0,
+      "fiber_g": 0
+    },
+    "meat_fish_egg": {
+      "kcal": 140,
+      "protein_g": 20.0,
+      "fiber_g": 0
+    },
+    "cereal_pulse": {
+      "kcal": 340,
+      "protein_g": 12.0,
+      "fiber_g": 6.0
+    },
+    "packaged": {
+      "kcal": 250,
+      "protein_g": 6.0,
+      "fiber_g": 2.0
+    }
+  },
+  "aliases": {
+    "sambar onion": "shallots",
+    "small onion": "shallots",
+    "pearl onion": "shallots",
+    "lauki": "bottle_gourd",
+    "sorakkai": "bottle_gourd",
+    "peerkangai": "ridge_gourd",
+    "pudalangai": "snake_gourd",
+    "pavakkai": "bitter_gourd",
+    "karela": "bitter_gourd",
+    "poosanikai": "ash_gourd",
+    "murungakkai": "drumstick",
+    "vazhakkai": "raw_banana",
+    "thakkali": "tomato",
+    "vengayam": "onion",
+    "kathirikai": "brinjal",
+    "eggplant": "brinjal",
+    "okra": "ladies_finger",
+    "vendakkai": "ladies_finger",
+    "kala chana": "black_chickpea",
+    "kondakadalai": "black_chickpea",
+    "white vatana": "white_peas",
+    "kabuli chana": "chickpea_kabuli",
+    "anjeer": "fig_anjeer",
+    "mosambi": "orange",
+    "sweet lime": "orange"
+  },
+  "items": {
+    "spinach_palak": {
+      "kcal": 23,
+      "protein_g": 2.9,
+      "fiber_g": 2.2
+    },
+    "coriander_leaves": {
+      "kcal": 23,
+      "protein_g": 2.1,
+      "fiber_g": 4.0
+    },
+    "curry_leaves": {
+      "kcal": 66,
+      "protein_g": 6.0,
+      "fiber_g": 6.0
+    },
+    "mint_leaves": {
+      "kcal": 48,
+      "protein_g": 3.8,
+      "fiber_g": 8.0
+    },
+    "methi_leaves": {
+      "kcal": 49,
+      "protein_g": 4.4,
+      "fiber_g": 1.1
+    },
+    "amaranth_keerai": {
+      "kcal": 23,
+      "protein_g": 3.6,
+      "fiber_g": 2.2
+    },
+    "moringa_leaves": {
+      "kcal": 64,
+      "protein_g": 9.4,
+      "fiber_g": 2.0
+    },
+    "mulaikeerai": {
+      "kcal": 23,
+      "protein_g": 3.6,
+      "fiber_g": 2.2
+    },
+    "vallarai": {
+      "kcal": 35,
+      "protein_g": 2.0,
+      "fiber_g": 3.0
+    },
+    "tomato": {
+      "kcal": 18,
+      "protein_g": 0.9,
+      "fiber_g": 1.2
+    },
+    "brinjal": {
+      "kcal": 24,
+      "protein_g": 1.0,
+      "fiber_g": 3.0
+    },
+    "ladies_finger": {
+      "kcal": 33,
+      "protein_g": 1.9,
+      "fiber_g": 3.2
+    },
+    "green_beans": {
+      "kcal": 31,
+      "protein_g": 1.8,
+      "fiber_g": 3.4
+    },
+    "carrot": {
+      "kcal": 41,
+      "protein_g": 0.9,
+      "fiber_g": 2.8
+    },
+    "beetroot": {
+      "kcal": 43,
+      "protein_g": 1.6,
+      "fiber_g": 2.8
+    },
+    "cabbage": {
+      "kcal": 25,
+      "protein_g": 1.3,
+      "fiber_g": 2.5
+    },
+    "cauliflower": {
+      "kcal": 25,
+      "protein_g": 1.9,
+      "fiber_g": 2.0
+    },
+    "capsicum": {
+      "kcal": 20,
+      "protein_g": 0.9,
+      "fiber_g": 1.7
+    },
+    "bottle_gourd": {
+      "kcal": 14,
+      "protein_g": 0.6,
+      "fiber_g": 0.5
+    },
+    "ridge_gourd": {
+      "kcal": 17,
+      "protein_g": 0.5,
+      "fiber_g": 1.0
+    },
+    "snake_gourd": {
+      "kcal": 18,
+      "protein_g": 0.5,
+      "fiber_g": 0.8
+    },
+    "bitter_gourd": {
+      "kcal": 17,
+      "protein_g": 1.0,
+      "fiber_g": 2.8
+    },
+    "ash_gourd": {
+      "kcal": 13,
+      "protein_g": 0.4,
+      "fiber_g": 2.9
+    },
+    "pumpkin": {
+      "kcal": 26,
+      "protein_g": 1.0,
+      "fiber_g": 0.5
+    },
+    "drumstick": {
+      "kcal": 37,
+      "protein_g": 2.1,
+      "fiber_g": 3.2
+    },
+    "raw_banana": {
+      "kcal": 89,
+      "protein_g": 1.1,
+      "fiber_g": 2.6
+    },
+    "cucumber": {
+      "kcal": 15,
+      "protein_g": 0.6,
+      "fiber_g": 0.5
+    },
+    "green_peas": {
+      "kcal": 81,
+      "protein_g": 5.4,
+      "fiber_g": 5.1
+    },
+    "green_chilli": {
+      "kcal": 40,
+      "protein_g": 1.9,
+      "fiber_g": 6.5
+    },
+    "ginger": {
+      "kcal": 80,
+      "protein_g": 1.8,
+      "fiber_g": 2.0
+    },
+    "garlic": {
+      "kcal": 149,
+      "protein_g": 6.4,
+      "fiber_g": 2.1
+    },
+    "onion": {
+      "kcal": 40,
+      "protein_g": 1.1,
+      "fiber_g": 1.7
+    },
+    "shallots": {
+      "kcal": 72,
+      "protein_g": 2.5,
+      "fiber_g": 3.2
+    },
+    "potato": {
+      "kcal": 77,
+      "protein_g": 2.0,
+      "fiber_g": 2.2
+    },
+    "sweet_potato": {
+      "kcal": 86,
+      "protein_g": 1.6,
+      "fiber_g": 3.0
+    },
+    "lemon": {
+      "kcal": 29,
+      "protein_g": 1.1,
+      "fiber_g": 2.8
+    },
+    "mango_raw": {
+      "kcal": 60,
+      "protein_g": 0.5,
+      "fiber_g": 1.6
+    },
+    "coconut": {
+      "kcal": 354,
+      "protein_g": 3.3,
+      "fiber_g": 9.0
+    },
+    "coconut_grated": {
+      "kcal": 354,
+      "protein_g": 3.3,
+      "fiber_g": 9.0
+    },
+    "sundakkai": {
+      "kcal": 30,
+      "protein_g": 2.0,
+      "fiber_g": 3.0
+    },
+    "kovakkai": {
+      "kcal": 18,
+      "protein_g": 1.2,
+      "fiber_g": 1.6
+    },
+    "banana_stem": {
+      "kcal": 21,
+      "protein_g": 0.5,
+      "fiber_g": 2.2
+    },
+    "banana_flower": {
+      "kcal": 51,
+      "protein_g": 1.6,
+      "fiber_g": 5.7
+    },
+    "taro_seppankizhangu": {
+      "kcal": 112,
+      "protein_g": 1.5,
+      "fiber_g": 4.1
+    },
+    "elephant_yam": {
+      "kcal": 118,
+      "protein_g": 1.5,
+      "fiber_g": 4.0
+    },
+    "broad_beans_avarai": {
+      "kcal": 88,
+      "protein_g": 7.9,
+      "fiber_g": 6.3
+    },
+    "raw_papaya": {
+      "kcal": 43,
+      "protein_g": 0.5,
+      "fiber_g": 1.7
+    },
+    "milk": {
+      "kcal": 62,
+      "protein_g": 3.2,
+      "fiber_g": 0
+    },
+    "curd": {
+      "kcal": 60,
+      "protein_g": 3.1,
+      "fiber_g": 0
+    },
+    "paneer": {
+      "kcal": 265,
+      "protein_g": 18.0,
+      "fiber_g": 0
+    },
+    "butter": {
+      "kcal": 717,
+      "protein_g": 0.9,
+      "fiber_g": 0
+    },
+    "ghee": {
+      "kcal": 900,
+      "protein_g": 0,
+      "fiber_g": 0
+    },
+    "cheese": {
+      "kcal": 310,
+      "protein_g": 20.0,
+      "fiber_g": 0
+    },
+    "eggs": {
+      "kcal": 143,
+      "protein_g": 12.6,
+      "fiber_g": 0
+    },
+    "chicken": {
+      "kcal": 121,
+      "protein_g": 20.0,
+      "fiber_g": 0
+    },
+    "mutton": {
+      "kcal": 143,
+      "protein_g": 20.0,
+      "fiber_g": 0
+    },
+    "fish": {
+      "kcal": 97,
+      "protein_g": 19.0,
+      "fiber_g": 0
+    },
+    "prawns": {
+      "kcal": 99,
+      "protein_g": 24.0,
+      "fiber_g": 0
+    },
+    "banana": {
+      "kcal": 89,
+      "protein_g": 1.1,
+      "fiber_g": 2.6
+    },
+    "apple": {
+      "kcal": 52,
+      "protein_g": 0.3,
+      "fiber_g": 2.4
+    },
+    "papaya": {
+      "kcal": 43,
+      "protein_g": 0.5,
+      "fiber_g": 1.7
+    },
+    "guava": {
+      "kcal": 68,
+      "protein_g": 2.6,
+      "fiber_g": 5.4
+    },
+    "orange": {
+      "kcal": 47,
+      "protein_g": 0.9,
+      "fiber_g": 2.4
+    },
+    "pomegranate": {
+      "kcal": 83,
+      "protein_g": 1.7,
+      "fiber_g": 4.0
+    },
+    "grapes": {
+      "kcal": 69,
+      "protein_g": 0.7,
+      "fiber_g": 0.9
+    },
+    "mango": {
+      "kcal": 60,
+      "protein_g": 0.8,
+      "fiber_g": 1.6
+    },
+    "amla": {
+      "kcal": 44,
+      "protein_g": 0.9,
+      "fiber_g": 3.4
+    },
+    "almonds": {
+      "kcal": 579,
+      "protein_g": 21.0,
+      "fiber_g": 12.5
+    },
+    "cashew": {
+      "kcal": 553,
+      "protein_g": 18.0,
+      "fiber_g": 3.3
+    },
+    "walnut": {
+      "kcal": 654,
+      "protein_g": 15.0,
+      "fiber_g": 6.7
+    },
+    "fig_anjeer": {
+      "kcal": 249,
+      "protein_g": 3.3,
+      "fiber_g": 9.8
+    },
+    "dates": {
+      "kcal": 277,
+      "protein_g": 1.8,
+      "fiber_g": 6.7
+    },
+    "raisins": {
+      "kcal": 299,
+      "protein_g": 3.1,
+      "fiber_g": 3.7
+    },
+    "flax_seeds": {
+      "kcal": 534,
+      "protein_g": 18.0,
+      "fiber_g": 27.0
+    },
+    "pumpkin_seeds": {
+      "kcal": 559,
+      "protein_g": 30.0,
+      "fiber_g": 6.0
+    },
+    "sunflower_seeds": {
+      "kcal": 584,
+      "protein_g": 21.0,
+      "fiber_g": 9.0
+    },
+    "chickpea_kabuli": {
+      "kcal": 364,
+      "protein_g": 19.0,
+      "fiber_g": 17.0
+    },
+    "black_chickpea": {
+      "kcal": 378,
+      "protein_g": 20.0,
+      "fiber_g": 18.0
+    },
+    "white_peas": {
+      "kcal": 341,
+      "protein_g": 23.0,
+      "fiber_g": 12.0
+    }
+  }
+}

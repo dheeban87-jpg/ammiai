@@ -7,6 +7,7 @@ import json
 import uuid
 import logging
 import re
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 from datetime import datetime, timezone, timedelta
@@ -1523,7 +1524,9 @@ def _health_rules() -> Dict[str, Any]:
 
 # ---------- Bulk chain: pantry -> dishes, and health-focus -> supportive dishes ---------- #
 # ---- S1: meal-slot awareness — the credibility filter (no fish curry at 7am) ----
-# Windows (IST, device-local) are the brief's proposal; confirm with owner.
+# Windows (IST, device-local), owner-approved 2026-07-13: breakfast 05:00-10:30,
+# lunch 10:30-15:00, dinner 15:00-05:00 (snack folded into dinner in v1; dinner
+# runs late — families eat past 23:00 and the app must never go blank).
 def _current_meal_slot() -> str:
     ist = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
     h = ist.hour + ist.minute / 60.0
@@ -1531,16 +1534,12 @@ def _current_meal_slot() -> str:
         return "breakfast"
     if 10.5 <= h < 15:
         return "lunch"
-    if 15 <= h < 18:
-        return "snack"
-    return "dinner"
+    return "dinner"  # 15:00 → 05:00; snack suppressed in v1, revisit with R4
 
 
 def _allowed_slots(slot_override: Optional[str] = None) -> Set[str]:
-    slot = slot_override if slot_override in ("breakfast", "lunch", "snack", "dinner") else _current_meal_slot()
-    # Snack is thin in v1 (open question #2) — pair with dinner so mid-evening
-    # isn't near-empty; mornings stay strictly breakfast.
-    return {"snack", "dinner"} if slot == "snack" else {slot}
+    slot = slot_override if slot_override in ("breakfast", "lunch", "dinner") else _current_meal_slot()
+    return {slot}
 
 
 def _slot_ok(recipe: Dict[str, Any], allowed: Set[str]) -> bool:
@@ -2808,6 +2807,167 @@ async def pantry_photo_scan(payload: PantryPhotoScanIn, current=Depends(get_curr
         "count": len(items),
         "note": "Detected items — confirm or edit before adding. Unclear items are left out on purpose.",
     }
+
+
+# ------------------------- S3: unified AI-first scan ------------------------- #
+from functools import lru_cache as _lru_cache
+
+
+@_lru_cache(maxsize=1)
+def _ifct() -> Dict[str, Any]:
+    try:
+        p = ROOT_DIR / "data" / "ifct_lookup.json"
+        return json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {"items": {}, "aliases": {}, "category_average": {}}
+
+
+def _norm_name(s: str) -> str:
+    s = (s or "").lower()
+    s = re.sub(r"\(.*?\)", " ", s)          # drop parentheticals: "Ridge Gourd (Peerkangai)"
+    s = re.sub(r"[^a-z0-9 ]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _ifct_nutrition(ingredient_id: Optional[str], category: str) -> Dict[str, Any]:
+    """Deterministic per-100g nutrition — IFCT lookup, else category average.
+    Never AI-generated (brief rule 1: same item -> same numbers)."""
+    it = _ifct().get("items", {}).get(ingredient_id or "")
+    if it:
+        return {"kcal": it["kcal"], "protein_g": it["protein_g"], "fiber_g": it["fiber_g"],
+                "per_100g": True, "source": "ifct", "needs_mapping": False}
+    avg = _ifct().get("category_average", {}).get(category)
+    if avg:
+        return {**avg, "per_100g": True, "source": "category_avg", "needs_mapping": True}
+    return {"kcal": None, "protein_g": None, "fiber_g": None, "per_100g": True,
+            "source": "unknown", "needs_mapping": True}
+
+
+async def _catalog_id_for(name_en: str) -> Optional[str]:
+    """Simple lookup (no fuzzy engine): alias table -> direct id -> catalog name."""
+    n = _norm_name(name_en)
+    if not n:
+        return None
+    alias = _ifct().get("aliases", {}).get(n)
+    if alias:
+        return alias
+    as_id = n.replace(" ", "_")
+    if await db.ingredients.find_one({"ingredient_id": as_id}, {"_id": 0, "ingredient_id": 1}):
+        return as_id
+    for doc in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1}).to_list(1000):
+        if _norm_name(doc.get("name")) == n:
+            return doc["ingredient_id"]
+    return None
+
+
+class UnifiedScanIn(BaseModel):
+    image_base64: str
+    media_type: str = "image/jpeg"
+
+
+_SCAN_QTY_G = {"small": 150, "medium": 300, "large": 500}
+_SCAN_QTY_PC = {"small": 2, "medium": 4, "large": 6}
+_COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "coconut", "apple", "orange"}
+
+
+@api_router.post("/scan")
+async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)):
+    """S3: ONE scan flow. Classifies physical_item / document_list / not_food,
+    grounds fresh items on the catalog with deterministic IFCT nutrition, reads
+    packaged nutrition panels, and caches by image hash to skip repeat vision
+    calls. Confirm-before-write: nothing is added to the pantry here."""
+    key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not key:
+        raise HTTPException(status_code=503, detail="AI not configured")
+
+    img_hash = hashlib.sha256(payload.image_base64.encode()).hexdigest()
+    cached = await db.scan_cache.find_one({"hash": img_hash}, {"_id": 0})
+    if cached:
+        await db.scan_cache.update_one({"hash": img_hash}, {"$inc": {"hits": 1}})
+        return {**cached["result"], "cache_hit": True}
+
+    from anthropic import AsyncAnthropic
+    from ai_planner import AI_MODEL
+
+    prompt = (
+        "You are the kitchen-inventory eye for a Tamil home cooking app. Look at this image and respond "
+        "ONLY with JSON (no prose, no markdown fences).\n"
+        "First classify: \"mode\": one of \"physical_item\" (real food/produce/packets in view), "
+        "\"document_list\" (an order screenshot, printed bill, or handwritten list), or \"not_food\".\n"
+        "For physical_item return: {\"mode\":\"physical_item\", \"items\":[{"
+        "\"name_en\":str, \"name_ta\":str, "
+        "\"category\":\"vegetable|fruit|leafy_green|cereal_pulse|meat_fish_egg|dairy|packaged|cooked_dish|serving_item\", "
+        "\"quantity_estimate\":\"small|medium|large\", "
+        "\"label\":{\"brand\":str,\"net_weight\":str,\"nutrition_panel\":{\"kcal\":num,\"protein_g\":num,\"fiber_g\":num}}|null, "
+        "\"confidence\":0-1}]}\n"
+        "For document_list return: {\"mode\":\"document_list\", \"source_guess\":str, \"items\":[{\"name_en\":str,"
+        "\"name_ta\":str,\"category\":str,\"qty_guess\":str,\"price\":num|null}]}\n"
+        "For not_food return: {\"mode\":\"not_food\", \"items\":[]}\n"
+        "Rules: identify a container's CONTENTS from its label when produce isn't directly visible "
+        "(e.g. a 'Peeled Sambar Onion 200g' tub = sambar onion). Banana leaves = serving_item. "
+        "Never invent items you cannot see or read. Tamil names in Tamil script."
+    )
+    client = AsyncAnthropic(api_key=key)
+    resp = await client.messages.create(
+        model=AI_MODEL, max_tokens=1000, temperature=0,
+        messages=[{"role": "user", "content": [
+            {"type": "image", "source": {"type": "base64", "media_type": payload.media_type, "data": payload.image_base64}},
+            {"type": "text", "text": prompt},
+        ]}],
+    )
+    raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+    raw = raw.replace("```json", "").replace("```", "").strip()
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=422, detail="Couldn't read that image — try a clearer, closer shot")
+
+    mode = parsed.get("mode")
+    if mode == "not_food":
+        result = {"mode": "not_food", "items": [], "message": "That doesn't look like food, soldier — point at your fresh items."}
+    elif mode == "document_list":
+        # S3c builds full receipt import; S3(1) detects + returns the raw parse.
+        result = {"mode": "document_list", "source_guess": parsed.get("source_guess"),
+                  "items": parsed.get("items") or [],
+                  "message": "Looks like an order/bill — receipt import is coming; for now scan items directly."}
+    else:
+        items: List[Dict[str, Any]] = []
+        for it in (parsed.get("items") or []):
+            if float(it.get("confidence") or 0) < 0.6:
+                continue
+            cat = it.get("category") or "vegetable"
+            name_en = it.get("name_en") or ""
+            iid = None if cat in ("packaged", "cooked_dish", "serving_item") else await _catalog_id_for(name_en)
+            qc = it.get("quantity_estimate") if it.get("quantity_estimate") in ("small", "medium", "large") else "medium"
+            if (iid or "") in _COUNT_ITEMS:
+                qty, unit = _SCAN_QTY_PC[qc], "pc"
+            else:
+                qty, unit = _SCAN_QTY_G[qc], "g"
+            label = it.get("label") or {}
+            panel = (label.get("nutrition_panel") if isinstance(label, dict) else None) or None
+            if cat == "serving_item":
+                nutrition = {"kcal": None, "protein_g": None, "fiber_g": None, "per_100g": True, "source": "serving_item", "needs_mapping": False}
+            elif panel and panel.get("kcal") is not None:
+                nutrition = {**panel, "per_100g": True, "source": "label_panel", "needs_mapping": False}
+            else:
+                nutrition = _ifct_nutrition(iid, cat)
+            if nutrition.get("needs_mapping") and cat not in ("cooked_dish", "serving_item"):
+                await db.mapping_queue.update_one(
+                    {"norm": _norm_name(name_en)},
+                    {"$set": {"name_en": name_en, "category": cat, "ts": _now()}, "$inc": {"count": 1}},
+                    upsert=True,
+                )
+            items.append({
+                "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
+                "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
+                "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
+                "confidence": it.get("confidence"),
+            })
+        result = {"mode": "physical_item", "items": items, "count": len(items),
+                  "note": "Confirm or edit before adding. Unclear items are left out on purpose."}
+
+    await db.scan_cache.insert_one({"hash": img_hash, "result": result, "hits": 0, "ts": _now()})
+    return {**result, "cache_hit": False}
 
 
 @api_router.get("/report/monthly-advice")

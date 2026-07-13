@@ -2860,6 +2860,72 @@ async def _catalog_id_for(name_en: str) -> Optional[str]:
     return None
 
 
+# S3b: self-learning knowledge base — first scan of a new item teaches the app.
+_BANNED_HEALTH = re.compile(
+    r"\b(cure|cured|cures|treat|treats|treated|treatment|remedy|remedies|reverse|reverses|"
+    r"reversal|heal|heals|healing|prevent|prevents|prevention|diagnos)\w*", re.I,
+)
+
+
+def _health_safe(text: Optional[str]) -> Optional[str]:
+    """Drop any AI copy that makes a medical claim (brief rule 5). Fail closed."""
+    if not text:
+        return text
+    return None if _BANNED_HEALTH.search(text) else text
+
+
+async def _autolink_recipes(norm_name: str) -> List[Dict[str, str]]:
+    """Auto lane: link a new ingredient to LIVE recipes that already use it."""
+    keys = {norm_name.replace(" ", "_")}
+    alias = _ifct().get("aliases", {}).get(norm_name)
+    if alias:
+        keys.add(alias)
+    links = []
+    for r in await db.recipes.find({}, {"_id": 0, "id": 1, "name_en": 1, "ingredients": 1}).to_list(500):
+        if keys & {i.get("ingredient_id") for i in r.get("ingredients", [])}:
+            links.append({"id": r["id"], "name": r.get("name_en")})
+    return links[:5]
+
+
+async def _kb_upsert(item: Dict[str, Any], category: str) -> Dict[str, Any]:
+    """Global KB entry (shared by all users). Reuse if known; create + grow the
+    catalog + queue a recipe-draft candidate if new. AI copy is health-scrubbed;
+    AI NEVER auto-publishes recipes (drafts go to the review queue)."""
+    norm = _norm_name(item.get("name_en") or "")
+    if not norm:
+        return {}
+    existing = await db.knowledge_base.find_one({"norm": norm}, {"_id": 0})
+    if existing:
+        await db.knowledge_base.update_one({"norm": norm}, {"$inc": {"seen_count": 1}})
+        return existing
+    entry = {
+        "norm": norm,
+        "name_en": item.get("name_en"),
+        "name_ta": item.get("name_ta"),
+        "category": category,
+        "ifct_category": category,
+        "what": _health_safe(item.get("what")),
+        "how_used": [u for u in (item.get("how_used") or []) if _health_safe(u)][:3],
+        "storage": _health_safe(item.get("storage")),
+        "dish_links": await _autolink_recipes(norm),
+        "source": "ai_scan",
+        "seen_count": 1,
+        "created_at": _now(),
+    }
+    await db.knowledge_base.insert_one(dict(entry))
+    await db.metrics.update_one({"key": "kb_size"}, {"$inc": {"value": 1}}, upsert=True)
+    # Review lane (gated): candidate for AI recipe drafts — Dheeb approves; AI
+    # never publishes. Draft generation itself is a separate step (not inline —
+    # keeps to one vision call per scan).
+    await db.recipe_suggestion_queue.update_one(
+        {"norm": norm},
+        {"$set": {"name_en": item.get("name_en"), "category": category, "ts": _now()},
+         "$setOnInsert": {"status": "pending"}},
+        upsert=True,
+    )
+    return entry
+
+
 class UnifiedScanIn(BaseModel):
     image_base64: str
     media_type: str = "image/jpeg"
@@ -2900,6 +2966,9 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
         "\"quantity_estimate\":\"small|medium|large\", "
         "\"label\":{\"brand\":str,\"net_weight\":str,\"nutrition_panel\":{\"kcal\":num,\"protein_g\":num,\"fiber_g\":num}}|null, "
         "\"confidence\":0-1}]}\n"
+        "For packaged or cooked_dish items ALSO add: \"what\" (one short factual line), "
+        "\"how_used\" (2-3 short common uses in Tamil cooking), \"storage\" (short tip). "
+        "Keep these purely descriptive — never say a food cures, treats, prevents or heals anything.\n"
         "For document_list return: {\"mode\":\"document_list\", \"source_guess\":str, \"items\":[{\"name_en\":str,"
         "\"name_ta\":str,\"category\":str,\"qty_guess\":str,\"price\":num|null}]}\n"
         "For not_food return: {\"mode\":\"not_food\", \"items\":[]}\n"
@@ -2957,11 +3026,17 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
                     {"$set": {"name_en": name_en, "category": cat, "ts": _now()}, "$inc": {"count": 1}},
                     upsert=True,
                 )
+            # S3b: a new (non-catalog) item teaches the global knowledge base.
+            kb = None
+            if cat in ("packaged", "cooked_dish") or (iid is None and cat != "serving_item"):
+                kb = await _kb_upsert(it, cat)
             items.append({
                 "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
                 "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
                 "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
                 "confidence": it.get("confidence"),
+                "kb": {"what": kb.get("what"), "how_used": kb.get("how_used"),
+                       "storage": kb.get("storage"), "dish_links": kb.get("dish_links")} if kb else None,
             })
         result = {"mode": "physical_item", "items": items, "count": len(items),
                   "note": "Confirm or edit before adding. Unclear items are left out on purpose."}

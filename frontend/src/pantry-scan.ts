@@ -26,8 +26,31 @@ async function resizeToJpegBase64(uri: string): Promise<string> {
   return out.base64 ?? "";
 }
 
-/** Pick/take one photo and scan it. Returns null if the user cancels the
- *  picker. Throws with `.perm` set ("camera"/"gallery") on permission denial. */
+// Shape returned by the unified S3 /api/scan endpoint.
+type ScanApiItem = {
+  ingredient_id: string | null;
+  name_en: string;
+  name_ta?: string;
+  category: string;
+  qty: number;
+  unit: string;
+  addable: boolean;
+  needs_mapping?: boolean;
+};
+type ScanApiResult = {
+  mode: "physical_item" | "document_list" | "not_food";
+  items?: ScanApiItem[];
+  note?: string;
+  message?: string;
+  cache_hit?: boolean;
+};
+
+/** Pick/take one photo and scan it via the unified /api/scan pipeline. Returns
+ *  null if the user cancels the picker. Throws with `.perm` set
+ *  ("camera"/"gallery") on permission denial. Non-physical modes (order
+ *  screenshots, non-food) return an empty item list with a `note` for now —
+ *  full receipt import lands in S3c. Only catalog-addable items are surfaced
+ *  until the knowledge base (S3b) can back non-catalog items. */
 export async function captureAndScan(source: ScanSource): Promise<ScanResult | null> {
   if (source === "camera") {
     const p = await ImagePicker.requestCameraPermissionsAsync();
@@ -51,10 +74,25 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
   if (res.canceled || !res.assets?.[0]?.uri) return null;
   const base64 = await resizeToJpegBase64(res.assets[0].uri);
   if (!base64) throw new Error("process");
-  return api.post<ScanResult>("/api/pantry/photo-scan", {
+
+  const out = await api.post<ScanApiResult>("/api/scan", {
     image_base64: base64,
     media_type: "image/jpeg",
   });
+  if (out.mode !== "physical_item") {
+    return { items: [], count: 0, note: out.message };
+  }
+  const items: ScanItem[] = (out.items ?? [])
+    .filter((i) => i.addable && i.ingredient_id)
+    .map((i) => ({
+      ingredient_id: i.ingredient_id as string,
+      name: i.name_en,
+      category: i.category,
+      qty_class: "medium",
+      qty: i.qty,
+      unit: i.unit,
+    }));
+  return { items, count: items.length, note: out.note };
 }
 
 export function storageForCategory(category?: string): "pantry" | "fridge" {

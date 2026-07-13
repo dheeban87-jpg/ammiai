@@ -1193,9 +1193,15 @@ async def get_rescue(current=Depends(get_current_user)):
 
 
 @api_router.get("/cook-now")
-async def get_cook_now(current=Depends(get_current_user)):
+async def get_cook_now(slot: Optional[str] = None, current=Depends(get_current_user)):
     ctx = await _build_context(current["user_id"])
-    return {"items": engine_cook_now(ctx, limit=8)}
+    slots = _allowed_slots(slot)  # S1: meal-slot filter first
+    id_slots = {r["id"]: (r.get("meal_slots") or []) for r in ctx.recipes}
+    items = [
+        it for it in engine_cook_now(ctx, limit=24)
+        if not id_slots.get(it.get("id")) or (set(id_slots[it["id"]]) & slots)
+    ]
+    return {"items": items[:8]}
 
 
 # ------------------------- Grocery ------------------------- #
@@ -1525,8 +1531,36 @@ def _health_rules() -> Dict[str, Any]:
 
 
 # ---------- Bulk chain: pantry -> dishes, and health-focus -> supportive dishes ---------- #
+# ---- S1: meal-slot awareness — the credibility filter (no fish curry at 7am) ----
+# Windows (IST, device-local) are the brief's proposal; confirm with owner.
+def _current_meal_slot() -> str:
+    ist = datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)
+    h = ist.hour + ist.minute / 60.0
+    if 5 <= h < 10.5:
+        return "breakfast"
+    if 10.5 <= h < 15:
+        return "lunch"
+    if 15 <= h < 18:
+        return "snack"
+    return "dinner"
+
+
+def _allowed_slots(slot_override: Optional[str] = None) -> Set[str]:
+    slot = slot_override if slot_override in ("breakfast", "lunch", "snack", "dinner") else _current_meal_slot()
+    # Snack is thin in v1 (open question #2) — pair with dinner so mid-evening
+    # isn't near-empty; mornings stay strictly breakfast.
+    return {"snack", "dinner"} if slot == "snack" else {slot}
+
+
+def _slot_ok(recipe: Dict[str, Any], allowed: Set[str]) -> bool:
+    ms = recipe.get("meal_slots")
+    if not ms:  # untagged recipe → never hidden (fail-open); tagging is CI-checked
+        return True
+    return bool(set(ms) & allowed)
+
+
 @api_router.get("/dishes/from-pantry")
-async def dishes_from_pantry(current=Depends(get_current_user)):
+async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_current_user)):
     """THE pantry->dish chain, made visible. For each dish, compute how much of
     its ingredients the user already has in pantry, and rank by readiness."""
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
@@ -1538,9 +1572,12 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
 
     DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
     allowed = DIET_OK.get(diet, {"veg"})
+    slots = _allowed_slots(slot)  # S1: meal-slot filter runs FIRST, absolute
 
     out = []
     for r in recipes:
+        if not _slot_ok(r, slots):
+            continue
         if r.get("diet") not in allowed:
             continue
         ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
@@ -1570,7 +1607,7 @@ async def dishes_from_pantry(current=Depends(get_current_user)):
 
 
 @api_router.get("/dishes/for-health")
-async def dishes_for_health(current=Depends(get_current_user)):
+async def dishes_for_health(slot: Optional[str] = None, current=Depends(get_current_user)):
     """Health-focus -> SUPPORTIVE dishes (never 'curative'). Maps the user's
     focus areas to dishes tagged/ingredient-matched for that focus."""
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
@@ -1582,6 +1619,7 @@ async def dishes_for_health(current=Depends(get_current_user)):
 
     DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "nonveg": {"veg", "egg", "nonveg"}}
     allowed = DIET_OK.get(diet, {"veg"})
+    slots = _allowed_slots(slot)  # S1: meal-slot filter first
 
     groups = []
     for g in goals:
@@ -1592,6 +1630,8 @@ async def dishes_for_health(current=Depends(get_current_user)):
         favour = set(f.get("grocery_favour", []))
         picks = []
         for r in recipes:
+            if not _slot_ok(r, slots):
+                continue
             if r.get("diet") not in allowed:
                 continue
             ing_ids = set(i["ingredient_id"] for i in r.get("ingredients", []))

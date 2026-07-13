@@ -1,3920 +1,4297 @@
 [
- {
-  "id": "kz_sambar",
-  "name_en": "Sambar",
-  "name_ta": "Sambar",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 35,
-  "ingredients": [
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "drumstick",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "turmeric",
-   "fenugreek_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 150,
-   "protein_g": 7,
-   "carbs_g": 22,
-   "fat_g": 4,
-   "fiber_g": 5
-  },
-  "health_tags": [
-   "high_protein",
-   "high_fiber"
-  ],
-  "combo_partners": [
-   "pr_beans",
-   "pr_cabbage",
-   "kt_sorakkai"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_vatha",
-  "name_en": "Vatha Kuzhambu",
-  "name_ta": "Vatha Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "tamarind",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 15,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "fenugreek_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 130,
-   "protein_g": 2,
-   "carbs_g": 14,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [],
-  "combo_partners": [
-   "pr_keerai",
-   "pr_potato",
-   "tg_paruppu"
-  ],
-  "notes": "Pairs with paruppu thogayal for protein"
- },
- {
-  "id": "kz_mor",
-  "name_en": "Mor Kuzhambu",
-  "name_ta": "Mor Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "curd",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ash_gourd",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "turmeric",
-   "cumin",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 4,
-   "carbs_g": 8,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [
-   "pr_potato",
-   "pr_vazhakkai",
-   "pr_beetroot"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_kara",
-  "name_en": "Kara Kuzhambu",
-  "name_ta": "Kara Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "brinjal",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "drumstick",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 15,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 140,
-   "protein_g": 3,
-   "carbs_g": 16,
-   "fat_g": 8,
-   "fiber_g": 4
-  },
-  "health_tags": [],
-  "combo_partners": [
-   "pr_cabbage",
-   "pr_carrot",
-   "kt_keerai"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_puli",
-  "name_en": "Puli Kuzhambu (Onion)",
-  "name_ta": "Vengaya Puli Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "shallots",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 14,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 14,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "fenugreek_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 135,
-   "protein_g": 2,
-   "carbs_g": 15,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [],
-  "combo_partners": [
-   "pr_keerai",
-   "pr_beans"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_keerai",
-  "name_en": "Keerai Kuzhambu",
-  "name_ta": "Keerai Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "spinach_palak",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 6,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_fiber",
-   "diabetic_friendly",
-   "heart_healthy"
-  ],
-  "combo_partners": [
-   "pr_potato",
-   "pr_vazhakkai"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_poondu",
-  "name_en": "Poondu Kuzhambu (Garlic)",
-  "name_ta": "Poondu Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "garlic",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 14,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 14,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "fenugreek_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 140,
-   "protein_g": 3,
-   "carbs_g": 16,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "heart_healthy"
-  ],
-  "combo_partners": [
-   "pr_cabbage",
-   "pr_beans"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_ennai",
-  "name_en": "Ennai Kathirikai Kuzhambu",
-  "name_ta": "Ennai Kathirikai",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 35,
-  "ingredients": [
-   {
-    "ingredient_id": "brinjal",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 18,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 170,
-   "protein_g": 3,
-   "carbs_g": 15,
-   "fat_g": 12,
-   "fiber_g": 5
-  },
-  "health_tags": [],
-  "combo_partners": [
-   "pr_keerai",
-   "rs_paruppu"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_paruppu",
-  "name_en": "Paruppu Kuzhambu (Dal)",
-  "name_ta": "Paruppu Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 35,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "turmeric",
-   "cumin",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 150,
-   "protein_g": 8,
-   "carbs_g": 20,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly"
-  ],
-  "combo_partners": [
-   "pr_cabbage",
-   "pr_beetroot"
-  ],
-  "notes": ""
- },
- {
-  "id": "kz_egg",
-  "name_en": "Muttai Kuzhambu (Egg)",
-  "name_ta": "Muttai Kuzhambu",
-  "category": "kuzhambu",
-  "diet": "nonveg",
-  "spice_level": "medium",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "eggs",
-    "qty": 2,
-    "unit": "pc"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 6,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 10,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "curry_masala",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 240,
-   "protein_g": 14,
-   "carbs_g": 10,
-   "fat_g": 16,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [
-   "pr_beans",
-   "pr_cabbage"
-  ],
-  "notes": ""
- },
- {
-  "id": "pr_beans",
-  "name_en": "Beans Poriyal",
-  "name_ta": "Beans Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "green_beans",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 3,
-   "carbs_g": 10,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "weight_loss",
-   "high_fiber",
-   "diabetic_friendly"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_cabbage",
-  "name_en": "Cabbage Poriyal",
-  "name_ta": "Muttaikose Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "cabbage",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 80,
-   "protein_g": 2,
-   "carbs_g": 9,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "weight_loss",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_carrot",
-  "name_en": "Carrot Poriyal",
-  "name_ta": "Carrot Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "carrot",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 90,
-   "protein_g": 2,
-   "carbs_g": 12,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "kids_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_beetroot",
-  "name_en": "Beetroot Poriyal",
-  "name_ta": "Beetroot Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "beetroot",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 95,
-   "protein_g": 2,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "heart_healthy",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_vazhakkai",
-  "name_en": "Vazhakkai Poriyal (Raw Banana)",
-  "name_ta": "Vazhakkai Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "raw_banana",
-    "qty": 110,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 130,
-   "protein_g": 2,
-   "carbs_g": 24,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_potato",
-  "name_en": "Potato Roast",
-  "name_ta": "Urulai Roast",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "potato",
-    "qty": 120,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 160,
-   "protein_g": 3,
-   "carbs_g": 26,
-   "fat_g": 6,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "kids_friendly"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_keerai",
-  "name_en": "Keerai Poriyal",
-  "name_ta": "Keerai Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "spinach_palak",
-    "qty": 120,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 70,
-   "protein_g": 3,
-   "carbs_g": 6,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "weight_loss",
-   "heart_healthy",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_cauliflower",
-  "name_en": "Cauliflower Poriyal",
-  "name_ta": "Cauliflower Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "cauliflower",
-    "qty": 110,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 3,
-   "carbs_g": 9,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "high_fiber",
-   "weight_loss"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_vendakkai",
-  "name_en": "Vendakkai Poriyal (Okra)",
-  "name_ta": "Vendakkai Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "ladies_finger",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 90,
-   "protein_g": 2,
-   "carbs_g": 9,
-   "fat_g": 5,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_pavakkai",
-  "name_en": "Pavakkai Poriyal (Bitter Gourd)",
-  "name_ta": "Pavakkai Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "bitter_gourd",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 2,
-   "carbs_g": 8,
-   "fat_g": 5,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "diabetic_friendly"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "pr_kothavarangai",
-  "name_en": "Cluster Beans Poriyal",
-  "name_ta": "Kothavarangai Poriyal",
-  "category": "poriyal",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "green_beans",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 3,
-   "carbs_g": 10,
-   "fat_g": 4,
-   "fiber_g": 5
-  },
-  "health_tags": [
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_sorakkai",
-  "name_en": "Sorakkai Kootu (Bottle Gourd)",
-  "name_ta": "Sorakkai Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "bottle_gourd",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_pudalangai",
-  "name_en": "Pudalangai Kootu (Snake Gourd)",
-  "name_ta": "Pudalangai Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "snake_gourd",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_cabbage",
-  "name_en": "Cabbage Kootu",
-  "name_ta": "Muttaikose Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "cabbage",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_keerai",
-  "name_en": "Keerai Kootu",
-  "name_ta": "Keerai Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "spinach_palak",
-    "qty": 100,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_peerkangai",
-  "name_en": "Peerkangai Kootu (Ridge Gourd)",
-  "name_ta": "Peerkangai Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "ridge_gourd",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_poosanikai",
-  "name_en": "Poosanikai Kootu (Ash Gourd)",
-  "name_ta": "Poosanikai Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "ash_gourd",
-    "qty": 90,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "kt_mixveg",
-  "name_en": "Mixed Veg Kootu",
-  "name_ta": "Kadamba Kootu",
-  "category": "kootu",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "carrot",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_beans",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cabbage",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 4,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": "Rescue dish for expiring vegetables"
- },
- {
-  "id": "rs_tomato",
-  "name_en": "Tomato Rasam",
-  "name_ta": "Thakkali Rasam",
-  "category": "rasam",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "tomato",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coriander_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 4,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "rasam_powder",
-   "black_pepper",
-   "cumin",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 50,
-   "protein_g": 1,
-   "carbs_g": 7,
-   "fat_g": 2,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "light",
-   "weight_loss"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "rs_milagu",
-  "name_en": "Milagu Rasam (Pepper)",
-  "name_ta": "Milagu Rasam",
-  "category": "rasam",
-  "diet": "veg",
-  "spice_level": "hot",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "tamarind",
-    "qty": 6,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 6,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 4,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 45,
-   "protein_g": 1,
-   "carbs_g": 5,
-   "fat_g": 2,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": "Amma's cold/flu remedy"
- },
- {
-  "id": "rs_paruppu",
-  "name_en": "Paruppu Rasam",
-  "name_ta": "Paruppu Rasam",
-  "category": "rasam",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 4,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "rasam_powder",
-   "cumin",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 4,
-   "carbs_g": 11,
-   "fat_g": 2,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "high_protein",
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "rs_lemon",
-  "name_en": "Lemon Rasam",
-  "name_ta": "Elumichai Rasam",
-  "category": "rasam",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "lemon",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ginger",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 4,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 70,
-   "protein_g": 3,
-   "carbs_g": 9,
-   "fat_g": 2,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "rs_poondu",
-  "name_en": "Poondu Rasam (Garlic)",
-  "name_ta": "Poondu Rasam",
-  "category": "rasam",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "garlic",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 4,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "rasam_powder",
-   "black_pepper",
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 55,
-   "protein_g": 1,
-   "carbs_g": 7,
-   "fat_g": 2,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "heart_healthy",
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "tf_idli",
-  "name_en": "Idli (3 pc)",
-  "name_ta": "Idli",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "idli_rice",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 20,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 210,
-   "protein_g": 6,
-   "carbs_g": 44,
-   "fat_g": 1,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light",
-   "weight_loss",
-   "diabetic_friendly",
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney",
-   "kz_sambar"
-  ],
-  "notes": "Ferment batter 8-12h"
- },
- {
-  "id": "tf_dosa",
-  "name_en": "Plain Dosa (2 pc)",
-  "name_ta": "Dosai",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "idli_rice",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 6,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 230,
-   "protein_g": 5,
-   "carbs_g": 42,
-   "fat_g": 5,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light",
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney",
-   "ac_tomato_chutney"
-  ],
-  "notes": ""
- },
- {
-  "id": "tf_uthappam",
-  "name_en": "Onion Uthappam",
-  "name_ta": "Vengaya Uthappam",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "idli_rice",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 260,
-   "protein_g": 6,
-   "carbs_g": 46,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney"
-  ],
-  "notes": ""
- },
- {
-  "id": "tf_pongal",
-  "name_en": "Ven Pongal",
-  "name_ta": "Ven Pongal",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ginger",
-    "qty": 3,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 330,
-   "protein_g": 9,
-   "carbs_g": 52,
-   "fat_g": 10,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney",
-   "kz_sambar"
-  ],
-  "notes": ""
- },
- {
-  "id": "tf_upma",
-  "name_en": "Rava Upma",
-  "name_ta": "Rava Upma",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "rava",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "carrot",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 10,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 280,
-   "protein_g": 6,
-   "carbs_g": 45,
-   "fat_g": 9,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney"
-  ],
-  "notes": ""
- },
- {
-  "id": "tf_semiya",
-  "name_en": "Semiya Upma",
-  "name_ta": "Semiya Upma",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "vermicelli",
-    "qty": 55,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "carrot",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 10,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 260,
-   "protein_g": 5,
-   "carbs_g": 44,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light",
-   "kids_friendly"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "tf_aval",
-  "name_en": "Aval Upma (Poha)",
-  "name_ta": "Aval Upma",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "poha",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "lemon",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 230,
-   "protein_g": 4,
-   "carbs_g": 42,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light",
-   "weight_loss"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "tf_adai",
-  "name_en": "Adai (2 pc)",
-  "name_ta": "Adai",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "chana_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "asafoetida",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 290,
-   "protein_g": 11,
-   "carbs_g": 46,
-   "fat_g": 7,
-   "fiber_g": 5
-  },
-  "health_tags": [
-   "high_protein",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": "Soak dals 3h; classic pair: aviyal or jaggery"
- },
- {
-  "id": "tf_ragi_dosa",
-  "name_en": "Ragi Dosa (2 pc)",
-  "name_ta": "Kezhvaragu Dosai",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "millet_ragi",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 220,
-   "protein_g": 5,
-   "carbs_g": 40,
-   "fat_g": 6,
-   "fiber_g": 4
-  },
-  "health_tags": [
-   "diabetic_friendly",
-   "weight_loss",
-   "high_fiber"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney"
-  ],
-  "notes": ""
- },
- {
-  "id": "tf_godhumai_dosa",
-  "name_en": "Wheat Dosa (2 pc)",
-  "name_ta": "Godhumai Dosai",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "wheat_flour",
-    "qty": 55,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 240,
-   "protein_g": 6,
-   "carbs_g": 42,
-   "fat_g": 6,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [
-   "ac_tomato_chutney"
-  ],
-  "notes": "Instant — no fermentation"
- },
- {
-  "id": "tf_idiyappam",
-  "name_en": "Idiyappam (3 pc)",
-  "name_ta": "Idiyappam",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "rice_flour",
-    "qty": 65,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 280,
-   "protein_g": 4,
-   "carbs_g": 54,
-   "fat_g": 5,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "tf_arisi_kanji",
-  "name_en": "Arisi Kanji (Rice Porridge)",
-  "name_ta": "Arisi Kanji",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 45,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "milk",
-    "qty": 80,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "salt_or_jaggery"
-  ],
-  "nutrition": {
-   "kcal": 210,
-   "protein_g": 5,
-   "carbs_g": 40,
-   "fat_g": 3,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "light",
-   "kids_friendly"
-  ],
-  "combo_partners": [],
-  "notes": "Comfort food; good when unwell"
- },
- {
-  "id": "tf_ragi_kanji",
-  "name_en": "Ragi Kanji",
-  "name_ta": "Kezhvaragu Kanji",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "millet_ragi",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "milk",
-    "qty": 100,
-    "unit": "ml"
-   },
-   {
-    "ingredient_id": "curd",
-    "qty": 30,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "salt_or_jaggery"
-  ],
-  "nutrition": {
-   "kcal": 200,
-   "protein_g": 6,
-   "carbs_g": 34,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "diabetic_friendly",
-   "weight_loss",
-   "heart_healthy"
-  ],
-  "combo_partners": [],
-  "notes": "Traditional summer cooler with buttermilk"
- },
- {
-  "id": "tf_paniyaram",
-  "name_en": "Kuzhi Paniyaram (5 pc)",
-  "name_ta": "Kuzhi Paniyaram",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "idli_rice",
-    "qty": 55,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 250,
-   "protein_g": 6,
-   "carbs_g": 44,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney"
-  ],
-  "notes": "Great use of sour leftover batter"
- },
- {
-  "id": "vr_lemon",
-  "name_en": "Lemon Rice",
-  "name_ta": "Elumichai Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "lemon",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 10,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "turmeric",
-   "peanuts_optional",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 300,
-   "protein_g": 5,
-   "carbs_g": 54,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [
-   "ac_appalam",
-   "pr_potato"
-  ],
-  "notes": ""
- },
- {
-  "id": "vr_puliyodarai",
-  "name_en": "Tamarind Rice",
-  "name_ta": "Puliyodarai",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 12,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "chana_dal_tsp",
-   "red_chilli",
-   "peanuts_optional",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 320,
-   "protein_g": 5,
-   "carbs_g": 56,
-   "fat_g": 9,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "festive"
-  ],
-  "combo_partners": [
-   "ac_appalam"
-  ],
-  "notes": ""
- },
- {
-  "id": "vr_thayir",
-  "name_en": "Curd Rice",
-  "name_ta": "Thayir Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curd",
-    "qty": 120,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "milk",
-    "qty": 30,
-    "unit": "ml"
-   },
-   {
-    "ingredient_id": "ginger",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 310,
-   "protein_g": 9,
-   "carbs_g": 52,
-   "fat_g": 7,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "light",
-   "kids_friendly"
-  ],
-  "combo_partners": [],
-  "notes": "Meal closer; cooling"
- },
- {
-  "id": "vr_tomato",
-  "name_en": "Tomato Rice",
-  "name_ta": "Thakkali Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 80,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "mint_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 12,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "curry_masala",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 330,
-   "protein_g": 6,
-   "carbs_g": 58,
-   "fat_g": 8,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "kids_friendly"
-  ],
-  "combo_partners": [
-   "ac_appalam",
-   "pr_potato"
-  ],
-  "notes": ""
- },
- {
-  "id": "vr_coconut",
-  "name_en": "Coconut Rice",
-  "name_ta": "Thengai Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 340,
-   "protein_g": 5,
-   "carbs_g": 54,
-   "fat_g": 12,
-   "fiber_g": 3
-  },
-  "health_tags": [],
-  "combo_partners": [
-   "ac_appalam",
-   "pr_beans"
-  ],
-  "notes": ""
- },
- {
-  "id": "vr_sambar_sadam",
-  "name_en": "Sambar Sadam (One-pot)",
-  "name_ta": "Sambar Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 35,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 65,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "drumstick",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "carrot",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 8,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "sambar_powder",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 390,
-   "protein_g": 11,
-   "carbs_g": 66,
-   "fat_g": 8,
-   "fiber_g": 6
-  },
-  "health_tags": [
-   "high_protein",
-   "high_fiber"
-  ],
-  "combo_partners": [
-   "ac_appalam"
-  ],
-  "notes": "Complete one-pot meal"
- },
- {
-  "id": "vr_kothamalli",
-  "name_en": "Coriander Rice",
-  "name_ta": "Kothamalli Sadam",
-  "category": "variety_rice",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 70,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coriander_leaves",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 4,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 10,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 310,
-   "protein_g": 5,
-   "carbs_g": 54,
-   "fat_g": 9,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [
-   "pr_potato"
-  ],
-  "notes": "Rescue dish for wilting coriander"
- },
- {
-  "id": "nv_muttai_poriyal",
-  "name_en": "Egg Poriyal (Scramble)",
-  "name_ta": "Muttai Poriyal",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "medium",
-  "prep_time_min": 10,
-  "ingredients": [
-   {
-    "ingredient_id": "eggs",
-    "qty": 2,
-    "unit": "pc"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 200,
-   "protein_g": 13,
-   "carbs_g": 4,
-   "fat_g": 15,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "high_protein",
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "nv_omelette",
-  "name_en": "Omelette",
-  "name_ta": "Muttai Omelette",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "mild",
-  "prep_time_min": 8,
-  "ingredients": [
-   {
-    "ingredient_id": "eggs",
-    "qty": 2,
-    "unit": "pc"
-   },
-   {
-    "ingredient_id": "onion",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 210,
-   "protein_g": 13,
-   "carbs_g": 3,
-   "fat_g": 16,
-   "fiber_g": 0
-  },
-  "health_tags": [
-   "high_protein",
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "nv_chicken_kuzhambu",
-  "name_en": "Chicken Kuzhambu (Home style)",
-  "name_ta": "Kozhi Kuzhambu",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "hot",
-  "prep_time_min": 45,
-  "ingredients": [
-   {
-    "ingredient_id": "chicken",
-    "qty": 150,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ginger",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 12,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "curry_masala",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 340,
-   "protein_g": 30,
-   "carbs_g": 10,
-   "fat_g": 20,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [
-   "pr_cabbage",
-   "rs_milagu"
-  ],
-  "notes": ""
- },
- {
-  "id": "nv_pepper_chicken",
-  "name_en": "Pepper Chicken (Dry)",
-  "name_ta": "Milagu Kozhi Varuval",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "hot",
-  "prep_time_min": 35,
-  "ingredients": [
-   {
-    "ingredient_id": "chicken",
-    "qty": 140,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 12,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "fennel",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 300,
-   "protein_g": 28,
-   "carbs_g": 6,
-   "fat_g": 18,
-   "fiber_g": 1
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "nv_meen_kuzhambu",
-  "name_en": "Fish Kuzhambu",
-  "name_ta": "Meen Kuzhambu",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "hot",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "fish",
-    "qty": 150,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 14,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "fish_curry_masala",
-   "fenugreek_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 260,
-   "protein_g": 26,
-   "carbs_g": 10,
-   "fat_g": 13,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "high_protein",
-   "heart_healthy"
-  ],
-  "combo_partners": [
-   "pr_potato"
-  ],
-  "notes": "Tastes best next day"
- },
- {
-  "id": "nv_meen_varuval",
-  "name_en": "Fish Fry",
-  "name_ta": "Meen Varuval",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "hot",
-  "prep_time_min": 20,
-  "ingredients": [
-   {
-    "ingredient_id": "fish",
-    "qty": 140,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "lemon",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 6,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 16,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli_powder",
-   "turmeric",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 280,
-   "protein_g": 25,
-   "carbs_g": 4,
-   "fat_g": 18,
-   "fiber_g": 0
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "nv_era_thokku",
-  "name_en": "Prawn Thokku",
-  "name_ta": "Era Thokku",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "hot",
-  "prep_time_min": 25,
-  "ingredients": [
-   {
-    "ingredient_id": "prawns",
-    "qty": 130,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tomato",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 14,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli_powder",
-   "turmeric",
-   "fennel",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 240,
-   "protein_g": 24,
-   "carbs_g": 10,
-   "fat_g": 12,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "ac_coconut_chutney",
-  "name_en": "Coconut Chutney",
-  "name_ta": "Thengai Chutney",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 10,
-  "ingredients": [
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ginger",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "mustard_seeds",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 120,
-   "protein_g": 2,
-   "carbs_g": 5,
-   "fat_g": 10,
-   "fiber_g": 3
-  },
-  "health_tags": [],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "ac_tomato_chutney",
-  "name_en": "Tomato Chutney",
-  "name_ta": "Thakkali Chutney",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "tomato",
-    "qty": 80,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 90,
-   "protein_g": 2,
-   "carbs_g": 9,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "ac_onion_chutney",
-  "name_en": "Onion Chutney",
-  "name_ta": "Vengaya Chutney",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "shallots",
-    "qty": 60,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 4,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 8,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "urad_dal_tsp",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 100,
-   "protein_g": 2,
-   "carbs_g": 11,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "tg_paruppu",
-  "name_en": "Paruppu Thogayal",
-  "name_ta": "Paruppu Thogayal",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "toor_dal",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 4,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "asafoetida",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 140,
-   "protein_g": 6,
-   "carbs_g": 14,
-   "fat_g": 7,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [],
-  "notes": "Classic protein partner for vatha kuzhambu"
- },
- {
-  "id": "tg_kothamalli",
-  "name_en": "Coriander Thogayal",
-  "name_ta": "Kothamalli Thogayal",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 12,
-  "ingredients": [
-   {
-    "ingredient_id": "coriander_leaves",
-    "qty": 30,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 4,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 110,
-   "protein_g": 3,
-   "carbs_g": 9,
-   "fat_g": 7,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": "Rescue dish for wilting coriander"
- },
- {
-  "id": "ac_keerai_masiyal",
-  "name_en": "Keerai Masiyal",
-  "name_ta": "Keerai Masiyal",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 15,
-  "ingredients": [
-   {
-    "ingredient_id": "spinach_palak",
-    "qty": 120,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "garlic",
-    "qty": 5,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "cumin",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 60,
-   "protein_g": 3,
-   "carbs_g": 5,
-   "fat_g": 3,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "weight_loss",
-   "heart_healthy",
-   "diabetic_friendly",
-   "high_fiber"
-  ],
-  "combo_partners": [],
-  "notes": ""
- },
- {
-  "id": "ac_idli_podi",
-  "name_en": "Idli Podi (Gunpowder)",
-  "name_ta": "Milagai Podi",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 10,
-  "ingredients": [
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "chana_dal",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 5,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "red_chilli",
-   "sesame_seeds",
-   "asafoetida",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 95,
-   "protein_g": 4,
-   "carbs_g": 10,
-   "fat_g": 4,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "high_protein"
-  ],
-  "combo_partners": [],
-  "notes": "Classic dry chutney powder for idli/dosa with gingelly oil; keeps for weeks"
- },
- {
-  "id": "ac_ellu_podi",
-  "name_en": "Ellu Podi (Sesame)",
-  "name_ta": "Ellu Podi",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 10,
-  "ingredients": [
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 10,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "sesame_seeds",
-   "red_chilli",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 110,
-   "protein_g": 4,
-   "carbs_g": 7,
-   "fat_g": 8,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "heart_healthy"
-  ],
-  "combo_partners": [],
-  "notes": "Sesame-rich podi; iron and calcium dense"
- },
- {
-  "id": "ac_mint_chutney",
-  "name_en": "Mint Chutney",
-  "name_ta": "Pudina Chutney",
-  "category": "accompaniment",
-  "diet": "veg",
-  "spice_level": "medium",
-  "prep_time_min": 10,
-  "ingredients": [
-   {
-    "ingredient_id": "mint_leaves",
-    "qty": 25,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "coconut_grated",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "tamarind",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 4,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "urad_dal_tsp",
-   "mustard_seeds",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 85,
-   "protein_g": 2,
-   "carbs_g": 6,
-   "fat_g": 6,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "light"
-  ],
-  "combo_partners": [],
-  "notes": "Cooling; rescue dish for wilting mint"
- },
- {
-  "id": "tf_sakkarai_pongal",
-  "name_en": "Sakkarai Pongal (Sweet)",
-  "name_ta": "சர்க்கரை பொங்கல்",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 35,
-  "ingredients": [
-   {
-    "ingredient_id": "rice",
-    "qty": 55,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "moong_dal",
-    "qty": 20,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "jaggery",
-    "qty": 40,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "ghee",
-    "qty": 12,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cashew_nuts",
-    "qty": 8,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "raisins",
-    "qty": 5,
-    "unit": "g"
-   }
-  ],
-  "staple_spices": [
-   "cardamom"
-  ],
-  "nutrition": {
-   "kcal": 380,
-   "protein_g": 7,
-   "carbs_g": 64,
-   "fat_g": 11,
-   "fiber_g": 2
-  },
-  "health_tags": [
-   "festive",
-   "kids_friendly"
-  ],
-  "combo_partners": [],
-  "notes": "Festival classic — Pongal, Fridays, temple prasadam"
- },
- {
-  "id": "tf_medhu_vada",
-  "name_en": "Medhu Vada (2 pc)",
-  "name_ta": "மெது வடை",
-  "category": "tiffin",
-  "diet": "veg",
-  "spice_level": "mild",
-  "prep_time_min": 30,
-  "ingredients": [
-   {
-    "ingredient_id": "urad_dal",
-    "qty": 50,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "shallots",
-    "qty": 15,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "green_chilli",
-    "qty": 3,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "curry_leaves",
-    "qty": 2,
-    "unit": "g"
-   },
-   {
-    "ingredient_id": "cooking_oil",
-    "qty": 20,
-    "unit": "ml"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 290,
-   "protein_g": 9,
-   "carbs_g": 26,
-   "fat_g": 17,
-   "fiber_g": 3
-  },
-  "health_tags": [
-   "festive"
-  ],
-  "combo_partners": [
-   "ac_coconut_chutney",
-   "kz_sambar"
-  ],
-  "notes": "Weekend/festival treat; pairs with sambar and chutney"
- },
- {
-  "id": "nv_boiled_egg",
-  "name_en": "Boiled Egg (2 pc)",
-  "name_ta": "வேக வைத்த முட்டை",
-  "category": "nonveg",
-  "diet": "nonveg",
-  "spice_level": "mild",
-  "prep_time_min": 12,
-  "ingredients": [
-   {
-    "ingredient_id": "eggs",
-    "qty": 2,
-    "unit": "pc"
-   }
-  ],
-  "staple_spices": [
-   "black_pepper",
-   "salt"
-  ],
-  "nutrition": {
-   "kcal": 155,
-   "protein_g": 13,
-   "carbs_g": 1,
-   "fat_g": 11,
-   "fiber_g": 0
-  },
-  "health_tags": [
-   "high_protein",
-   "light",
-   "quick"
-  ],
-  "combo_partners": [],
-  "notes": "Simple protein boost — pairs with any meal. Sprinkle pepper + salt."
- }
+  {
+    "id": "kz_sambar",
+    "name_en": "Sambar",
+    "name_ta": "Sambar",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 35,
+    "ingredients": [
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "drumstick",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "turmeric",
+      "fenugreek_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 150,
+      "protein_g": 7,
+      "carbs_g": 22,
+      "fat_g": 4,
+      "fiber_g": 5
+    },
+    "health_tags": [
+      "high_protein",
+      "high_fiber"
+    ],
+    "combo_partners": [
+      "pr_beans",
+      "pr_cabbage",
+      "kt_sorakkai"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_vatha",
+    "name_en": "Vatha Kuzhambu",
+    "name_ta": "Vatha Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "tamarind",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "fenugreek_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 130,
+      "protein_g": 2,
+      "carbs_g": 14,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [],
+    "combo_partners": [
+      "pr_keerai",
+      "pr_potato",
+      "tg_paruppu"
+    ],
+    "notes": "Pairs with paruppu thogayal for protein",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_mor",
+    "name_en": "Mor Kuzhambu",
+    "name_ta": "Mor Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "curd",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ash_gourd",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "turmeric",
+      "cumin",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 4,
+      "carbs_g": 8,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [
+      "pr_potato",
+      "pr_vazhakkai",
+      "pr_beetroot"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_kara",
+    "name_en": "Kara Kuzhambu",
+    "name_ta": "Kara Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "brinjal",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "drumstick",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 15,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 140,
+      "protein_g": 3,
+      "carbs_g": 16,
+      "fat_g": 8,
+      "fiber_g": 4
+    },
+    "health_tags": [],
+    "combo_partners": [
+      "pr_cabbage",
+      "pr_carrot",
+      "kt_keerai"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_puli",
+    "name_en": "Puli Kuzhambu (Onion)",
+    "name_ta": "Vengaya Puli Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "shallots",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 14,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 14,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "fenugreek_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 135,
+      "protein_g": 2,
+      "carbs_g": 15,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [],
+    "combo_partners": [
+      "pr_keerai",
+      "pr_beans"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_keerai",
+    "name_en": "Keerai Kuzhambu",
+    "name_ta": "Keerai Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "spinach_palak",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_fiber",
+      "diabetic_friendly",
+      "heart_healthy"
+    ],
+    "combo_partners": [
+      "pr_potato",
+      "pr_vazhakkai"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_poondu",
+    "name_en": "Poondu Kuzhambu (Garlic)",
+    "name_ta": "Poondu Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "garlic",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 14,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 14,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "fenugreek_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 140,
+      "protein_g": 3,
+      "carbs_g": 16,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "heart_healthy"
+    ],
+    "combo_partners": [
+      "pr_cabbage",
+      "pr_beans"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_ennai",
+    "name_en": "Ennai Kathirikai Kuzhambu",
+    "name_ta": "Ennai Kathirikai",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 35,
+    "ingredients": [
+      {
+        "ingredient_id": "brinjal",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 18,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 170,
+      "protein_g": 3,
+      "carbs_g": 15,
+      "fat_g": 12,
+      "fiber_g": 5
+    },
+    "health_tags": [],
+    "combo_partners": [
+      "pr_keerai",
+      "rs_paruppu"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_paruppu",
+    "name_en": "Paruppu Kuzhambu (Dal)",
+    "name_ta": "Paruppu Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 35,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "turmeric",
+      "cumin",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 150,
+      "protein_g": 8,
+      "carbs_g": 20,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly"
+    ],
+    "combo_partners": [
+      "pr_cabbage",
+      "pr_beetroot"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kz_egg",
+    "name_en": "Muttai Kuzhambu (Egg)",
+    "name_ta": "Muttai Kuzhambu",
+    "category": "kuzhambu",
+    "diet": "nonveg",
+    "spice_level": "medium",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "eggs",
+        "qty": 2,
+        "unit": "pc"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "curry_masala",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 240,
+      "protein_g": 14,
+      "carbs_g": 10,
+      "fat_g": 16,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [
+      "pr_beans",
+      "pr_cabbage"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "pr_beans",
+    "name_en": "Beans Poriyal",
+    "name_ta": "Beans Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "green_beans",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 3,
+      "carbs_g": 10,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "weight_loss",
+      "high_fiber",
+      "diabetic_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_cabbage",
+    "name_en": "Cabbage Poriyal",
+    "name_ta": "Muttaikose Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "cabbage",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 80,
+      "protein_g": 2,
+      "carbs_g": 9,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "weight_loss",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_carrot",
+    "name_en": "Carrot Poriyal",
+    "name_ta": "Carrot Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "carrot",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 90,
+      "protein_g": 2,
+      "carbs_g": 12,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "kids_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_beetroot",
+    "name_en": "Beetroot Poriyal",
+    "name_ta": "Beetroot Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "beetroot",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 95,
+      "protein_g": 2,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "heart_healthy",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_vazhakkai",
+    "name_en": "Vazhakkai Poriyal (Raw Banana)",
+    "name_ta": "Vazhakkai Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "raw_banana",
+        "qty": 110,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 130,
+      "protein_g": 2,
+      "carbs_g": 24,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_potato",
+    "name_en": "Potato Roast",
+    "name_ta": "Urulai Roast",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "potato",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 160,
+      "protein_g": 3,
+      "carbs_g": 26,
+      "fat_g": 6,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "kids_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_keerai",
+    "name_en": "Keerai Poriyal",
+    "name_ta": "Keerai Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "spinach_palak",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 70,
+      "protein_g": 3,
+      "carbs_g": 6,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "weight_loss",
+      "heart_healthy",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_cauliflower",
+    "name_en": "Cauliflower Poriyal",
+    "name_ta": "Cauliflower Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "cauliflower",
+        "qty": 110,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 3,
+      "carbs_g": 9,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "high_fiber",
+      "weight_loss"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_vendakkai",
+    "name_en": "Vendakkai Poriyal (Okra)",
+    "name_ta": "Vendakkai Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "ladies_finger",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 90,
+      "protein_g": 2,
+      "carbs_g": 9,
+      "fat_g": 5,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_pavakkai",
+    "name_en": "Pavakkai Poriyal (Bitter Gourd)",
+    "name_ta": "Pavakkai Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "bitter_gourd",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 2,
+      "carbs_g": 8,
+      "fat_g": 5,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "diabetic_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "pr_kothavarangai",
+    "name_en": "Cluster Beans Poriyal",
+    "name_ta": "Kothavarangai Poriyal",
+    "category": "poriyal",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "green_beans",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 3,
+      "carbs_g": 10,
+      "fat_g": 4,
+      "fiber_g": 5
+    },
+    "health_tags": [
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_sorakkai",
+    "name_en": "Sorakkai Kootu (Bottle Gourd)",
+    "name_ta": "Sorakkai Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "bottle_gourd",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_pudalangai",
+    "name_en": "Pudalangai Kootu (Snake Gourd)",
+    "name_ta": "Pudalangai Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "snake_gourd",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_cabbage",
+    "name_en": "Cabbage Kootu",
+    "name_ta": "Muttaikose Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "cabbage",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_keerai",
+    "name_en": "Keerai Kootu",
+    "name_ta": "Keerai Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "spinach_palak",
+        "qty": 100,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_peerkangai",
+    "name_en": "Peerkangai Kootu (Ridge Gourd)",
+    "name_ta": "Peerkangai Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "ridge_gourd",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_poosanikai",
+    "name_en": "Poosanikai Kootu (Ash Gourd)",
+    "name_ta": "Poosanikai Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "ash_gourd",
+        "qty": 90,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "kt_mixveg",
+    "name_en": "Mixed Veg Kootu",
+    "name_ta": "Kadamba Kootu",
+    "category": "kootu",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "carrot",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_beans",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cabbage",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 4,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "Rescue dish for expiring vegetables",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "rs_tomato",
+    "name_en": "Tomato Rasam",
+    "name_ta": "Thakkali Rasam",
+    "category": "rasam",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "tomato",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coriander_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "rasam_powder",
+      "black_pepper",
+      "cumin",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 50,
+      "protein_g": 1,
+      "carbs_g": 7,
+      "fat_g": 2,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "light",
+      "weight_loss"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "rs_milagu",
+    "name_en": "Milagu Rasam (Pepper)",
+    "name_ta": "Milagu Rasam",
+    "category": "rasam",
+    "diet": "veg",
+    "spice_level": "hot",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "tamarind",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 45,
+      "protein_g": 1,
+      "carbs_g": 5,
+      "fat_g": 2,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "Amma's cold/flu remedy",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "rs_paruppu",
+    "name_en": "Paruppu Rasam",
+    "name_ta": "Paruppu Rasam",
+    "category": "rasam",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "rasam_powder",
+      "cumin",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 4,
+      "carbs_g": 11,
+      "fat_g": 2,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "high_protein",
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "rs_lemon",
+    "name_en": "Lemon Rasam",
+    "name_ta": "Elumichai Rasam",
+    "category": "rasam",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "lemon",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ginger",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 70,
+      "protein_g": 3,
+      "carbs_g": 9,
+      "fat_g": 2,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "rs_poondu",
+    "name_en": "Poondu Rasam (Garlic)",
+    "name_ta": "Poondu Rasam",
+    "category": "rasam",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "garlic",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 4,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "rasam_powder",
+      "black_pepper",
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 55,
+      "protein_g": 1,
+      "carbs_g": 7,
+      "fat_g": 2,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "heart_healthy",
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_idli",
+    "name_en": "Idli (3 pc)",
+    "name_ta": "Idli",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "idli_rice",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 20,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 210,
+      "protein_g": 6,
+      "carbs_g": 44,
+      "fat_g": 1,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light",
+      "weight_loss",
+      "diabetic_friendly",
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney",
+      "kz_sambar"
+    ],
+    "notes": "Ferment batter 8-12h",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_dosa",
+    "name_en": "Plain Dosa (2 pc)",
+    "name_ta": "Dosai",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "idli_rice",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 6,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 230,
+      "protein_g": 5,
+      "carbs_g": 42,
+      "fat_g": 5,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light",
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney",
+      "ac_tomato_chutney"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_uthappam",
+    "name_en": "Onion Uthappam",
+    "name_ta": "Vengaya Uthappam",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "idli_rice",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 260,
+      "protein_g": 6,
+      "carbs_g": 46,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_pongal",
+    "name_en": "Ven Pongal",
+    "name_ta": "Ven Pongal",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ginger",
+        "qty": 3,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 330,
+      "protein_g": 9,
+      "carbs_g": 52,
+      "fat_g": 10,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney",
+      "kz_sambar"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_upma",
+    "name_en": "Rava Upma",
+    "name_ta": "Rava Upma",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "rava",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "carrot",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 280,
+      "protein_g": 6,
+      "carbs_g": 45,
+      "fat_g": 9,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_semiya",
+    "name_en": "Semiya Upma",
+    "name_ta": "Semiya Upma",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "vermicelli",
+        "qty": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "carrot",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 260,
+      "protein_g": 5,
+      "carbs_g": 44,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light",
+      "kids_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_aval",
+    "name_en": "Aval Upma (Poha)",
+    "name_ta": "Aval Upma",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "poha",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "lemon",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 230,
+      "protein_g": 4,
+      "carbs_g": 42,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light",
+      "weight_loss"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_adai",
+    "name_en": "Adai (2 pc)",
+    "name_ta": "Adai",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "chana_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "asafoetida",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 290,
+      "protein_g": 11,
+      "carbs_g": 46,
+      "fat_g": 7,
+      "fiber_g": 5
+    },
+    "health_tags": [
+      "high_protein",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "Soak dals 3h; classic pair: aviyal or jaggery",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_ragi_dosa",
+    "name_en": "Ragi Dosa (2 pc)",
+    "name_ta": "Kezhvaragu Dosai",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "millet_ragi",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 220,
+      "protein_g": 5,
+      "carbs_g": 40,
+      "fat_g": 6,
+      "fiber_g": 4
+    },
+    "health_tags": [
+      "diabetic_friendly",
+      "weight_loss",
+      "high_fiber"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_godhumai_dosa",
+    "name_en": "Wheat Dosa (2 pc)",
+    "name_ta": "Godhumai Dosai",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "wheat_flour",
+        "qty": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 240,
+      "protein_g": 6,
+      "carbs_g": 42,
+      "fat_g": 6,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [
+      "ac_tomato_chutney"
+    ],
+    "notes": "Instant — no fermentation",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_idiyappam",
+    "name_en": "Idiyappam (3 pc)",
+    "name_ta": "Idiyappam",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "rice_flour",
+        "qty": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 280,
+      "protein_g": 4,
+      "carbs_g": 54,
+      "fat_g": 5,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_arisi_kanji",
+    "name_en": "Arisi Kanji (Rice Porridge)",
+    "name_ta": "Arisi Kanji",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 45,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "milk",
+        "qty": 80,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "salt_or_jaggery"
+    ],
+    "nutrition": {
+      "kcal": 210,
+      "protein_g": 5,
+      "carbs_g": 40,
+      "fat_g": 3,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "light",
+      "kids_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "Comfort food; good when unwell",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_ragi_kanji",
+    "name_en": "Ragi Kanji",
+    "name_ta": "Kezhvaragu Kanji",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "millet_ragi",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "milk",
+        "qty": 100,
+        "unit": "ml"
+      },
+      {
+        "ingredient_id": "curd",
+        "qty": 30,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "salt_or_jaggery"
+    ],
+    "nutrition": {
+      "kcal": 200,
+      "protein_g": 6,
+      "carbs_g": 34,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "diabetic_friendly",
+      "weight_loss",
+      "heart_healthy"
+    ],
+    "combo_partners": [],
+    "notes": "Traditional summer cooler with buttermilk",
+    "meal_slots": [
+      "breakfast",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_paniyaram",
+    "name_en": "Kuzhi Paniyaram (5 pc)",
+    "name_ta": "Kuzhi Paniyaram",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "idli_rice",
+        "qty": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 250,
+      "protein_g": 6,
+      "carbs_g": 44,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney"
+    ],
+    "notes": "Great use of sour leftover batter",
+    "meal_slots": [
+      "breakfast",
+      "dinner",
+      "snack"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_lemon",
+    "name_en": "Lemon Rice",
+    "name_ta": "Elumichai Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "lemon",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "turmeric",
+      "peanuts_optional",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 300,
+      "protein_g": 5,
+      "carbs_g": 54,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [
+      "ac_appalam",
+      "pr_potato"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_puliyodarai",
+    "name_en": "Tamarind Rice",
+    "name_ta": "Puliyodarai",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 12,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "chana_dal_tsp",
+      "red_chilli",
+      "peanuts_optional",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 320,
+      "protein_g": 5,
+      "carbs_g": 56,
+      "fat_g": 9,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "festive"
+    ],
+    "combo_partners": [
+      "ac_appalam"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_thayir",
+    "name_en": "Curd Rice",
+    "name_ta": "Thayir Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curd",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "milk",
+        "qty": 30,
+        "unit": "ml"
+      },
+      {
+        "ingredient_id": "ginger",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 310,
+      "protein_g": 9,
+      "carbs_g": 52,
+      "fat_g": 7,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "light",
+      "kids_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "Meal closer; cooling",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_tomato",
+    "name_en": "Tomato Rice",
+    "name_ta": "Thakkali Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "mint_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 12,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "curry_masala",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 330,
+      "protein_g": 6,
+      "carbs_g": 58,
+      "fat_g": 8,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "kids_friendly"
+    ],
+    "combo_partners": [
+      "ac_appalam",
+      "pr_potato"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_coconut",
+    "name_en": "Coconut Rice",
+    "name_ta": "Thengai Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 340,
+      "protein_g": 5,
+      "carbs_g": 54,
+      "fat_g": 12,
+      "fiber_g": 3
+    },
+    "health_tags": [],
+    "combo_partners": [
+      "ac_appalam",
+      "pr_beans"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_sambar_sadam",
+    "name_en": "Sambar Sadam (One-pot)",
+    "name_ta": "Sambar Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 35,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 65,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "drumstick",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "carrot",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 8,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "sambar_powder",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 390,
+      "protein_g": 11,
+      "carbs_g": 66,
+      "fat_g": 8,
+      "fiber_g": 6
+    },
+    "health_tags": [
+      "high_protein",
+      "high_fiber"
+    ],
+    "combo_partners": [
+      "ac_appalam"
+    ],
+    "notes": "Complete one-pot meal",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "vr_kothamalli",
+    "name_en": "Coriander Rice",
+    "name_ta": "Kothamalli Sadam",
+    "category": "variety_rice",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 70,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coriander_leaves",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 10,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 310,
+      "protein_g": 5,
+      "carbs_g": 54,
+      "fat_g": 9,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [
+      "pr_potato"
+    ],
+    "notes": "Rescue dish for wilting coriander",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "nv_muttai_poriyal",
+    "name_en": "Egg Poriyal (Scramble)",
+    "name_ta": "Muttai Poriyal",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "medium",
+    "prep_time_min": 10,
+    "ingredients": [
+      {
+        "ingredient_id": "eggs",
+        "qty": 2,
+        "unit": "pc"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 200,
+      "protein_g": 13,
+      "carbs_g": 4,
+      "fat_g": 15,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "high_protein",
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_omelette",
+    "name_en": "Omelette",
+    "name_ta": "Muttai Omelette",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "mild",
+    "prep_time_min": 8,
+    "ingredients": [
+      {
+        "ingredient_id": "eggs",
+        "qty": 2,
+        "unit": "pc"
+      },
+      {
+        "ingredient_id": "onion",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 210,
+      "protein_g": 13,
+      "carbs_g": 3,
+      "fat_g": 16,
+      "fiber_g": 0
+    },
+    "health_tags": [
+      "high_protein",
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_chicken_kuzhambu",
+    "name_en": "Chicken Kuzhambu (Home style)",
+    "name_ta": "Kozhi Kuzhambu",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "hot",
+    "prep_time_min": 45,
+    "ingredients": [
+      {
+        "ingredient_id": "chicken",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ginger",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 12,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "curry_masala",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 340,
+      "protein_g": 30,
+      "carbs_g": 10,
+      "fat_g": 20,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [
+      "pr_cabbage",
+      "rs_milagu"
+    ],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_pepper_chicken",
+    "name_en": "Pepper Chicken (Dry)",
+    "name_ta": "Milagu Kozhi Varuval",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "hot",
+    "prep_time_min": 35,
+    "ingredients": [
+      {
+        "ingredient_id": "chicken",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 12,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "fennel",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 300,
+      "protein_g": 28,
+      "carbs_g": 6,
+      "fat_g": 18,
+      "fiber_g": 1
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_meen_kuzhambu",
+    "name_en": "Fish Kuzhambu",
+    "name_ta": "Meen Kuzhambu",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "hot",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "fish",
+        "qty": 150,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 14,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "fish_curry_masala",
+      "fenugreek_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 260,
+      "protein_g": 26,
+      "carbs_g": 10,
+      "fat_g": 13,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "high_protein",
+      "heart_healthy"
+    ],
+    "combo_partners": [
+      "pr_potato"
+    ],
+    "notes": "Tastes best next day",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_meen_varuval",
+    "name_en": "Fish Fry",
+    "name_ta": "Meen Varuval",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "hot",
+    "prep_time_min": 20,
+    "ingredients": [
+      {
+        "ingredient_id": "fish",
+        "qty": 140,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "lemon",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 6,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 16,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli_powder",
+      "turmeric",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 280,
+      "protein_g": 25,
+      "carbs_g": 4,
+      "fat_g": 18,
+      "fiber_g": 0
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "nv_era_thokku",
+    "name_en": "Prawn Thokku",
+    "name_ta": "Era Thokku",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "hot",
+    "prep_time_min": 25,
+    "ingredients": [
+      {
+        "ingredient_id": "prawns",
+        "qty": 130,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tomato",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 14,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli_powder",
+      "turmeric",
+      "fennel",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 240,
+      "protein_g": 24,
+      "carbs_g": 10,
+      "fat_g": 12,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": true
+  },
+  {
+    "id": "ac_coconut_chutney",
+    "name_en": "Coconut Chutney",
+    "name_ta": "Thengai Chutney",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 10,
+    "ingredients": [
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ginger",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "mustard_seeds",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 120,
+      "protein_g": 2,
+      "carbs_g": 5,
+      "fat_g": 10,
+      "fiber_g": 3
+    },
+    "health_tags": [],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_tomato_chutney",
+    "name_en": "Tomato Chutney",
+    "name_ta": "Thakkali Chutney",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "tomato",
+        "qty": 80,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 90,
+      "protein_g": 2,
+      "carbs_g": 9,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_onion_chutney",
+    "name_en": "Onion Chutney",
+    "name_ta": "Vengaya Chutney",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "shallots",
+        "qty": 60,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 8,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "urad_dal_tsp",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 100,
+      "protein_g": 2,
+      "carbs_g": 11,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tg_paruppu",
+    "name_en": "Paruppu Thogayal",
+    "name_ta": "Paruppu Thogayal",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "toor_dal",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "asafoetida",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 140,
+      "protein_g": 6,
+      "carbs_g": 14,
+      "fat_g": 7,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [],
+    "notes": "Classic protein partner for vatha kuzhambu",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tg_kothamalli",
+    "name_en": "Coriander Thogayal",
+    "name_ta": "Kothamalli Thogayal",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 12,
+    "ingredients": [
+      {
+        "ingredient_id": "coriander_leaves",
+        "qty": 30,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 4,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 110,
+      "protein_g": 3,
+      "carbs_g": 9,
+      "fat_g": 7,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "Rescue dish for wilting coriander",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_keerai_masiyal",
+    "name_en": "Keerai Masiyal",
+    "name_ta": "Keerai Masiyal",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 15,
+    "ingredients": [
+      {
+        "ingredient_id": "spinach_palak",
+        "qty": 120,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "garlic",
+        "qty": 5,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "cumin",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 60,
+      "protein_g": 3,
+      "carbs_g": 5,
+      "fat_g": 3,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "weight_loss",
+      "heart_healthy",
+      "diabetic_friendly",
+      "high_fiber"
+    ],
+    "combo_partners": [],
+    "notes": "",
+    "meal_slots": [
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_idli_podi",
+    "name_en": "Idli Podi (Gunpowder)",
+    "name_ta": "Milagai Podi",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 10,
+    "ingredients": [
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "chana_dal",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 5,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "red_chilli",
+      "sesame_seeds",
+      "asafoetida",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 95,
+      "protein_g": 4,
+      "carbs_g": 10,
+      "fat_g": 4,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "high_protein"
+    ],
+    "combo_partners": [],
+    "notes": "Classic dry chutney powder for idli/dosa with gingelly oil; keeps for weeks",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_ellu_podi",
+    "name_en": "Ellu Podi (Sesame)",
+    "name_ta": "Ellu Podi",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 10,
+    "ingredients": [
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 10,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "sesame_seeds",
+      "red_chilli",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 110,
+      "protein_g": 4,
+      "carbs_g": 7,
+      "fat_g": 8,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "heart_healthy"
+    ],
+    "combo_partners": [],
+    "notes": "Sesame-rich podi; iron and calcium dense",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "ac_mint_chutney",
+    "name_en": "Mint Chutney",
+    "name_ta": "Pudina Chutney",
+    "category": "accompaniment",
+    "diet": "veg",
+    "spice_level": "medium",
+    "prep_time_min": 10,
+    "ingredients": [
+      {
+        "ingredient_id": "mint_leaves",
+        "qty": 25,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "coconut_grated",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "tamarind",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 4,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "urad_dal_tsp",
+      "mustard_seeds",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 85,
+      "protein_g": 2,
+      "carbs_g": 6,
+      "fat_g": 6,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "light"
+    ],
+    "combo_partners": [],
+    "notes": "Cooling; rescue dish for wilting mint",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_sakkarai_pongal",
+    "name_en": "Sakkarai Pongal (Sweet)",
+    "name_ta": "சர்க்கரை பொங்கல்",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 35,
+    "ingredients": [
+      {
+        "ingredient_id": "rice",
+        "qty": 55,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "moong_dal",
+        "qty": 20,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "jaggery",
+        "qty": 40,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "ghee",
+        "qty": 12,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cashew_nuts",
+        "qty": 8,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "raisins",
+        "qty": 5,
+        "unit": "g"
+      }
+    ],
+    "staple_spices": [
+      "cardamom"
+    ],
+    "nutrition": {
+      "kcal": 380,
+      "protein_g": 7,
+      "carbs_g": 64,
+      "fat_g": 11,
+      "fiber_g": 2
+    },
+    "health_tags": [
+      "festive",
+      "kids_friendly"
+    ],
+    "combo_partners": [],
+    "notes": "Festival classic — Pongal, Fridays, temple prasadam",
+    "meal_slots": [
+      "breakfast",
+      "snack"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "tf_medhu_vada",
+    "name_en": "Medhu Vada (2 pc)",
+    "name_ta": "மெது வடை",
+    "category": "tiffin",
+    "diet": "veg",
+    "spice_level": "mild",
+    "prep_time_min": 30,
+    "ingredients": [
+      {
+        "ingredient_id": "urad_dal",
+        "qty": 50,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "shallots",
+        "qty": 15,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "green_chilli",
+        "qty": 3,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "curry_leaves",
+        "qty": 2,
+        "unit": "g"
+      },
+      {
+        "ingredient_id": "cooking_oil",
+        "qty": 20,
+        "unit": "ml"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 290,
+      "protein_g": 9,
+      "carbs_g": 26,
+      "fat_g": 17,
+      "fiber_g": 3
+    },
+    "health_tags": [
+      "festive"
+    ],
+    "combo_partners": [
+      "ac_coconut_chutney",
+      "kz_sambar"
+    ],
+    "notes": "Weekend/festival treat; pairs with sambar and chutney",
+    "meal_slots": [
+      "breakfast",
+      "dinner",
+      "snack"
+    ],
+    "nonveg": false
+  },
+  {
+    "id": "nv_boiled_egg",
+    "name_en": "Boiled Egg (2 pc)",
+    "name_ta": "வேக வைத்த முட்டை",
+    "category": "nonveg",
+    "diet": "nonveg",
+    "spice_level": "mild",
+    "prep_time_min": 12,
+    "ingredients": [
+      {
+        "ingredient_id": "eggs",
+        "qty": 2,
+        "unit": "pc"
+      }
+    ],
+    "staple_spices": [
+      "black_pepper",
+      "salt"
+    ],
+    "nutrition": {
+      "kcal": 155,
+      "protein_g": 13,
+      "carbs_g": 1,
+      "fat_g": 11,
+      "fiber_g": 0
+    },
+    "health_tags": [
+      "high_protein",
+      "light",
+      "quick"
+    ],
+    "combo_partners": [],
+    "notes": "Simple protein boost — pairs with any meal. Sprinkle pepper + salt.",
+    "meal_slots": [
+      "breakfast",
+      "lunch",
+      "dinner",
+      "snack"
+    ],
+    "nonveg": true
+  }
 ]

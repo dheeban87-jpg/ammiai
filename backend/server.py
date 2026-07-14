@@ -2285,6 +2285,7 @@ async def account_delete(current=Depends(get_current_user)):
         "ai_weekly_plans",
         "habit_log",
         "pantry_staples",
+        "health_activity",
     ):
         await db[coll].delete_many({"user_id": uid})
     # users doc keyed by user_id
@@ -3706,6 +3707,47 @@ async def insights_path(current=Depends(get_current_user)):
         "lines": lines[:4],
         "footer": "Estimates for general wellness — not medical advice.",
         "note": "Supports your health focus; not a diagnosis or treatment. Consult your doctor.",
+    }
+
+
+# ------------------------- S4: Health Connect (daily aggregates) ------------------------- #
+# Only daily aggregates are stored (data minimization) — never raw samples.
+class HealthSyncIn(BaseModel):
+    date: Optional[str] = None  # yyyy-mm-dd, device-local; defaults to today
+    steps: int = 0
+    active_kcal: int = 0
+
+
+@api_router.post("/activity/health-sync")
+async def health_sync(payload: HealthSyncIn, current=Depends(get_current_user)):
+    """Store today's Health Connect aggregate (steps + active kcal). Upsert per
+    (user, date). Consent is enforced on-device before this is ever called."""
+    uid = current["user_id"]
+    date = payload.date or _now().date().isoformat()
+    await db.health_activity.update_one(
+        {"user_id": uid, "date": date},
+        {"$set": {
+            "user_id": uid, "date": date,
+            "steps": max(0, int(payload.steps)),
+            "active_kcal": max(0, int(payload.active_kcal)),
+            "source": "health_connect", "ts": _now(),
+        }},
+        upsert=True,
+    )
+    return {"ok": True, "date": date, "steps": payload.steps, "active_kcal": payload.active_kcal}
+
+
+@api_router.get("/activity/health/today")
+async def health_today(current=Depends(get_current_user)):
+    date = _now().date().isoformat()
+    doc = await db.health_activity.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    return {
+        "date": date,
+        "steps": (doc or {}).get("steps", 0),
+        "active_kcal": (doc or {}).get("active_kcal", 0),
+        "synced": doc is not None,
     }
 
 

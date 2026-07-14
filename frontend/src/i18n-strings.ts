@@ -128,6 +128,23 @@ export const STRINGS = {
   "onb.scan_skip": { en: "Skip — I'll add them myself", ta: "தவிர் — நானே சேர்த்துக்கொள்கிறேன்" },
   "onb.dinners_title": { en: "Dinners you can cook tonight", ta: "இன்றிரவு சமைக்கக்கூடிய உணவுகள்" },
   "onb.dinners_sub": { en: "Straight from what you have. Welcome aboard, soldier.", ta: "உங்களிடம் உள்ளதிலிருந்தே. வரவேற்கிறேன், வீரா." },
+
+  // ---- S4: Health Connect (activity auto-sync) — TA-DRAFT ----
+  "hc.title": { en: "Captain wants your marching data, soldier", ta: "உங்கள் நடை தரவு வேண்டும், வீரா" },
+  "hc.sub": { en: "Auto-track steps and active calories — one tap, no daily logging.", ta: "அடிகள், கலோரிகளைத் தானாகக் கணக்கிடு — ஒரே தட்டல், தினசரி பதிவு இல்லை." },
+  "hc.connect": { en: "Connect Health Connect", ta: "ஹெல்த் கனெக்ட் இணை" },
+  "hc.steps": { en: "steps", ta: "அடிகள்" },
+  "hc.active_kcal": { en: "active kcal", ta: "செயல் கலோரி" },
+  "hc.denied": { en: "No problem — log your activity below instead.", ta: "பரவாயில்லை — கீழே உங்கள் செயலைப் பதிவு செய்யுங்கள்." },
+  "hc.unavailable": { en: "Install Health Connect (or a fitness app) to auto-track — or log below.", ta: "தானாகக் கணக்கிட ஹெல்த் கனெக்ட் நிறுவுங்கள் — அல்லது கீழே பதிவு செய்யுங்கள்." },
+  "hc.consent_title": { en: "Your activity data", ta: "உங்கள் செயல் தரவு" },
+  // MEDICAL/COMPLIANCE — owner authors Tamil (English placeholder keeps it safe)
+  "hc.consent_body": {
+    en: "AmmiAI reads your daily steps and active calories from Health Connect to personalize food and habit suggestions. Only daily totals are stored in your account — never raw data. You can view or delete this anytime in Settings. This supports your wellness; it does not diagnose or treat any condition.",
+    ta: "AmmiAI reads your daily steps and active calories from Health Connect to personalize food and habit suggestions. Only daily totals are stored in your account — never raw data. You can view or delete this anytime in Settings. This supports your wellness; it does not diagnose or treat any condition.",
+  },
+  "hc.consent_agree": { en: "I agree", ta: "நான் ஒப்புக்கொள்கிறேன்" },
+  "hc.consent_skip": { en: "Not now", ta: "இப்போது இல்லை" },
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

@@ -15,6 +15,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
+import { HealthConnectCard } from "@/src/components/health-connect-card";
 import { NutritionRing } from "@/src/components/nutrition-ring";
 import { PressableScale } from "@/src/components/pressable-scale";
 import { api } from "@/src/api";
@@ -96,6 +97,7 @@ export default function HomeScreen() {
   const [path, setPath] = useState<PathResp | null>(null);
   const [pathLive, setPathLive] = useState(true);
   const [premium, setPremium] = useState<{ is_premium: boolean; plan?: string } | null>(null);
+  const [hcKcal, setHcKcal] = useState(0); // S4: active kcal from Health Connect
 
   const [pendingHabit, setPendingHabit] = useState<HabitItem | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -234,7 +236,8 @@ export default function HomeScreen() {
     (i) => i.freshness === "red" || i.freshness === "yellow",
   );
 
-  const burnt = habits?.total_kcal ?? 0;
+  // S4: manual habit kcal + Health Connect active kcal both feed "burnt today".
+  const burnt = (habits?.total_kcal ?? 0) + hcKcal;
   const net =
     plan != null
       ? Math.round(plan.day_totals.kcal - plan.day_targets.kcal - burnt)
@@ -398,6 +401,9 @@ export default function HomeScreen() {
             )}
           </View>
         </PressableScale>
+
+        {/* S4 — Health Connect auto-activity (fails soft to manual habits below) */}
+        <HealthConnectCard onActiveKcal={setHcKcal} />
 
         {/* A3 — Habit builder row */}
         {habitsLive && habits ? (

@@ -2926,6 +2926,47 @@ async def _kb_upsert(item: Dict[str, Any], category: str) -> Dict[str, Any]:
     return entry
 
 
+# S3c: receipt/screenshot import — normalise freeform document lines.
+_DOC_CAT_MAP = {
+    "vegetable": "vegetable", "vegetables": "vegetable", "veg": "vegetable",
+    "fruit": "fruit", "fruits": "fruit",
+    "leafy_green": "leafy_green", "greens": "leafy_green", "herb": "leafy_green", "herbs": "leafy_green",
+    "cereal_pulse": "cereal_pulse", "pulse": "cereal_pulse", "pulses": "cereal_pulse",
+    "dal": "cereal_pulse", "grain": "cereal_pulse", "cereal": "cereal_pulse",
+    "meat_fish_egg": "meat_fish_egg", "meat": "meat_fish_egg", "fish": "meat_fish_egg",
+    "seafood": "meat_fish_egg", "egg": "meat_fish_egg", "eggs": "meat_fish_egg", "protein": "meat_fish_egg",
+    "dairy": "dairy", "packaged": "packaged", "cooked_dish": "cooked_dish",
+    "serving_item": "serving_item", "serving": "serving_item",
+    "not_food": "not_food", "non_food": "not_food", "household": "not_food",
+    "cleaning": "not_food", "toiletries": "not_food", "personal_care": "not_food",
+}
+
+
+def _norm_doc_category(c: Optional[str]) -> str:
+    return _DOC_CAT_MAP.get((c or "").strip().lower().replace(" ", "_"), "packaged")
+
+
+def _doc_qty(q: Optional[str], iid: Optional[str]) -> tuple[int, str]:
+    """Best-effort parse of a receipt qty string ('250g', '1 kg', '6 pcs')."""
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|ltr|l|pcs|pc|nos|no|pack|x)?", (q or "").lower())
+    is_count = (iid or "") in _COUNT_ITEMS
+    if m:
+        n = float(m.group(1))
+        u = m.group(2) or ""
+        if u == "kg":
+            return int(n * 1000), "g"
+        if u in ("g", "gm"):
+            return int(n), "g"
+        if u in ("l", "ltr"):
+            return int(n * 1000), "ml"
+        if u == "ml":
+            return int(n), "ml"
+        if u in ("pc", "pcs", "nos", "no", "pack", "x") or is_count:
+            return int(n), "pc"
+        return int(n), "g"
+    return (_SCAN_QTY_PC["medium"], "pc") if is_count else (_SCAN_QTY_G["medium"], "g")
+
+
 class UnifiedScanIn(BaseModel):
     image_base64: str
     media_type: str = "image/jpeg"
@@ -2970,7 +3011,8 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
         "\"how_used\" (2-3 short common uses in Tamil cooking), \"storage\" (short tip). "
         "Keep these purely descriptive — never say a food cures, treats, prevents or heals anything.\n"
         "For document_list return: {\"mode\":\"document_list\", \"source_guess\":str, \"items\":[{\"name_en\":str,"
-        "\"name_ta\":str,\"category\":str,\"qty_guess\":str,\"price\":num|null}]}\n"
+        "\"name_ta\":str,\"category\":one of the food categories above OR \"not_food\" for soap/household lines,"
+        "\"qty_guess\":str,\"price\":num|null}]}. Extract EVERY line item.\n"
         "For not_food return: {\"mode\":\"not_food\", \"items\":[]}\n"
         "Rules: identify a container's CONTENTS from its label when produce isn't directly visible "
         "(e.g. a 'Peeled Sambar Onion 200g' tub = sambar onion). Banana leaves = serving_item. "
@@ -2995,10 +3037,42 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
     if mode == "not_food":
         result = {"mode": "not_food", "items": [], "message": "That doesn't look like food, soldier — point at your fresh items."}
     elif mode == "document_list":
-        # S3c builds full receipt import; S3(1) detects + returns the raw parse.
+        # S3c: route each extracted line through the SAME pipeline (catalog →
+        # IFCT/KB → addable) so a screenshot becomes a batch-add list. Non-food
+        # lines come back auto-unticked (include_default=false).
+        doc_items: List[Dict[str, Any]] = []
+        for it in (parsed.get("items") or []):
+            name_en = it.get("name_en") or ""
+            if not name_en:
+                continue
+            cat = _norm_doc_category(it.get("category"))
+            is_food = cat != "not_food"
+            iid = (
+                None
+                if cat in ("packaged", "cooked_dish", "serving_item", "not_food")
+                else await _catalog_id_for(name_en)
+            )
+            qty, unit = _doc_qty(it.get("qty_guess"), iid)
+            if cat in ("serving_item", "not_food"):
+                nutrition = {"kcal": None, "protein_g": None, "fiber_g": None,
+                             "per_100g": True, "source": cat, "needs_mapping": False}
+            else:
+                nutrition = _ifct_nutrition(iid, cat)
+            kb = None
+            if is_food and (cat in ("packaged", "cooked_dish") or (iid is None and cat != "serving_item")):
+                kb = await _kb_upsert(it, cat)
+            doc_items.append({
+                "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
+                "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
+                "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
+                "price": it.get("price"),
+                "include_default": is_food and cat != "not_food",
+                "kb": {"what": kb.get("what"), "how_used": kb.get("how_used"),
+                       "storage": kb.get("storage"), "dish_links": kb.get("dish_links")} if kb else None,
+            })
         result = {"mode": "document_list", "source_guess": parsed.get("source_guess"),
-                  "items": parsed.get("items") or [],
-                  "message": "Looks like an order/bill — receipt import is coming; for now scan items directly."}
+                  "items": doc_items, "count": len(doc_items),
+                  "message": None}
     else:
         items: List[Dict[str, Any]] = []
         for it in (parsed.get("items") or []):

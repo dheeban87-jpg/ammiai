@@ -36,6 +36,7 @@ type ScanApiItem = {
   unit: string;
   addable: boolean;
   needs_mapping?: boolean;
+  include_default?: boolean;
 };
 type ScanApiResult = {
   mode: "physical_item" | "document_list" | "not_food";
@@ -79,11 +80,13 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
     image_base64: base64,
     media_type: "image/jpeg",
   });
-  if (out.mode !== "physical_item") {
+  // not_food → nothing to add. physical_item AND document_list (S3c receipt
+  // import) both yield addable catalog items into the same confirm flow.
+  if (out.mode === "not_food") {
     return { items: [], count: 0, note: out.message };
   }
   const items: ScanItem[] = (out.items ?? [])
-    .filter((i) => i.addable && i.ingredient_id)
+    .filter((i) => i.addable && i.ingredient_id && i.include_default !== false)
     .map((i) => ({
       ingredient_id: i.ingredient_id as string,
       name: i.name_en,

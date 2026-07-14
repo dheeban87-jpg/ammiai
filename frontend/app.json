@@ -39,7 +39,7 @@
         "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
         "android.permission.health.READ_EXERCISE"
       ],
-      "versionCode": 38
+      "versionCode": 39
     },
     "web": {
       "bundler": "metro",
@@ -56,6 +56,14 @@
           "backgroundColor": "#FBF8EF",
           "resizeMode": "contain",
           "imageWidth": 300
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ]
     ],

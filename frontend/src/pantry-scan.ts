@@ -6,12 +6,16 @@ import * as ImageManipulator from "expo-image-manipulator";
 import { api } from "@/src/api";
 
 export type ScanItem = {
+  // Catalog id, or a synthetic "kb:<name>" id for a knowledge-base item (the
+  // synthetic id is only a stable React key; KB writes go by name+category).
   ingredient_id: string;
   name: string;
+  name_ta?: string;
   category: string;
   qty_class: "small" | "medium" | "large";
   qty: number;
   unit: string;
+  kb?: boolean; // true → non-catalog, written to the pantry via the KB path
 };
 
 export type ScanResult = { items: ScanItem[]; count: number; note?: string };
@@ -80,21 +84,28 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
     image_base64: base64,
     media_type: "image/jpeg",
   });
-  // not_food → nothing to add. physical_item AND document_list (S3c receipt
-  // import) both yield addable catalog items into the same confirm flow.
+  // not_food → nothing to add. physical_item AND document_list (S3c) yield
+  // items into the same confirm flow. Catalog items add directly; non-catalog
+  // (packaged/novel) items add via the knowledge-base path. Non-food lines
+  // (include_default === false) are dropped.
   if (out.mode === "not_food") {
     return { items: [], count: 0, note: out.message };
   }
   const items: ScanItem[] = (out.items ?? [])
-    .filter((i) => i.addable && i.ingredient_id && i.include_default !== false)
-    .map((i) => ({
-      ingredient_id: i.ingredient_id as string,
-      name: i.name_en,
-      category: i.category,
-      qty_class: "medium",
-      qty: i.qty,
-      unit: i.unit,
-    }));
+    .filter((i) => i.include_default !== false && i.name_en)
+    .map((i) => {
+      const isCatalog = Boolean(i.addable && i.ingredient_id);
+      return {
+        ingredient_id: isCatalog ? (i.ingredient_id as string) : `kb:${i.name_en}`,
+        name: i.name_en,
+        name_ta: i.name_ta,
+        category: i.category,
+        qty_class: "medium" as const,
+        qty: i.qty,
+        unit: i.unit,
+        kb: !isCatalog,
+      };
+    });
   return { items, count: items.length, note: out.note };
 }
 
@@ -106,17 +117,38 @@ export function storageForCategory(category?: string): "pantry" | "fridge" {
 /** Upsert confirmed items into the pantry. Best-effort per item (skips ones
  *  that hit the free-plan limit or already exist). Returns how many landed. */
 export async function addScannedItems(
-  items: { ingredient_id: string; qty: number; unit: string; category?: string }[],
+  items: {
+    ingredient_id: string;
+    name?: string;
+    name_ta?: string;
+    qty: number;
+    unit: string;
+    category?: string;
+    kb?: boolean;
+  }[],
 ): Promise<number> {
   let added = 0;
   for (const it of items) {
     try {
-      await api.post("/api/pantry", {
-        ingredient_id: it.ingredient_id,
-        qty: it.qty,
-        unit: it.unit,
-        storage: storageForCategory(it.category),
-      });
+      const body = it.kb
+        ? {
+            // KB-backed (non-catalog) item — the backend creates/links a
+            // knowledge-base entry; the synthetic "kb:" id is not sent.
+            kb: true,
+            name_en: it.name,
+            name_ta: it.name_ta,
+            category: it.category,
+            qty: it.qty,
+            unit: it.unit,
+            storage: storageForCategory(it.category),
+          }
+        : {
+            ingredient_id: it.ingredient_id,
+            qty: it.qty,
+            unit: it.unit,
+            storage: storageForCategory(it.category),
+          };
+      await api.post("/api/pantry", body);
       added++;
     } catch {
       /* skip — limit reached or duplicate */

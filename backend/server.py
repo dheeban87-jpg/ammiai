@@ -425,11 +425,31 @@ async def profile_reset(current=Depends(get_current_user)):
 
 # ------------------------- Pantry ------------------------- #
 class PantryIn(BaseModel):
-    ingredient_id: str
+    ingredient_id: Optional[str] = None  # catalog item; omit for a KB-backed item
     qty: float
     unit: str
     storage: str = "pantry"  # pantry | fridge
     purchase_date: Optional[str] = None  # ISO date (yyyy-mm-dd)
+    # KB-backed item (non-catalog: packaged/novel food from a scan). When
+    # ingredient_id is absent, name_en + category create a knowledge-base item.
+    kb: bool = False
+    name_en: Optional[str] = None
+    name_ta: Optional[str] = None
+    category: Optional[str] = None
+
+
+# Category-level shelf-life defaults (days) for KB items that have no per-item
+# shelf_life.json entry. Decay hints only (feeds R5).
+_KB_SHELF = {
+    "vegetable": {"pantry": 5, "fridge": 8},
+    "leafy_green": {"pantry": 2, "fridge": 4},
+    "fruit": {"pantry": 5, "fridge": 8},
+    "dairy": {"pantry": 1, "fridge": 7},
+    "meat_fish_egg": {"pantry": 1, "fridge": 3},
+    "cereal_pulse": {"pantry": 180, "fridge": 180},
+    "packaged": {"pantry": 90, "fridge": 120},
+    "cooked_dish": {"pantry": 1, "fridge": 2},
+}
 
 
 class PantryPatch(BaseModel):
@@ -483,9 +503,41 @@ def _price_for(ingredient_id: str, qty: float, unit: str) -> Optional[float]:
     return round(per_unit * factor, 2)
 
 
+def _freshness(days_left: Optional[int], alert_days: int) -> str:
+    if days_left is None:
+        return "unknown"
+    if days_left <= 1:
+        return "red"
+    if days_left <= (alert_days or 1):
+        return "yellow"
+    return "green"
+
+
 async def _enrich_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    # KB-backed item: no catalog ingredient — resolve from stored fields.
+    if item.get("source") == "kb":
+        cat = item.get("category", "other")
+        shelf_days = _KB_SHELF.get(cat, {}).get(item.get("storage", "pantry"))
+        alert_days = 1
+        days_left = None
+        purchase = item.get("purchase_date")
+        if purchase and shelf_days is not None:
+            try:
+                pd = datetime.fromisoformat(purchase).replace(tzinfo=timezone.utc)
+                days_left = ((pd + timedelta(days=int(shelf_days))).date() - _now().date()).days
+            except Exception:
+                days_left = None
+        item["ingredient_name"] = item.get("name_en") or item.get("ingredient_id") or "Item"
+        item["category"] = cat
+        item["shelf_days"] = shelf_days
+        item["alert_before_days"] = alert_days
+        item["days_left"] = days_left
+        item["freshness"] = _freshness(days_left, alert_days)
+        item["from_kb"] = True
+        return item
+
     ing = await db.ingredients.find_one(
-        {"ingredient_id": item["ingredient_id"]}, {"_id": 0}
+        {"ingredient_id": item.get("ingredient_id")}, {"_id": 0}
     )
     days_key = "fridge_days" if item.get("storage") == "fridge" else "pantry_days"
     shelf_days = (ing or {}).get(days_key)
@@ -537,9 +589,15 @@ async def _is_premium(user_id: str) -> bool:
 
 @api_router.post("/pantry")
 async def add_pantry(payload: PantryIn, current=Depends(get_current_user)):
-    ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id})
-    if not ing:
-        raise HTTPException(status_code=404, detail="Unknown ingredient")
+    is_kb = not payload.ingredient_id
+    if is_kb:
+        # KB-backed item (packaged/novel food from a scan). Needs a name+category.
+        if not (payload.name_en and payload.category):
+            raise HTTPException(status_code=400, detail="KB item needs name_en + category")
+    else:
+        ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id})
+        if not ing:
+            raise HTTPException(status_code=404, detail="Unknown ingredient")
     if not await _is_premium(current["user_id"]):
         n = await db.pantry_items.count_documents({"user_id": current["user_id"]})
         if n >= 25:
@@ -547,7 +605,7 @@ async def add_pantry(payload: PantryIn, current=Depends(get_current_user)):
                 status_code=402,
                 detail="Free plan limit: 25 pantry items. Upgrade to premium for unlimited.",
             )
-    item = {
+    item: Dict[str, Any] = {
         "id": uuid.uuid4().hex,
         "user_id": current["user_id"],
         "ingredient_id": payload.ingredient_id,
@@ -557,6 +615,17 @@ async def add_pantry(payload: PantryIn, current=Depends(get_current_user)):
         "purchase_date": payload.purchase_date or _now().date().isoformat(),
         "created_at": _now(),
     }
+    if is_kb:
+        # maps_to lets a KB item still count toward "What can I cook?" when its
+        # contents resolve to a catalog ingredient (frozen grated coconut -> coconut).
+        item.update({
+            "source": "kb",
+            "name_en": payload.name_en,
+            "name_ta": payload.name_ta,
+            "category": payload.category,
+            "kb_norm": _norm_name(payload.name_en),
+            "maps_to": await _catalog_id_for(payload.name_en),
+        })
     await db.pantry_items.insert_one(item)
     item.pop("_id", None)
     return await _enrich_item(item)
@@ -1556,7 +1625,14 @@ async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_cur
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
     diet = profile.get("diet") or "veg"
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
-    pantry = {p["ingredient_id"] async for p in db.pantry_items.find({"user_id": current["user_id"]}, {"ingredient_id": 1})}
+    pantry: Set[str] = set()
+    async for p in db.pantry_items.find(
+        {"user_id": current["user_id"]}, {"ingredient_id": 1, "maps_to": 1}
+    ):
+        if p.get("ingredient_id"):
+            pantry.add(p["ingredient_id"])
+        if p.get("maps_to"):  # KB item that resolves to a catalog ingredient
+            pantry.add(p["maps_to"])
     assumed = await _assumed_staples(current["user_id"])  # R2: staples assumed present
     recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
 

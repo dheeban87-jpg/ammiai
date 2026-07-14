@@ -2843,8 +2843,15 @@ def _ifct_nutrition(ingredient_id: Optional[str], category: str) -> Dict[str, An
             "source": "unknown", "needs_mapping": True}
 
 
+def _match_tokens(s: str) -> set:
+    return {t for t in re.split(r"[^a-z0-9]+", (s or "").lower()) if len(t) > 2}
+
+
 async def _catalog_id_for(name_en: str) -> Optional[str]:
-    """Simple lookup (no fuzzy engine): alias table -> direct id -> catalog name."""
+    """Alias table -> direct id -> exact catalog name -> token-subset match.
+    The last step resolves branded/qualified receipt names ('Peeled Sambar Onion
+    (Uritha Sambar Vengayam)' -> onion, 'NOICE High Protein Eggs' -> eggs) by
+    matching when a catalog item's whole name is contained in the scanned name."""
     n = _norm_name(name_en)
     if not n:
         return None
@@ -2854,10 +2861,19 @@ async def _catalog_id_for(name_en: str) -> Optional[str]:
     as_id = n.replace(" ", "_")
     if await db.ingredients.find_one({"ingredient_id": as_id}, {"_id": 0, "ingredient_id": 1}):
         return as_id
-    for doc in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1}).to_list(1000):
-        if _norm_name(doc.get("name")) == n:
+    scanned = _match_tokens(n)
+    best_id, best_len = None, 0
+    for doc in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1, "category": 1}).to_list(1000):
+        cn = _norm_name(doc.get("name"))
+        if cn == n:
             return doc["ingredient_id"]
-    return None
+        # staples/spices are assumed-present, never a scan target (S2)
+        if doc.get("category") in ("staple", "spice"):
+            continue
+        ct = _match_tokens(cn)
+        if ct and ct <= scanned and len(ct) > best_len:
+            best_id, best_len = doc["ingredient_id"], len(ct)
+    return best_id
 
 
 # S3b: self-learning knowledge base — first scan of a new item teaches the app.
@@ -2947,23 +2963,21 @@ def _norm_doc_category(c: Optional[str]) -> str:
 
 
 def _doc_qty(q: Optional[str], iid: Optional[str]) -> tuple[int, str]:
-    """Best-effort parse of a receipt qty string ('250g', '1 kg', '6 pcs')."""
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|ltr|l|pcs|pc|nos|no|pack|x)?", (q or "").lower())
+    """Parse a receipt qty. Only a REAL weight/volume unit is trusted ('250g',
+    '1 kg', '500 ml'); a bare count like '1 x' is NOT grams — it maps to a
+    sensible default the user edits, never '1g'."""
     is_count = (iid or "") in _COUNT_ITEMS
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|ltr|l)\b", (q or "").lower())
     if m:
         n = float(m.group(1))
-        u = m.group(2) or ""
+        u = m.group(2)
         if u == "kg":
             return int(n * 1000), "g"
         if u in ("g", "gm"):
             return int(n), "g"
         if u in ("l", "ltr"):
             return int(n * 1000), "ml"
-        if u == "ml":
-            return int(n), "ml"
-        if u in ("pc", "pcs", "nos", "no", "pack", "x") or is_count:
-            return int(n), "pc"
-        return int(n), "g"
+        return int(n), "ml"
     return (_SCAN_QTY_PC["medium"], "pc") if is_count else (_SCAN_QTY_G["medium"], "g")
 
 

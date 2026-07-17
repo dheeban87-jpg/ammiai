@@ -542,16 +542,25 @@ function GroceryScreenInner() {
   // Tapping an inline Captain's pick adds it to the list AND selects it —
   // exactly the old addHealthSelected behaviour, but one tap per pick.
   const addCaptainPick = async (it: any) => {
-    const id = it.ingredient_id;
+    // KB picks (AI produce outside the catalog) have no ingredient_id — the
+    // backend mints a synthetic `kb:<name>` id and returns it.
+    const id =
+      it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
     setCaptainBusy((prev) => new Set(prev).add(id));
     try {
-      await api.post("/api/grocery/add-item", {
-        ingredient_id: id,
-        qty: it.qty ?? 100,
-        unit: it.unit ?? "g",
-      });
-      await load(); // pick now lives in its category group
-      setChecked((prev) => new Set(prev).add(id));
+      const body = it.ingredient_id
+        ? { ingredient_id: it.ingredient_id, qty: it.qty ?? 100, unit: it.unit ?? "g" }
+        : {
+            kb: true,
+            name: it.name,
+            name_ta: it.name_ta,
+            category: it.category,
+            qty: it.qty ?? 100,
+            unit: it.unit ?? "g",
+          };
+      const res = await api.post<{ ingredient_id?: string }>("/api/grocery/add-item", body);
+      await load();
+      setChecked((prev) => new Set(prev).add(res?.ingredient_id ?? id));
       setToast(`${it.name} added & selected ✓`);
       setTimeout(() => setToast(null), 2000);
     } catch (e: any) {
@@ -570,7 +579,9 @@ function GroceryScreenInner() {
     }
   };
 
-  const empty = !loading && data && data.total_items === 0;
+  // "Fully stocked" only when there's genuinely nothing to show — the Captain's
+  // picks are the list now, so an empty buy-list with picks is NOT empty.
+  const empty = !loading && data && data.total_items === 0 && healthItems.length === 0;
 
   return (
     <View style={styles.screen} testID="grocery-screen">
@@ -667,22 +678,21 @@ function GroceryScreenInner() {
               <Ionicons name="close-circle-outline" size={16} color={colors.textMuted} />
               <Text style={[styles.toolBtnText, { color: colors.textMuted }]}>Clear</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toolBtn, styles.toolBtnAdd]}
-              onPress={() => setAddItemVisible(true)}
-              testID="grocery-add-item"
-              hitSlop={8}
-            >
-              <Ionicons name="add" size={18} color={colors.riceWhite} />
-              <Text style={[styles.toolBtnText, { color: colors.riceWhite }]}>Add item</Text>
-            </TouchableOpacity>
+            {/* "Add item" removed: with the category groups gone, a manually
+                added catalog item would land in the list invisibly. The
+                Captain's picks are the list. */}
           </View>
 
           {(() => {
-            const existing = new Set(
+            // The picks ARE the list now — keep showing one after it's added so
+            // it can be ticked/unticked, instead of vanishing into a category
+            // group (those groups are gone).
+            const inList = new Set(
               (data?.groups ?? []).flatMap((g) => g.items.map((it) => it.ingredient_id)),
             );
-            const picks = healthItems.filter((it) => !existing.has(it.ingredient_id));
+            const pickId = (it: any) =>
+              it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
+            const picks = healthItems;
             if (picks.length === 0) return null;
             // Don't dump the full list on a first-time visitor — show the top few
             // (already ranked by the backend), rest behind an expander.
@@ -701,26 +711,32 @@ function GroceryScreenInner() {
                   </View>
                 </View>
                 {shown.map((it) => {
-                  const busy = captainBusy.has(it.ingredient_id);
+                  const id = pickId(it);
+                  const busy = captainBusy.has(id);
+                  const on = checked.has(id);
                   return (
                     <TouchableOpacity
-                      key={it.ingredient_id}
+                      key={id}
                       style={styles.captainRow}
-                      onPress={() => addCaptainPick(it)}
+                      // Not in the list yet -> add it (which also selects it).
+                      // Already there -> just tick/untick for ordering.
+                      onPress={() => (inList.has(id) ? toggle(id) : addCaptainPick(it))}
                       disabled={busy}
-                      testID={`captain-pick-${it.ingredient_id}`}
+                      testID={`captain-pick-${id}`}
                       activeOpacity={0.7}
                     >
-                      <View style={styles.checkbox}>
+                      <View style={[styles.checkbox, on && styles.checkboxOn]}>
                         {busy ? (
                           <ActivityIndicator size="small" color={colors.bananaLeaf} />
+                        ) : on ? (
+                          <Ionicons name="checkmark" size={18} color={colors.riceWhite} />
                         ) : (
                           <Ionicons name="add" size={18} color={colors.bananaLeaf} />
                         )}
                       </View>
                       <FoodAvatar
                         kind="ingredient"
-                        id={it.ingredient_id}
+                        id={it.ingredient_id ?? "kb"}
                         category={it.category}
                         size={40}
                         style={{ marginHorizontal: 10 }}
@@ -760,73 +776,11 @@ function GroceryScreenInner() {
             );
           })()}
 
-          {data?.groups.map((g) => (
-            <View key={g.category} style={styles.groupCard} testID={`group-${g.category}`}>
-              <View style={styles.groupHeader}>
-                <Text style={styles.groupTitle}>{g.category}</Text>
-                <Text style={styles.groupCount}>
-                  {g.items.filter((it) => !checked.has(it.ingredient_id)).length}/{g.items.length}
-                </Text>
-              </View>
-              {g.items.map((it) => {
-                const on = checked.has(it.ingredient_id);
-                return (
-                  <View key={it.ingredient_id} style={styles.rowWrap}>
-                    <TouchableOpacity
-                      testID={`grocery-row-${it.ingredient_id}`}
-                      style={styles.row}
-                      onPress={() => toggle(it.ingredient_id)}
-                      activeOpacity={0.7}
-                      hitSlop={4}
-                    >
-                      <View style={[styles.checkbox, on && styles.checkboxOn]}>
-                        {on ? <Ionicons name="checkmark" size={18} color={colors.riceWhite} /> : null}
-                      </View>
-                      <FoodAvatar
-                        kind="ingredient"
-                        id={it.ingredient_id}
-                        category={it.category}
-                        size={40}
-                        style={{ marginHorizontal: 10 }}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text
-                          style={[
-                            styles.rowName,
-                            !on && { color: colors.textMuted },
-                          ]}
-                          numberOfLines={1}
-                        >
-                          {it.name}
-                        </Text>
-                        <Text style={styles.rowSub}>
-                          {(it.have_base ?? 0) > 0
-                            ? `Need ${it.need_base ?? it.qty}${it.base_unit ?? ""} · have ${it.have_base}${it.base_unit ?? ""} → buy ${it.qty} ${it.unit}`
-                            : `Not in pantry → buy ${it.qty} ${it.unit}`}
-                          {(it as any).manual ? "  · added by you" : ""}
-                        </Text>
-                      </View>
-                      {it.estimated_inr != null ? (
-                        <Text style={[styles.rowPrice, !on && { color: colors.textMuted }]}>
-                          ₹{Math.round(it.estimated_inr)}
-                        </Text>
-                      ) : (
-                        <Text style={styles.rowPriceMuted}>—</Text>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      testID={`grocery-remove-${it.ingredient_id}`}
-                      style={styles.rowRemoveBtn}
-                      onPress={() => removeItemPermanently(it.ingredient_id)}
-                      hitSlop={10}
-                    >
-                      <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
-                    </TouchableOpacity>
-                  </View>
-                );
-              })}
-            </View>
-          ))}
+          {/* Category groups (Vegetables / Leafy & Herbs / ...) removed:
+              the Captain's AI picks above ARE the list now. Items still live
+              in data.groups under the hood, which is what `selected`, Order /
+              Share and the vendor wizard read — we just don't render the wall. */}
+
         </ScrollView>
       )}
 

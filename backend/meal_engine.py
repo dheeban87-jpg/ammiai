@@ -364,7 +364,7 @@ def eligible_pool(ctx: PlannerContext, categories: Iterable[str]) -> List[Dict[s
     allergies = ctx.profile.get("allergies", []) or []
     custom = ctx.profile.get("custom_avoid", []) or []
     cats = set(categories)
-    return [
+    pool = [
         r
         for r in ctx.recipes
         if r["category"] in cats
@@ -372,6 +372,14 @@ def eligible_pool(ctx: PlannerContext, categories: Iterable[str]) -> List[Dict[s
         and allergy_ok(r, allergies)
         and custom_avoid_ok(r, custom)
     ]
+    # NOTE (pantry-first, pending): a strict `pantry_match(...) >= 1.0` filter
+    # here is the owner's ask, but measured against a real 5-item pantry it
+    # leaves 5/73 dishes — all staple-only (idli/dosa/podi), none using the
+    # user's actual produce. Two upstream bugs must land first: ingredient
+    # aliasing (coconut vs coconut_grated) and a correct assumed-staples set
+    # (green_chilli/garlic/shallots are category=vegetable, so every dish
+    # "needs" them). Re-enable once S2 lands.
+    return pool
 
 
 def rank(

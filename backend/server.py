@@ -1947,6 +1947,8 @@ async def _ai_grocery_list(
             "- Choose items that genuinely close the gap for the health focus, and that combine into "
             "simple Tamil meals or salads.\n"
             "- Use everyday Tamil-market names.\n"
+            "- In every `reason`, describe the NUTRIENT benefit only. Never say a food cures, treats, "
+            "prevents, heals or reverses anything — that copy is rejected.\n"
             "Respond ONLY with JSON, no prose, no fences:\n"
             '{"guidance":"<one short line, wellness framing, no medical claims>",'
             '"items":[{"name_en":str,"name_ta":str,"category":"vegetable|leafy_green|fruit|dairy|meat_fish_egg",'
@@ -1992,7 +1994,12 @@ async def _ai_grocery_list(
                 "category": cat,
                 "qty": qty,
                 "unit": unit,
-                "reason": _health_safe(it.get("reason")) or "",
+                # If the model slipped a medical claim, _health_safe nukes the
+                # line — fall back to neutral copy rather than a blank card.
+                "reason": (
+                    _health_safe(it.get("reason"))
+                    or f"Supports your {', '.join(focus_labels) or 'balanced'} focus."
+                ),
                 "focus": ", ".join(focus_labels) or "Balanced",
                 "estimated_inr": (round(_price_for(iid, float(qty), unit), 2)
                                   if iid and _price_for(iid, float(qty), unit) else None),

@@ -1548,17 +1548,30 @@ async def grocery_list(
         groups = [g for g in groups if g["items"]]
 
     for m in overrides.get("manual", []):
-        ing = ingredients.get(m["ingredient_id"], {})
-        cat = _grocery_category(ing)
-        price = _price_for(m["ingredient_id"], m["qty"], m["unit"])
+        mid = m["ingredient_id"]
+        if m.get("kb"):
+            # KB item: no catalog entry and no price — use what the AI gave us.
+            cat = _grocery_category({"category": m.get("category")})
+            name = m.get("name") or mid
+            price = None
+        else:
+            ing = ingredients.get(mid, {})
+            cat = _grocery_category(ing)
+            name = ing.get("name", mid.replace("_", " ").title())
+            price = _price_for(mid, m["qty"], m["unit"])
         row = {
-            "ingredient_id": m["ingredient_id"],
-            "name": ing.get("name", m["ingredient_id"].replace("_", " ").title()),
+            "ingredient_id": mid,
+            "name": name,
             "category": cat,
             "qty": m["qty"],
             "unit": m["unit"],
             "estimated_inr": round(price, 2) if price else None,
             "manual": True,
+            "kb": bool(m.get("kb")),
+            # raw AI category (vegetable/leafy_green/...) — `category` above is the
+            # display bucket; order-placed needs the raw one to shelve it correctly.
+            "raw_category": m.get("category") if m.get("kb") else None,
+            "name_ta": m.get("name_ta") if m.get("kb") else None,
         }
         if price:
             total_estimated_inr += price
@@ -2140,27 +2153,46 @@ async def grocery_restore_item(payload: GroceryRemoveIn, current=Depends(get_cur
 
 
 class GroceryAddIn(BaseModel):
-    ingredient_id: str
+    ingredient_id: Optional[str] = None  # omit for a KB item
     qty: float
     unit: str = "g"
+    # KB item: AI-suggested produce that isn't in the 98-item catalog.
+    kb: bool = False
+    name: Optional[str] = None
+    name_ta: Optional[str] = None
+    category: Optional[str] = None
 
 
 @api_router.post("/grocery/add-item")
 async def grocery_add_item(payload: GroceryAddIn, current=Depends(get_current_user)):
-    ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id}, {"_id": 0})
-    if not ing:
-        raise HTTPException(status_code=404, detail="Unknown ingredient")
+    """Add a catalog item, or a KB item the AI suggested (arai keerai, banana...).
+    KB items get a synthetic `kb:<name>` id so every downstream path — removal,
+    selection, grouping, ordering — keeps working unchanged."""
+    uid = current["user_id"]
+    entry: Dict[str, Any] = {"qty": payload.qty, "unit": payload.unit}
+    if payload.ingredient_id:
+        ing = await db.ingredients.find_one({"ingredient_id": payload.ingredient_id}, {"_id": 0})
+        if not ing:
+            raise HTTPException(status_code=404, detail="Unknown ingredient")
+        iid = payload.ingredient_id
+        entry["ingredient_id"] = iid
+    else:
+        if not (payload.name and payload.category):
+            raise HTTPException(status_code=400, detail="KB item needs name + category")
+        iid = "kb:" + _norm_name(payload.name).replace(" ", "_")
+        entry.update({
+            "ingredient_id": iid, "name": payload.name, "name_ta": payload.name_ta,
+            "category": payload.category, "kb": True,
+        })
     await db.grocery_overrides.update_one(
-        {"user_id": current["user_id"]},
-        {"$pull": {"manual": {"ingredient_id": payload.ingredient_id}}},
+        {"user_id": uid}, {"$pull": {"manual": {"ingredient_id": iid}}},
     )
     await db.grocery_overrides.update_one(
-        {"user_id": current["user_id"]},
-        {"$push": {"manual": payload.dict()},
-         "$pull": {"removed": payload.ingredient_id}},
+        {"user_id": uid},
+        {"$push": {"manual": entry}, "$pull": {"removed": iid}},
         upsert=True,
     )
-    return {"ok": True}
+    return {"ok": True, "ingredient_id": iid}
 
 
 @api_router.get("/grocery/search-ingredients")
@@ -2226,7 +2258,39 @@ async def grocery_order_placed(payload: OrderPlacedIn, current=Depends(get_curre
     }
     for it in payload.items:
         iid = it.get("ingredient_id")
-        if not iid or iid not in ingredients:
+        if not iid:
+            continue
+        # KB item (AI-suggested produce outside the catalog) — shelve it as a
+        # KB-backed pantry row instead of silently dropping it.
+        if it.get("kb") or str(iid).startswith("kb:"):
+            name = it.get("name")
+            cat = it.get("raw_category") or "vegetable"
+            if not name:
+                continue
+            norm = _norm_name(name)
+            if await db.pantry_items.find_one({"user_id": current["user_id"], "kb_norm": norm}):
+                continue  # already stocked
+            doc = {
+                "id": uuid.uuid4().hex,
+                "user_id": current["user_id"],
+                "ingredient_id": None,
+                "source": "kb",
+                "name_en": name,
+                "name_ta": it.get("name_ta"),
+                "category": cat,
+                "kb_norm": norm,
+                "maps_to": await _catalog_id_for(name),
+                "qty": it.get("qty"),
+                "unit": it.get("unit"),
+                "storage": it.get("storage") or "fridge",
+                "purchase_date": today,
+                "created_at": _now(),
+            }
+            await db.pantry_items.insert_one(doc)
+            doc.pop("_id", None)
+            inserted.append(await _enrich_item(doc))
+            continue
+        if iid not in ingredients:
             continue
         # Merge with any existing pantry row for the same ingredient (base-unit sum)
         existing = await db.pantry_items.find_one(

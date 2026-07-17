@@ -125,6 +125,8 @@ export function CaptainChat({
                 ref={listRef}
                 data={msgs}
                 keyExtractor={(_, i) => String(i)}
+                style={{ flex: 1 }}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ padding: spacing.m, gap: 10 }}
                 renderItem={({ item }) => (
                   <View

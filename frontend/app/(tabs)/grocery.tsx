@@ -192,10 +192,20 @@ function GroceryScreenInner() {
     load();
   };
 
-  const selected = useMemo(() => {
-    if (!data) return [] as GroceryItem[];
-    return data.groups.flatMap((g) => g.items).filter((it) => checked.has(it.ingredient_id));
-  }, [data, checked]);
+  // The grocery page is the Captain's picks now — only manually-added items
+  // (i.e. the picks the user tapped in) are the buy list. The old plan-driven
+  // rows still live in data.groups but are NOT rendered and must NOT be
+  // selectable/orderable, or "Select all" grabs invisible items (the 13-vs-5
+  // desync). So selection/ordering operate on `manual` items only.
+  const buyItems = useMemo(
+    () => (data ? data.groups.flatMap((g) => g.items).filter((it) => (it as any).manual) : []),
+    [data],
+  );
+
+  const selected = useMemo(
+    () => buyItems.filter((it) => checked.has(it.ingredient_id)),
+    [buyItems, checked],
+  );
 
   const selectedCost = useMemo(() => {
     let sum = 0;
@@ -203,10 +213,7 @@ function GroceryScreenInner() {
     return sum;
   }, [selected]);
 
-  const allIds = useMemo(
-    () => (data ? data.groups.flatMap((g) => g.items.map((it) => it.ingredient_id)) : []),
-    [data],
-  );
+  const allIds = useMemo(() => buyItems.map((it) => it.ingredient_id), [buyItems]);
   const selectAll = () => setChecked(new Set(allIds));
   const clearAll = () => setChecked(new Set());
 
@@ -233,6 +240,31 @@ function GroceryScreenInner() {
     } catch {
       /* noop */
     }
+  };
+
+  // Stable id for a pick: catalog id, or a synthetic kb:<name> for AI produce.
+  const pickKey = (it: any): string =>
+    it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
+
+  // Delete a pick (feedback: no way to change/remove a Captain's pick). If it's
+  // already in the buy list, remove it there too; otherwise just drop it locally.
+  const dismissPick = (it: any) => {
+    const id = pickKey(it);
+    setHealthItems((prev) => prev.filter((x) => pickKey(x) !== id));
+    const inList = (data?.groups ?? []).some((g) =>
+      g.items.some((x) => x.ingredient_id === id),
+    );
+    if (inList) {
+      removeItemPermanently(id);
+    } else {
+      setChecked((prev) => {
+        const n = new Set(prev);
+        n.delete(id);
+        return n;
+      });
+    }
+    setToast(`${it.name} removed`);
+    setTimeout(() => setToast(null), 1600);
   };
 
   const searchAddItem = async (q: string) => {
@@ -270,15 +302,10 @@ function GroceryScreenInner() {
       `${selected.length} items · ₹${Math.round(selectedCost)} est.`,
       "",
     ];
-    for (const g of data.groups) {
-      const items = g.items.filter((it) => checked.has(it.ingredient_id));
-      if (!items.length) continue;
-      lines.push(`— ${g.category} —`);
-      for (const it of items) {
-        lines.push(`• ${it.name} — ${it.qty} ${it.unit}`);
-      }
-      lines.push("");
+    for (const it of selected) {
+      lines.push(`• ${it.name} — ${it.qty} ${it.unit}`);
     }
+    lines.push("");
     lines.push("Made with AmmiAI 🌿");
     return lines.join("\n");
   }, [data, selected, checked, selectedCost]);
@@ -690,8 +717,7 @@ function GroceryScreenInner() {
             const inList = new Set(
               (data?.groups ?? []).flatMap((g) => g.items.map((it) => it.ingredient_id)),
             );
-            const pickId = (it: any) =>
-              it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
+            const pickId = pickKey;
             const picks = healthItems;
             if (picks.length === 0) return null;
             // Don't dump the full list on a first-time visitor — show the top few
@@ -750,6 +776,14 @@ function GroceryScreenInner() {
                       <Text style={styles.rowPrice}>
                         {it.qty}{it.unit}{it.estimated_inr ? ` · ₹${Math.round(it.estimated_inr)}` : ""}
                       </Text>
+                      <TouchableOpacity
+                        onPress={() => dismissPick(it)}
+                        hitSlop={10}
+                        style={{ paddingLeft: 10 }}
+                        testID={`captain-pick-remove-${id}`}
+                      >
+                        <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
+                      </TouchableOpacity>
                     </TouchableOpacity>
                   );
                 })}
@@ -784,8 +818,10 @@ function GroceryScreenInner() {
         </ScrollView>
       )}
 
-      {/* Compact action bar — one slim row; all actions live in the sheet */}
-      {!loading && !empty && data && data.total_items > 0 ? (
+      {/* Compact action bar — one slim row; all actions live in the sheet.
+          Show whenever there's a list to act on (picks or added items), not the
+          hidden plan-driven total. */}
+      {!loading && !empty && data ? (
         <View style={[styles.slimBar, { paddingBottom: insets.bottom + spacing.s }]}>
           <View style={{ flex: 1 }}>
             <Text style={styles.slimCount} testID="grocery-selected-count">

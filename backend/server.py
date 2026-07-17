@@ -1895,11 +1895,137 @@ async def meal_order_log(body: MealOrderIn, current=Depends(get_current_user)):
     return {"ok": True, "logged": body.dish_name}
 
 
+# Fresh classes only — the Captain's list is produce, never inventory staples.
+_FRESH_CATEGORIES = {"vegetable", "leafy_green", "fruit", "dairy", "protein", "meat_fish_egg"}
+
+
+async def _ai_grocery_list(
+    uid: str,
+    goals: List[str],
+    diet: str,
+    avoid: Set[str],
+    household: int,
+    targets: Dict[str, Any],
+    pantry_named: List[str],
+    focus_labels: List[str],
+) -> Optional[Dict[str, Any]]:
+    """Capt. Charmer plans 3 days of FRESH food like a mother would: driven by
+    the health focus + daily nutrition targets, skipping what's already in the
+    pantry. Fresh produce only — never dals/rice/oils (always stocked).
+    Items unknown to the catalog are minted as KB entries, so the AI is never
+    boxed in by our 98-ingredient list. Returns None on failure (caller falls
+    back to the rule-based picks)."""
+    key = hashlib.sha1(json.dumps({
+        "g": sorted(goals), "d": diet, "h": household,
+        "p": sorted(pantry_named), "day": _now().date().isoformat(),
+    }, sort_keys=True).encode()).hexdigest()
+    cached = await db.ai_grocery_cache.find_one({"key": key}, {"_id": 0})
+    if cached:
+        return cached.get("payload")
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        return None
+    try:
+        from anthropic import AsyncAnthropic
+        from ai_planner import AI_MODEL
+
+        prompt = (
+            "You are Capt. Charmer, a Tamil family nutrition coach who shops like a mother: "
+            "you decide what fresh food the household actually needs. Plan a shopping list for "
+            "THE NEXT 3 DAYS ONLY.\n"
+            f"Household size: {household}. Diet: {diet}. Health focus: {', '.join(focus_labels) or 'balanced'}.\n"
+            f"Daily targets: {int(targets.get('kcal', 0))} kcal, {int(targets.get('protein_g', 0))}g protein, "
+            f"{int(targets.get('fiber_g', 0))}g fiber.\n"
+            f"Already in their pantry (do NOT buy again): {', '.join(pantry_named) or 'nothing'}.\n"
+            "HARD RULES:\n"
+            "- ONLY fresh food: vegetables, greens/keerai, fruits, salad ingredients"
+            + (", curd/paneer/milk, eggs/fish/chicken" if diet != "veg" else ", curd/paneer/milk") + ".\n"
+            "- NEVER suggest rice, dals, lentils, pulses, flour, oil, ghee, spices, masala, sugar, "
+            "salt or any dry staple — a Tamil kitchen always has those. This is a produce run.\n"
+            "- Keep it SHORT: at most 5 items total for 3 days. A tired solo cook will not shop a wall.\n"
+            "- Choose items that genuinely close the gap for the health focus, and that combine into "
+            "simple Tamil meals or salads.\n"
+            "- Use everyday Tamil-market names.\n"
+            "Respond ONLY with JSON, no prose, no fences:\n"
+            '{"guidance":"<one short line, wellness framing, no medical claims>",'
+            '"items":[{"name_en":str,"name_ta":str,"category":"vegetable|leafy_green|fruit|dairy|meat_fish_egg",'
+            '"qty":number,"unit":"g|pc|ml","reason":"<short why, tied to their focus>"}]}'
+        )
+        client = AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=AI_MODEL, max_tokens=800, temperature=0.2,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
+
+        NONVEG = {"eggs", "chicken", "fish", "prawns", "mutton"}
+        items: List[Dict[str, Any]] = []
+        for it in (parsed.get("items") or [])[:5]:
+            name = (it.get("name_en") or "").strip()
+            if not name:
+                continue
+            cat = it.get("category") or "vegetable"
+            iid = await _catalog_id_for(name)
+            # Deterministic safety — never delegated to the model.
+            norm = _norm_name(name)
+            if any(a and (a in norm or norm in _norm_name(a)) for a in avoid):
+                continue
+            if iid and iid in avoid:
+                continue
+            if diet == "veg" and (iid in NONVEG or any(n in norm for n in NONVEG)):
+                continue
+            if diet == "egg" and any(n in norm for n in {"chicken", "fish", "prawns", "mutton"}):
+                continue
+            # Belt-and-braces: drop anything that resolves to a dry staple.
+            if iid:
+                ing = await db.ingredients.find_one({"ingredient_id": iid}, {"_id": 0, "category": 1})
+                if (ing or {}).get("category") in ("staple", "spice"):
+                    continue
+            qty = it.get("qty") or (250 if it.get("unit") != "pc" else 4)
+            unit = it.get("unit") or "g"
+            row: Dict[str, Any] = {
+                "ingredient_id": iid,
+                "name": name,
+                "name_ta": it.get("name_ta"),
+                "category": cat,
+                "qty": qty,
+                "unit": unit,
+                "reason": _health_safe(it.get("reason")) or "",
+                "focus": ", ".join(focus_labels) or "Balanced",
+                "estimated_inr": (round(_price_for(iid, float(qty), unit), 2)
+                                  if iid and _price_for(iid, float(qty), unit) else None),
+                "kb": iid is None,  # not in our catalog -> minted as a KB item
+            }
+            if iid is None:
+                # The AI isn't limited to our 98 ingredients: mint a KB entry so
+                # the item is real, addable and reusable by everyone.
+                await _kb_upsert({"name_en": name, "name_ta": it.get("name_ta")}, cat)
+            items.append(row)
+        if not items:
+            return None
+        payload = {
+            "items": items,
+            "guidance": [g for g in [_health_safe(parsed.get("guidance"))] if g],
+            "focuses": focus_labels,
+            "days": 3,
+            "picked_by": "ai",
+            "note": "Guidance based on ICMR-NIN 2024 — not medical advice; consult your doctor.",
+        }
+        await db.ai_grocery_cache.update_one(
+            {"key": key}, {"$set": {"key": key, "payload": payload, "ts": _now()}}, upsert=True
+        )
+        return payload
+    except Exception:
+        return None
+
+
 @api_router.get("/grocery/suggest-health")
 async def grocery_suggest_health(current=Depends(get_current_user)):
-    """Capt. Charmer's health-driven buy list: profile focus areas -> favoured
-    ingredients (ICMR-NIN grounded, IDs verified against the catalog) with a
-    reason per item. Filtered by diet/allergies, priced, deduped."""
+    """Capt. Charmer's buy list. AI-first: 3 days of FRESH produce chosen from
+    the health focus + nutrition targets + what's already in the pantry. Falls
+    back to the rule-based favour lists if the AI is unavailable."""
     profile = await db.profiles.find_one({"user_id": current["user_id"]}, {"_id": 0}) or {}
     goals = list((profile.get("health") or {}).get("goals") or [])
     rules = _health_rules()
@@ -1908,6 +2034,22 @@ async def grocery_suggest_health(current=Depends(get_current_user)):
         goals = ["balanced"]
     diet = profile.get("diet") or "veg"
     avoid = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+
+    # --- AI-first path -------------------------------------------------
+    pantry_named = []
+    for p in await db.pantry_items.find({"user_id": current["user_id"]}, {"_id": 0}).to_list(200):
+        e = await _enrich_item(dict(p))
+        if e.get("ingredient_name"):
+            pantry_named.append(e["ingredient_name"])
+    rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+    ai = await _ai_grocery_list(
+        current["user_id"], goals, diet, avoid,
+        max(1, int(profile.get("household_size", 1))),
+        daily_targets(rules_doc, profile), pantry_named,
+        [focuses.get(g, {}).get("label", g) for g in goals if g in focuses],
+    )
+    if ai:
+        return ai
 
     NONVEG = {"eggs", "chicken", "fish"}
     ing_docs = {i["ingredient_id"]: i for i in await db.ingredients.find({}, {"_id": 0}).to_list(500)}

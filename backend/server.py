@@ -724,10 +724,11 @@ async def get_waste_log(current=Depends(get_current_user)):
 
 
 # ------------------------- Meal Plan Engine ------------------------- #
-async def _ai_cookable_ids(uid: str) -> Set[str]:
+async def _ai_cookable_ids(uid: str) -> List[str]:
     """Recipe ids the AI judges genuinely cookable from the current pantry (all
-    slots). Cached per (pantry, day). Empty on any failure so the engine falls
-    back to rule scoring — the plan is never blocked on the AI."""
+    slots), ORDERED best-first (pantry-using dishes first). Cached per (pantry,
+    day). Empty on any failure so the engine falls back to rule scoring — the
+    plan is never blocked on the AI."""
     profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
     diet = profile.get("diet") or "veg"
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
@@ -742,7 +743,7 @@ async def _ai_cookable_ids(uid: str) -> Set[str]:
         if e.get("ingredient_name"):
             pantry_named.append({"name": e["ingredient_name"], "days_left": e.get("days_left")})
     if not pantry_named:
-        return set()
+        return []
 
     key = hashlib.sha1(json.dumps({
         "p": sorted(x["name"] for x in pantry_named), "d": diet,
@@ -750,11 +751,11 @@ async def _ai_cookable_ids(uid: str) -> Set[str]:
     }, sort_keys=True).encode()).hexdigest()
     cached = await db.ai_plan_cook_cache.find_one({"key": key}, {"_id": 0})
     if cached:
-        return set(cached.get("ids", []))
+        return list(cached.get("ids", []))
 
     api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not api_key:
-        return set()
+        return []
     try:
         from anthropic import AsyncAnthropic
         from ai_planner import AI_MODEL
@@ -791,7 +792,9 @@ async def _ai_cookable_ids(uid: str) -> Set[str]:
             "aval = poha).\n"
             "Dishes (id | name | what it still needs beyond basics):\n" + "\n".join(lines[:120]) + "\n\n"
             "Return ONLY JSON, no fences: {\"ids\":[\"<cookable ids>\"]} — every dish genuinely "
-            "cookable now with that pantry + basics. Be generous but honest."
+            "cookable now with that pantry + basics, ORDERED BEST FIRST: dishes that use the "
+            "pantry items (especially the ones expiring soonest) come before generic dishes that "
+            "use none of them. Be generous but honest."
         )
         client = AsyncAnthropic(api_key=api_key)
         resp = await client.messages.create(
@@ -800,13 +803,14 @@ async def _ai_cookable_ids(uid: str) -> Set[str]:
         )
         raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
         parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
-        cookable = {i for i in (parsed.get("ids") or []) if i in ids}  # validate
+        seen: set = set()
+        cookable = [i for i in (parsed.get("ids") or []) if i in ids and not (i in seen or seen.add(i))]
         await db.ai_plan_cook_cache.update_one(
-            {"key": key}, {"$set": {"key": key, "ids": list(cookable), "ts": _now()}}, upsert=True
+            {"key": key}, {"$set": {"key": key, "ids": cookable, "ts": _now()}}, upsert=True
         )
         return cookable
     except Exception:
-        return set()
+        return []
 
 
 async def _build_context(
@@ -885,9 +889,11 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
             )
     seed = payload.seed if payload.seed is not None else int(_now().timestamp())
     # AI-first: bias the plan toward dishes genuinely cookable from the pantry
-    # (aval upma when you have aval, not carrot poriyal). Cached per pantry/day.
-    ai_cookable = await _ai_cookable_ids(current["user_id"])
-    ctx = await _build_context(current["user_id"], seed=seed, ai_cookable=ai_cookable)
+    # (aval upma when you have aval, not carrot poriyal). Ordered best-first so
+    # the AI's top pantry-using dish wins its slot. Cached per pantry/day.
+    ai_ordered = await _ai_cookable_ids(current["user_id"])
+    ctx = await _build_context(current["user_id"], seed=seed, ai_cookable=set(ai_ordered))
+    ctx.ai_rank = {rid: i for i, rid in enumerate(ai_ordered)}
     plan = engine_plan_day(ctx)
     plan = _sanitize_plan(plan)
     plan["user_id"] = current["user_id"]

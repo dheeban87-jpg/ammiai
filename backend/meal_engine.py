@@ -110,6 +110,10 @@ class PlannerContext:
     # (knows coconut == grated coconut, kitchen basics, etc.). Strongly preferred
     # in scoring but never the ONLY option, so the plan is never empty.
     ai_cookable: Set[str] = field(default_factory=set)
+    # AI's best-first rank (id -> 0-based position); earlier = more preferred
+    # (it puts pantry-using dishes first). Scales the bonus so the AI's #1 pick
+    # for a slot actually wins it (aval upma over idli).
+    ai_rank: Dict[str, int] = field(default_factory=dict)
 
 
 # --------------------------- Scoring --------------------------- #
@@ -156,10 +160,15 @@ def score_recipe(
     # AI pantry-cookability dominates: a dish the AI says you can cook from what
     # you have (aval upma when you have aval) outranks one you can't. Big enough
     # to lead, not so big it fully suppresses variety/health tie-breaks.
-    ai_bonus = 1.0 if recipe["id"] in ctx.ai_cookable else 0
-    # ...but among cookable dishes, prefer ones that actually USE the pantry.
-    # Idli (0 pantry items) and Aval Upma (poha+onion+lemon) are both cookable;
-    # this is what tips it to Aval Upma when you have aval, instead of a coin flip.
+    # Scale by the AI's best-first rank so its #1 cookable dish for a slot wins
+    # it: rank 0 -> +1.5, and each step down is -0.03 (floored at +0.6, still far
+    # above any non-cookable dish's 0). This is what makes Aval Upma (AI #1, uses
+    # your poha) beat Idli (also cookable from batter, but ranked lower).
+    if recipe["id"] in ctx.ai_cookable:
+        ai_bonus = max(0.6, 1.5 - 0.03 * ctx.ai_rank.get(recipe["id"], 30))
+    else:
+        ai_bonus = 0
+    # ...and still reward dishes that actually USE the pantry.
     use_bonus = 0.15 * have
 
     total = (base + exp_bonus + fav_bonus + health_bonus + zero_shop_bonus

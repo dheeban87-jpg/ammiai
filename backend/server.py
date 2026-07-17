@@ -1688,6 +1688,15 @@ async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_cur
     return {"dishes": out[:2], "pantry_count": len(pantry), "picked_by": "rules"}
 
 
+def _ai_dish(candidate: Dict[str, Any], why: Optional[str]) -> Dict[str, Any]:
+    """An AI-picked dish is one the model judged cookable NOW. The rule-based
+    readiness/missing on it are computed by raw id-matching, which doesn't know
+    coconut == coconut_grated or that green chilli is a kitchen basic — so they
+    contradict the pick ("33% · needs 2 more" on a dish you can cook). Clear
+    them; the AI's judgement is the source of truth on this surface."""
+    return dict(candidate, why=why, readiness=100, missing=[], picked_by="ai")
+
+
 async def _ai_cookable_dishes(
     uid: str,
     candidates: List[Dict[str, Any]],
@@ -1708,7 +1717,10 @@ async def _ai_cookable_dishes(
     cached = await db.ai_dish_cache.find_one({"key": key}, {"_id": 0})
     if cached:
         by_id = {c["id"]: c for c in candidates}
-        return [dict(by_id[d["id"]], why=d.get("why")) for d in cached.get("dishes", []) if d["id"] in by_id]
+        return [
+            _ai_dish(by_id[d["id"]], d.get("why"))
+            for d in cached.get("dishes", []) if d["id"] in by_id
+        ]
 
     api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not api_key or not candidates or not pantry_named:
@@ -1761,7 +1773,7 @@ async def _ai_cookable_dishes(
         await db.ai_dish_cache.update_one(
             {"key": key}, {"$set": {"key": key, "dishes": picked, "ts": _now()}}, upsert=True
         )
-        return [dict(by_id[d["id"]], why=d.get("why")) for d in picked]
+        return [_ai_dish(by_id[d["id"]], d.get("why")) for d in picked]
     except Exception:
         return []  # never break the dishes page on an AI hiccup
 

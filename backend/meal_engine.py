@@ -157,8 +157,13 @@ def score_recipe(
     # you have (aval upma when you have aval) outranks one you can't. Big enough
     # to lead, not so big it fully suppresses variety/health tie-breaks.
     ai_bonus = 1.0 if recipe["id"] in ctx.ai_cookable else 0
+    # ...but among cookable dishes, prefer ones that actually USE the pantry.
+    # Idli (0 pantry items) and Aval Upma (poha+onion+lemon) are both cookable;
+    # this is what tips it to Aval Upma when you have aval, instead of a coin flip.
+    use_bonus = 0.15 * have
 
-    total = base + exp_bonus + fav_bonus + health_bonus + zero_shop_bonus + ai_bonus - variety_penalty
+    total = (base + exp_bonus + fav_bonus + health_bonus + zero_shop_bonus
+             + ai_bonus + use_bonus - variety_penalty)
     return (
         total,
         {

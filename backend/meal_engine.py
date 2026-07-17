@@ -106,6 +106,10 @@ class PlannerContext:
     pantry: PantrySnapshot
     week_ids: List[str] = field(default_factory=list)  # dishes cooked this week
     seed: Optional[int] = None
+    # Recipe ids the AI judged genuinely cookable from the current pantry
+    # (knows coconut == grated coconut, kitchen basics, etc.). Strongly preferred
+    # in scoring but never the ONLY option, so the plan is never empty.
+    ai_cookable: Set[str] = field(default_factory=set)
 
 
 # --------------------------- Scoring --------------------------- #
@@ -149,8 +153,12 @@ def score_recipe(
     health_bonus = 0.10 * len(goals & tags)
     zero_shop_bonus = 0.30 if ratio >= 1.0 else 0
     variety_penalty = 0.15 if recipe["id"] in ctx.week_ids else 0
+    # AI pantry-cookability dominates: a dish the AI says you can cook from what
+    # you have (aval upma when you have aval) outranks one you can't. Big enough
+    # to lead, not so big it fully suppresses variety/health tie-breaks.
+    ai_bonus = 1.0 if recipe["id"] in ctx.ai_cookable else 0
 
-    total = base + exp_bonus + fav_bonus + health_bonus + zero_shop_bonus - variety_penalty
+    total = base + exp_bonus + fav_bonus + health_bonus + zero_shop_bonus + ai_bonus - variety_penalty
     return (
         total,
         {

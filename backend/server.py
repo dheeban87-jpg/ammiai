@@ -724,7 +724,94 @@ async def get_waste_log(current=Depends(get_current_user)):
 
 
 # ------------------------- Meal Plan Engine ------------------------- #
-async def _build_context(user_id: str, seed: Optional[int] = None) -> PlannerContext:
+async def _ai_cookable_ids(uid: str) -> Set[str]:
+    """Recipe ids the AI judges genuinely cookable from the current pantry (all
+    slots). Cached per (pantry, day). Empty on any failure so the engine falls
+    back to rule scoring — the plan is never blocked on the AI."""
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    diet = profile.get("diet") or "veg"
+    allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+    pantry_ids: Set[str] = set()
+    pantry_named: List[Dict[str, Any]] = []
+    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+        if p.get("ingredient_id"):
+            pantry_ids.add(p["ingredient_id"])
+        if p.get("maps_to"):
+            pantry_ids.add(p["maps_to"])
+        e = await _enrich_item(dict(p))
+        if e.get("ingredient_name"):
+            pantry_named.append({"name": e["ingredient_name"], "days_left": e.get("days_left")})
+    if not pantry_named:
+        return set()
+
+    key = hashlib.sha1(json.dumps({
+        "p": sorted(x["name"] for x in pantry_named), "d": diet,
+        "day": _now().date().isoformat(),
+    }, sort_keys=True).encode()).hexdigest()
+    cached = await db.ai_plan_cook_cache.find_one({"key": key}, {"_id": 0})
+    if cached:
+        return set(cached.get("ids", []))
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        return set()
+    try:
+        from anthropic import AsyncAnthropic
+        from ai_planner import AI_MODEL
+
+        recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
+        assumed = await _assumed_staples(uid)
+        ing_names = {
+            i["ingredient_id"]: i.get("name", i["ingredient_id"])
+            for i in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1}).to_list(500)
+        }
+        DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "eggetarian": {"veg", "egg"},
+                   "nonveg": {"veg", "egg", "nonveg"}}
+        allowed = DIET_OK.get(diet, {"veg"})
+        lines, ids = [], set()
+        for r in recipes:
+            if r.get("diet") not in allowed:
+                continue
+            ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
+            if allergies & set(ing_ids):
+                continue
+            ids.add(r["id"])
+            missing = [ing_names.get(i, i) for i in ing_ids if i not in assumed and i not in pantry_ids]
+            lines.append(f'{r["id"]} | {r.get("name_en")} | needs: {", ".join(missing) or "nothing extra"}')
+        have_txt = ", ".join(
+            x["name"] + (f' ({x["days_left"]}d)' if x.get("days_left") is not None else "")
+            for x in pantry_named
+        )
+        prompt = (
+            "You plan a Tamil family's meals. Decide which dishes can be cooked RIGHT NOW.\n"
+            f"Fresh pantry: {have_txt}.\n"
+            "Assume any Tamil kitchen always stocks: rice, dals, oil, mustard, cumin, turmeric, "
+            "chilli & coriander powder, salt, tamarind, curry leaves, green chilli, garlic, ginger, "
+            "shallots, jaggery. Treat equivalents as the same (coconut = grated coconut; muttai = eggs; "
+            "aval = poha).\n"
+            "Dishes (id | name | what it still needs beyond basics):\n" + "\n".join(lines[:120]) + "\n\n"
+            "Return ONLY JSON, no fences: {\"ids\":[\"<cookable ids>\"]} — every dish genuinely "
+            "cookable now with that pantry + basics. Be generous but honest."
+        )
+        client = AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=AI_MODEL, max_tokens=700, temperature=0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
+        cookable = {i for i in (parsed.get("ids") or []) if i in ids}  # validate
+        await db.ai_plan_cook_cache.update_one(
+            {"key": key}, {"$set": {"key": key, "ids": list(cookable), "ts": _now()}}, upsert=True
+        )
+        return cookable
+    except Exception:
+        return set()
+
+
+async def _build_context(
+    user_id: str, seed: Optional[int] = None, ai_cookable: Optional[Set[str]] = None
+) -> PlannerContext:
     profile = await db.profiles.find_one({"user_id": user_id}, {"_id": 0}) or {}
     rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
     recipes = await db.recipes.find({}, {"_id": 0}).to_list(1000)
@@ -753,6 +840,7 @@ async def _build_context(user_id: str, seed: Optional[int] = None) -> PlannerCon
         pantry=pantry,
         week_ids=week_ids,
         seed=seed,
+        ai_cookable=ai_cookable or set(),
     )
 
 
@@ -796,7 +884,10 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
                 detail="Free plan limit: 4 plan generations per month. Upgrade to premium for unlimited.",
             )
     seed = payload.seed if payload.seed is not None else int(_now().timestamp())
-    ctx = await _build_context(current["user_id"], seed=seed)
+    # AI-first: bias the plan toward dishes genuinely cookable from the pantry
+    # (aval upma when you have aval, not carrot poriyal). Cached per pantry/day.
+    ai_cookable = await _ai_cookable_ids(current["user_id"])
+    ctx = await _build_context(current["user_id"], seed=seed, ai_cookable=ai_cookable)
     plan = engine_plan_day(ctx)
     plan = _sanitize_plan(plan)
     plan["user_id"] = current["user_id"]

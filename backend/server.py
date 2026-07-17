@@ -2561,7 +2561,9 @@ async def captain_chat(payload: CaptainChatIn, current=Depends(get_current_user)
     for p in pantry[:40]:
         e = await _enrich_item(p)
         pantry_brief.append({
-            "name": e.get("name") or p.get("ingredient_id"),
+            # _enrich_item sets `ingredient_name` (resolves KB items via name_en
+            # too) — reading `name` here left every KB item "unnamed" to the Captain.
+            "name": e.get("ingredient_name") or p.get("ingredient_id") or "item",
             "qty": p.get("qty"), "unit": p.get("unit"),
             "days_left": e.get("days_left"),
         })

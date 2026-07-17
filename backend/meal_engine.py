@@ -76,12 +76,21 @@ class PantrySnapshot:
         items: Sequence[Dict[str, Any]],
         assumed: Optional[Set[str]] = None,
     ) -> "PantrySnapshot":
-        have = {it["ingredient_id"] for it in items if it.get("qty", 0) > 0}
+        # KB-backed items carry no catalog ingredient_id — fall back to maps_to
+        # (frozen grated coconut -> coconut) so the engine actually sees them.
+        # A truly novel item (peanut chutney) maps to nothing and is skipped.
+        have = {
+            it.get("ingredient_id") or it.get("maps_to")
+            for it in items
+            if it.get("qty", 0) > 0
+        }
+        have.discard(None)
         expiring = {
-            it["ingredient_id"]
+            it.get("ingredient_id") or it.get("maps_to")
             for it in items
             if it.get("freshness") in ("yellow", "red")
         }
+        expiring.discard(None)
         return cls(
             have=have,
             expiring=expiring,

@@ -1626,13 +1626,19 @@ async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_cur
     diet = profile.get("diet") or "veg"
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
     pantry: Set[str] = set()
-    async for p in db.pantry_items.find(
-        {"user_id": current["user_id"]}, {"ingredient_id": 1, "maps_to": 1}
-    ):
+    pantry_named: List[Dict[str, Any]] = []  # names for the AI (ids mean nothing to it)
+    for p in await db.pantry_items.find(
+        {"user_id": current["user_id"]}, {"_id": 0}
+    ).to_list(200):
         if p.get("ingredient_id"):
             pantry.add(p["ingredient_id"])
         if p.get("maps_to"):  # KB item that resolves to a catalog ingredient
             pantry.add(p["maps_to"])
+        e = await _enrich_item(dict(p))
+        pantry_named.append({
+            "name": e.get("ingredient_name"),  # resolves KB items too
+            "days_left": e.get("days_left"),
+        })
     assumed = await _assumed_staples(current["user_id"])  # R2: staples assumed present
     recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
 
@@ -1669,7 +1675,95 @@ async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_cur
     # most-ready, then LOWEST effort (a solo cook won't attempt a 10-ingredient
     # spread for dinner), then most pantry used. Keep it to a glanceable handful.
     out.sort(key=lambda d: (0 if d["have"] else 1, -d["readiness"], d["effort"], -len(d["have"])))
-    return {"dishes": out[:2], "pantry_count": len(pantry)}
+
+    # AI picks which of these are GENUINELY cookable. Rule-based id matching
+    # can't know that coconut == grated coconut, or that a Tamil kitchen always
+    # has chilli/garlic/ginger — measured, strict id-matching left 5/73 dishes,
+    # all staple-only. The AI reasons on names instead. Safety (diet, allergies,
+    # meal slot) stays deterministic above and is never delegated to the model;
+    # the AI only ranks/filters what is already safe, and its ids are validated.
+    ai_named = await _ai_cookable_dishes(current["user_id"], out, pantry_named, diet, slot)
+    if ai_named:
+        return {"dishes": ai_named[:2], "pantry_count": len(pantry), "picked_by": "ai"}
+    return {"dishes": out[:2], "pantry_count": len(pantry), "picked_by": "rules"}
+
+
+async def _ai_cookable_dishes(
+    uid: str,
+    candidates: List[Dict[str, Any]],
+    pantry_named: List[Dict[str, Any]],
+    diet: str,
+    slot: Optional[str],
+) -> List[Dict[str, Any]]:
+    """Ask Claude which candidate dishes can actually be cooked from this pantry.
+    Cached per (pantry, diet, slot, day) so repeated opens don't re-bill. Returns
+    [] on any failure so the caller falls back to the deterministic ranking."""
+    key_src = json.dumps({
+        "p": sorted((p.get("name") or "") for p in pantry_named),
+        "d": diet, "s": slot or "any",
+        "day": _now().date().isoformat(),
+        "c": sorted(c["id"] for c in candidates),
+    }, sort_keys=True)
+    key = hashlib.sha1(key_src.encode()).hexdigest()
+    cached = await db.ai_dish_cache.find_one({"key": key}, {"_id": 0})
+    if cached:
+        by_id = {c["id"]: c for c in candidates}
+        return [dict(by_id[d["id"]], why=d.get("why")) for d in cached.get("dishes", []) if d["id"] in by_id]
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key or not candidates or not pantry_named:
+        return []
+    try:
+        from anthropic import AsyncAnthropic
+        from ai_planner import AI_MODEL
+
+        ing_names = {
+            i["ingredient_id"]: i.get("name", i["ingredient_id"])
+            for i in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1}).to_list(500)
+        }
+        lines = []
+        for c in candidates[:60]:
+            needs = ", ".join(ing_names.get(m, m) for m in c.get("missing", [])) or "nothing extra"
+            lines.append(f'{c["id"]} | {c["name"]} | needs: {needs}')
+        have_txt = ", ".join(
+            f'{p.get("name")}' + (f' ({p["days_left"]}d left)' if p.get("days_left") is not None else "")
+            for p in pantry_named
+        )
+        prompt = (
+            "You are a Tamil home-cooking assistant deciding what a solo cook can make RIGHT NOW.\n"
+            f"Their fresh pantry: {have_txt}.\n"
+            "Assume, as in ANY Tamil kitchen, that basics are always in stock: rice, dals/lentils, "
+            "cooking oil, mustard, cumin, turmeric, chilli & coriander powder, salt, tamarind, "
+            "curry leaves, green chillies, garlic, ginger, shallots, jaggery.\n"
+            "Treat obvious equivalents as the SAME item (coconut = grated coconut; muttai = eggs).\n"
+            "Candidate dishes (id | name | what it still needs beyond the basics):\n"
+            + "\n".join(lines) + "\n\n"
+            "Pick only dishes they can genuinely cook now with that pantry + the basics. "
+            "Strongly prefer dishes that use the items expiring soonest, and low-effort dishes. "
+            "Respond ONLY with JSON, no prose, no fences: "
+            '{"dishes":[{"id":"<id from the list>","why":"<one short reason>"}]} — at most 6, best first.'
+        )
+        client = AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=AI_MODEL, max_tokens=600, temperature=0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
+        by_id = {c["id"]: c for c in candidates}
+        picked = [
+            {"id": d.get("id"), "why": d.get("why")}
+            for d in (parsed.get("dishes") or [])
+            if d.get("id") in by_id  # validated: never render an id the model invented
+        ]
+        if not picked:
+            return []
+        await db.ai_dish_cache.update_one(
+            {"key": key}, {"$set": {"key": key, "dishes": picked, "ts": _now()}}, upsert=True
+        )
+        return [dict(by_id[d["id"]], why=d.get("why")) for d in picked]
+    except Exception:
+        return []  # never break the dishes page on an AI hiccup
 
 
 @api_router.get("/dishes/for-health")

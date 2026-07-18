@@ -39,7 +39,7 @@
         "android.permission.health.READ_ACTIVE_CALORIES_BURNED",
         "android.permission.health.READ_EXERCISE"
       ],
-      "versionCode": 39
+      "versionCode": 40
     },
     "web": {
       "bundler": "metro",
@@ -49,6 +49,7 @@
     "plugins": [
       "expo-router",
       "react-native-health-connect",
+      "./plugins/with-health-connect-manifest",
       [
         "expo-splash-screen",
         {

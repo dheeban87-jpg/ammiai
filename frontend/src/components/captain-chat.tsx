@@ -107,8 +107,11 @@ export function CaptainChat({
             </TouchableOpacity>
           </View>
 
+          {/* Android needs "height" + the keyboard listener too — with
+              behavior=undefined the input sat *behind* the keyboard and the
+              message list couldn't be reached. */}
           <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={{ flex: 1 }}
           >
             {msgs.length === 0 ? (

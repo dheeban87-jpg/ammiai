@@ -1,6 +1,6 @@
 // Shared meal-card component used by /plan and /plan/day/[date]
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FoodAvatar } from "@/src/food-visual";
 
@@ -88,6 +88,8 @@ export function MealCard({
   onAddDish,
   onSuggest,
   onLogOutcome,
+  onRegenerate,
+  regenerating,
   testIDPrefix,
 }: {
   meal: Meal;
@@ -97,12 +99,24 @@ export function MealCard({
   onAddDish?: () => void;
   onSuggest?: () => void;
   onLogOutcome?: (outcome: MealOutcome) => void;
+  onRegenerate?: () => void;
+  regenerating?: boolean;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
   const meta = MEAL_META[meal.key];
   const { t, lang } = useI18n();
   const isEmpty = meal.items.length === 0 || meal.items.every((it) => it.static);
+
+  // Robust meal total: prefer the server value, else sum the dishes, else "—".
+  const mealTotal = (k: "kcal" | "protein_g" | "fiber_g", suffix = "") => {
+    let v = (meal as any)[k];
+    if (typeof v !== "number" || !isFinite(v)) {
+      v = meal.items.reduce((sum, it) => sum + Number((it.nutrition as any)?.[k] ?? 0), 0);
+    }
+    if (!isFinite(v) || v <= 0) return "—";
+    return `${Math.round(v)}${suffix}`;
+  };
   return (
     <View style={styles.mealCard} testID={testIDPrefix}>
       <View style={styles.mealHeader}>
@@ -290,15 +304,27 @@ export function MealCard({
         </View>
       ) : null}
 
-      {!isEmpty && onSuggest ? (
+      {/* Per-meal regenerate (replaces the old global button + "Captain's
+          suggestion"): rebuild just this meal from the pantry, so breakfast,
+          lunch and dinner can each be reshuffled independently. */}
+      {onRegenerate ? (
         <TouchableOpacity
           style={styles.suggestBtn}
-          onPress={onSuggest}
-          testID={`${testIDPrefix}-suggest`}
+          onPress={onRegenerate}
+          disabled={regenerating}
+          testID={`${testIDPrefix}-regenerate`}
           hitSlop={8}
         >
-          <Ionicons name="sparkles" size={17} color={colors.riceWhite} />
-          <Text style={styles.suggestText}>{`Captain's suggestion`}</Text>
+          {regenerating ? (
+            <ActivityIndicator color={colors.riceWhite} />
+          ) : (
+            <>
+              <Ionicons name="refresh" size={17} color={colors.riceWhite} />
+              <Text style={styles.suggestText}>
+                Regenerate {MEAL_META[meal.key].title.toLowerCase()}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       ) : null}
 
@@ -315,9 +341,11 @@ export function MealCard({
       ) : null}
 
       <View style={styles.mealFooter}>
-        <NutritionChip label="kcal" value={Math.round(meal.kcal)} tint={colors.bananaLeaf} />
-        <NutritionChip label="P" value={`${Math.round(meal.protein_g)}g`} tint={colors.chili} />
-        <NutritionChip label="Fiber" value={`${Math.round(meal.fiber_g)}g`} tint={colors.turmeric} />
+        {/* Plans saved before per-meal totals existed have no meal.kcal, which
+            rendered "NaN". Fall back to summing the dishes, then to a dash. */}
+        <NutritionChip label="kcal" value={mealTotal("kcal")} tint={colors.bananaLeaf} />
+        <NutritionChip label="P" value={mealTotal("protein_g", "g")} tint={colors.chili} />
+        <NutritionChip label="Fiber" value={mealTotal("fiber_g", "g")} tint={colors.turmeric} />
       </View>
     </View>
   );

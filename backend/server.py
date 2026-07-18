@@ -2532,6 +2532,44 @@ class CookedIn(BaseModel):
     recipe_id: str
 
 
+@api_router.post("/plan/{date}/regenerate-meal")
+async def plan_regenerate_meal(date: str, meal: str, current=Depends(get_current_user)):
+    """Regenerate ONE meal from the pantry (owner: separate regenerate per
+    breakfast/lunch/dinner instead of one global button). Reuses the same AI
+    pantry planner and swaps in just that slot, leaving the others untouched."""
+    if meal not in ("breakfast", "lunch", "dinner"):
+        raise HTTPException(status_code=400, detail="Unknown meal")
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    # seed varies -> higher temperature, so the same pantry yields a different meal
+    fresh = await _ai_generate_plan(current["user_id"], seed=int(_now().timestamp()))
+    if not fresh or not fresh.get(meal):
+        raise HTTPException(status_code=503, detail="Couldn't rebuild that meal — try again")
+    doc[meal] = fresh[meal]
+
+    # Recompute day totals/rings across the (possibly mixed) day
+    day_items = [i for s in ("breakfast", "lunch", "dinner") for i in (doc.get(s) or {}).get("items", [])]
+    totals = {
+        k: round(sum(float((i.get("nutrition") or {}).get(k) or 0) for i in day_items))
+        for k in ("kcal", "protein_g", "fiber_g")
+    }
+    targets = doc.get("day_targets") or fresh.get("day_targets") or {}
+    doc["day_totals"] = totals
+    doc["rings"] = {
+        k: min(1.0, round(totals[k] / max(1, targets.get(k, 1)), 3))
+        for k in ("kcal", "protein_g", "fiber_g")
+    }
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": date}, doc, upsert=True
+    )
+    doc.pop("_id", None)
+    return doc
+
+
 class MealLogIn(BaseModel):
     meal: str                 # breakfast | lunch | dinner
     outcome: str              # cooked | made_other | ate_out | skipped
@@ -4359,9 +4397,20 @@ async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Di
             "turmeric, chilli & coriander powder, salt, tamarind, curry leaves, green chilli, "
             "garlic, ginger, shallots, jaggery, idli/dosa batter. You do NOT need to list those "
             "as missing — just use them.\n\n"
+            "MEAL STRUCTURE — this is what makes it a real Tamil meal, not a random\n"
+            "pile of dishes. Never serve two gravies/curries together, and never two\n"
+            "chutneys together. Follow these shapes:\n"
+            "- BREAKFAST (tiffin): ONE tiffin (idli / dosai / pongal / upma / adai /\n"
+            "  idiyappam / aval upma) + ONE accompaniment (chutney OR sambar). Never a\n"
+            "  kuzhambu/curry at breakfast.\n"
+            "- LUNCH (rice meal): rice is assumed on the plate. ONE main gravy\n"
+            "  (kuzhambu/sambar/rasam) + ONE dry vegetable side (poriyal/kootu).\n"
+            "  Exactly one gravy — not two.\n"
+            "- DINNER (light): EITHER one tiffin + one chutney, OR one light rice dish\n"
+            "  + one poriyal. Keep it lighter than lunch. Never two curries.\n"
+            "A curry/kuzhambu and a chutney do NOT go together as a meal.\n\n"
             "Rules:\n"
             "- Prioritise the items expiring soonest.\n"
-            "- Breakfast = tiffin (light). Lunch = rice-based meal. Dinner = light.\n"
             f"- A household of {household} cooks few dishes: at most "
             f"{2 if household <= 2 else 3} dishes per meal.\n"
             "- Use real Tamil dish names. Invent the dish if it isn't a famous one, as long as it "

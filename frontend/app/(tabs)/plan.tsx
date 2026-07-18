@@ -225,6 +225,23 @@ export default function PlanScreen() {
     }
   };
 
+  const [regenMeal, setRegenMeal] = useState<"breakfast" | "lunch" | "dinner" | null>(null);
+
+  // Rebuild ONE meal from the pantry, leaving the other two untouched.
+  const regenerateMeal = async (meal: "breakfast" | "lunch" | "dinner") => {
+    if (!plan) return;
+    setRegenMeal(meal);
+    try {
+      await api.post(`/api/plan/${plan.date}/regenerate-meal?meal=${meal}`, {});
+      await loadToday();
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't rebuild that meal");
+      setTimeout(() => setError(null), 2500);
+    } finally {
+      setRegenMeal(null);
+    }
+  };
+
   const regenerate = async () => {
     setRegenerating(true);
     setError(null);
@@ -436,7 +453,8 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("breakfast", it)}
             onRemove={(it) => removeDish("breakfast", it, plan.date)}
             onAddDish={() => openAddDish("breakfast", plan.date)}
-            onSuggest={() => openSuggest("breakfast", plan.date)}
+            onRegenerate={() => regenerateMeal("breakfast")}
+            regenerating={regenMeal === "breakfast"}
             onLogOutcome={(o) => logOutcome("breakfast", o)}
             testIDPrefix="meal-breakfast"
           />
@@ -446,7 +464,8 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("lunch", it)}
             onRemove={(it) => removeDish("lunch", it, plan.date)}
             onAddDish={() => openAddDish("lunch", plan.date)}
-            onSuggest={() => openSuggest("lunch", plan.date)}
+            onRegenerate={() => regenerateMeal("lunch")}
+            regenerating={regenMeal === "lunch"}
             onLogOutcome={(o) => logOutcome("lunch", o)}
             testIDPrefix="meal-lunch"
           />
@@ -456,7 +475,8 @@ export default function PlanScreen() {
             onCooked={(it) => onCooked("dinner", it)}
             onRemove={(it) => removeDish("dinner", it, plan.date)}
             onAddDish={() => openAddDish("dinner", plan.date)}
-            onSuggest={() => openSuggest("dinner", plan.date)}
+            onRegenerate={() => regenerateMeal("dinner")}
+            regenerating={regenMeal === "dinner"}
             onLogOutcome={(o) => logOutcome("dinner", o)}
             testIDPrefix="meal-dinner"
           />
@@ -526,25 +546,7 @@ export default function PlanScreen() {
         </View>
       )}
 
-      {mode === "today" && (
-        <View style={[styles.fab, { bottom: insets.bottom + 20 }]}>
-          <TouchableOpacity
-            testID="regenerate-btn"
-            onPress={regenerate}
-            style={styles.fabBtn}
-            disabled={regenerating}
-          >
-            {regenerating ? (
-              <ActivityIndicator color={colors.riceWhite} />
-            ) : (
-              <>
-                <Ionicons name="refresh" size={18} color={colors.riceWhite} />
-                <Text style={styles.fabText}>{t("plan.regenerate")}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Global Regenerate removed — each meal card now regenerates itself. */}
 
       <SwapSheet
         visible={swapCtx != null}

@@ -842,13 +842,7 @@ async def _ai_slot_plan(uid: str) -> Dict[str, List[str]]:
     if cached:
         return cached.get("slots", {})
 
-    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
-    if not api_key:
-        return {}
     try:
-        from anthropic import AsyncAnthropic
-        from ai_planner import AI_MODEL
-
         recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
         assumed = await _assumed_staples(uid)
         ing_names = {
@@ -859,52 +853,23 @@ async def _ai_slot_plan(uid: str) -> Dict[str, List[str]]:
                    "nonveg": {"veg", "egg", "nonveg"}}
         allowed = DIET_OK.get(diet, {"veg"})
         SLOTS = ["breakfast", "lunch", "dinner"]
-        by_slot: Dict[str, List[str]] = {s: [] for s in SLOTS}
-        valid: Dict[str, Set[str]] = {s: set() for s in SLOTS}
-        for r in recipes:
-            if r.get("diet") not in allowed:
-                continue
-            ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
-            if allergies & set(ing_ids):
-                continue
-            missing = [ing_names.get(i, i) for i in ing_ids if i not in assumed and i not in pantry_ids]
-            line = f'{r["id"]} | {r.get("name_en")} | needs: {", ".join(missing) or "nothing extra"}'
-            for s in (r.get("meal_slots") or []):
-                if s in by_slot:
-                    by_slot[s].append(line)
-                    valid[s].add(r["id"])
-        have_txt = ", ".join(
-            x["name"] + (f' ({x["days_left"]}d)' if x.get("days_left") is not None else "")
-            for x in pantry_named
-        )
-        blocks = "\n\n".join(f"{s.upper()} dishes:\n" + "\n".join(by_slot[s][:60]) for s in SLOTS)
-        prompt = (
-            "You plan a Tamil family's meals for today. For EACH slot, choose the dishes cookable "
-            "RIGHT NOW from their pantry.\n"
-            f"Fresh pantry: {have_txt}.\n"
-            "Assume any Tamil kitchen always stocks: rice, dals, oil, mustard, cumin, turmeric, "
-            "chilli & coriander powder, salt, tamarind, curry leaves, green chilli, garlic, ginger, "
-            "shallots, jaggery. Treat equivalents as the same (coconut = grated coconut; muttai = "
-            "eggs; aval = poha).\n\n" + blocks + "\n\n"
-            "For each slot return the cookable dish ids ORDERED BEST FIRST: dishes that USE the "
-            "pantry items (especially expiring soonest) before generic ones that use none. "
-            "Respond ONLY with JSON, no fences: "
-            '{"breakfast":["id",...],"lunch":[...],"dinner":[...]}'
-        )
-        client = AsyncAnthropic(api_key=api_key)
-        resp = await client.messages.create(
-            model=AI_MODEL, max_tokens=900, temperature=0,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
-        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
         slots: Dict[str, List[str]] = {}
         for s in SLOTS:
-            seen: set = set()
-            slots[s] = [
-                i for i in (parsed.get(s) or [])
-                if i in valid[s] and not (i in seen or seen.add(i))
-            ]
+            cands = []
+            for r in recipes:
+                if r.get("diet") not in allowed:
+                    continue
+                if s not in (r.get("meal_slots") or []):
+                    continue
+                ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
+                if allergies & set(ing_ids):
+                    continue
+                missing = [i for i in ing_ids if i not in assumed and i not in pantry_ids]
+                cands.append({"id": r["id"], "name": r.get("name_en"), "missing": missing})
+            # Reuse the SAME focused, proven judgement the dishes page uses — it
+            # correctly ranks Aval Upma #1 for breakfast. One call per slot.
+            picked = await _ai_cookable_dishes(uid, cands, pantry_named, diet, s)
+            slots[s] = [d["id"] for d in (picked or []) if d.get("id")]
         await db.ai_slot_plan_cache.update_one(
             {"key": key}, {"$set": {"key": key, "slots": slots, "ts": _now()}}, upsert=True
         )

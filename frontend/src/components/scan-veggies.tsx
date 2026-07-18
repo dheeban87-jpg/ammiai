@@ -32,10 +32,16 @@ type Phase = "idle" | "choose" | "scanning" | "confirm";
 export function ScanVeggies({
   onAdded,
   render,
+  presetItems,
+  onPresetHandled,
 }: {
   onAdded?: (added: number) => void;
   /** custom trigger; falls back to the default pill button */
   render?: (open: () => void) => React.ReactNode;
+  /** Items scanned elsewhere (e.g. a bill on the Grocery tab) — setting this
+   *  jumps straight to the same confirm sheet instead of taking a new photo. */
+  presetItems?: ScanItem[] | null;
+  onPresetHandled?: () => void;
 }) {
   const { t } = useI18n();
   const [phase, setPhase] = useState<Phase>("idle");
@@ -51,6 +57,13 @@ export function ScanVeggies({
       api.get<Ingredient[]>("/api/ingredients").then(setCatalog).catch(() => {});
     }
   }, [phase, catalog.length]);
+
+  useEffect(() => {
+    if (presetItems && presetItems.length > 0) {
+      setRows(presetItems.map((i) => ({ ...i, include: true })));
+      setPhase("confirm");
+    }
+  }, [presetItems]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -115,14 +128,19 @@ export function ScanVeggies({
       }),
     );
 
+  const closeConfirm = () => {
+    setPhase("idle");
+    setRows([]);
+    setQuery("");
+    onPresetHandled?.();
+  };
+
   const confirm = async () => {
     const chosen = rows.filter((r) => r.include);
     setBusy(true);
     const n = await addScannedItems(chosen);
     setBusy(false);
-    setPhase("idle");
-    setRows([]);
-    setQuery("");
+    closeConfirm();
     onAdded?.(n);
   };
 
@@ -172,8 +190,8 @@ export function ScanVeggies({
       </Modal>
 
       {/* Confirmation sheet */}
-      <Modal visible={phase === "confirm"} transparent animationType="slide" onRequestClose={() => setPhase("idle")}>
-        <Pressable style={styles.backdrop} onPress={() => setPhase("idle")}>
+      <Modal visible={phase === "confirm"} transparent animationType="slide" onRequestClose={closeConfirm}>
+        <Pressable style={styles.backdrop} onPress={closeConfirm}>
           <Pressable style={styles.confirmSheet} onPress={() => {}}>
             <View style={styles.handle} />
             <Text style={styles.confirmTitle}>{t("scan.confirm_title")}</Text>

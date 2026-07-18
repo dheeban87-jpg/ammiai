@@ -42,6 +42,27 @@ type ScanApiItem = {
   needs_mapping?: boolean;
   include_default?: boolean;
 };
+/** Map raw /api/scan (or /grocery/scan-bill) lines into confirm-sheet rows.
+ *  Catalog items keep their id; everything else gets a synthetic "kb:" key and
+ *  is written through the knowledge-base path. Non-food lines are dropped. */
+export function mapScanItems(apiItems: ScanApiItem[] | undefined): ScanItem[] {
+  return (apiItems ?? [])
+    .filter((i) => i.include_default !== false && i.name_en)
+    .map((i) => {
+      const isCatalog = Boolean(i.addable && i.ingredient_id);
+      return {
+        ingredient_id: isCatalog ? (i.ingredient_id as string) : `kb:${i.name_en}`,
+        name: i.name_en,
+        name_ta: i.name_ta,
+        category: i.category,
+        qty_class: "medium" as const,
+        qty: i.qty,
+        unit: i.unit,
+        kb: !isCatalog,
+      };
+    });
+}
+
 type ScanApiResult = {
   mode: "physical_item" | "document_list" | "not_food";
   items?: ScanApiItem[];
@@ -91,21 +112,7 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
   if (out.mode === "not_food") {
     return { items: [], count: 0, note: out.message };
   }
-  const items: ScanItem[] = (out.items ?? [])
-    .filter((i) => i.include_default !== false && i.name_en)
-    .map((i) => {
-      const isCatalog = Boolean(i.addable && i.ingredient_id);
-      return {
-        ingredient_id: isCatalog ? (i.ingredient_id as string) : `kb:${i.name_en}`,
-        name: i.name_en,
-        name_ta: i.name_ta,
-        category: i.category,
-        qty_class: "medium" as const,
-        qty: i.qty,
-        unit: i.unit,
-        kb: !isCatalog,
-      };
-    });
+  const items = mapScanItems(out.items);
   return { items, count: items.length, note: out.note };
 }
 

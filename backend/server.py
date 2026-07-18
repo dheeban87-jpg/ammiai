@@ -3282,9 +3282,14 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
                 }},
                 {"type": "text", "text": (
                     "This is a grocery bill, receipt, or an online order summary screenshot (Blinkit/Zepto/Instamart etc.), Tamil or English, possibly handwritten. "
-                    "Extract every line item with its price in INR. Respond ONLY with JSON, no prose, "
-                    "no markdown fences: {\"items\": [{\"name\": str, \"price_inr\": number}], "
-                    "\"total_inr\": number or null}"
+                    "Extract EVERY line item. Respond ONLY with JSON, no prose, no markdown fences: "
+                    "{\"items\": [{\"name_en\": str, \"name_ta\": str, \"price_inr\": number, "
+                    "\"qty_guess\": str (the printed pack size/count exactly as shown, e.g. \"500 g\", \"2 Pieces\", \"1 Small\"), "
+                    "\"category\": \"vegetable|fruit|leafy_green|cereal_pulse|meat_fish_egg|dairy|packaged|cooked_dish|not_food\"}], "
+                    "\"total_inr\": number or null}. "
+                    "Use \"not_food\" for soap, cleaning and other household lines. Strip brand words from "
+                    "name_en so the food itself is named (\"NOICE Idli Dosa Batter\" -> \"Idli Dosa Batter\"). "
+                    "Tamil names in Tamil script."
                 )},
             ],
         }],
@@ -3345,21 +3350,27 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     matches: Dict[str, float] = {}
     unmatched: List[Dict[str, Any]] = []
     for bi in bill_items:
+        name = str(bi.get("name_en") or bi.get("name") or "")
         try:
             price = round(float(bi.get("price_inr")), 2)
         except (TypeError, ValueError):
             continue
-        iid = _match(str(bi.get("name", "")))
+        iid = _match(name)
         if iid:
             matches[iid] = matches.get(iid, 0) + price
         else:
-            unmatched.append({"name": bi.get("name"), "price_inr": price})
+            unmatched.append({"name": name, "price_inr": price})
     total = parsed.get("total_inr")
     try:
         total = round(float(total), 2) if total is not None else None
     except (TypeError, ValueError):
         total = None
-    return {"matches": matches, "unmatched": unmatched, "total_inr": total}
+    # A bill is also an inventory event: what he paid for is now in his kitchen.
+    # Same pipeline as a fridge photo (catalog id or KB entry), so the app can
+    # cook from it. Still confirm-before-write — the app shows this list first.
+    stock_items = await _doc_line_items(bill_items)
+    return {"matches": matches, "unmatched": unmatched, "total_inr": total,
+            "items": stock_items, "item_count": len(stock_items)}
 
 
 # ------------------------- R3: fridge-photo inventory ------------------------- #
@@ -3653,6 +3664,44 @@ _SCAN_QTY_PC = {"small": 2, "medium": 4, "large": 6}
 _COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "coconut", "apple", "orange"}
 
 
+async def _doc_line_items(raw_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Turn extracted receipt/screenshot lines into pantry-addable items:
+    catalog id where we have one, knowledge-base entry where we don't, IFCT
+    nutrition either way. Shared by /scan and /grocery/scan-bill so a bill
+    stocks the pantry the same way a fridge photo does."""
+    out: List[Dict[str, Any]] = []
+    for it in raw_items:
+        name_en = it.get("name_en") or it.get("name") or ""
+        if not name_en:
+            continue
+        cat = _norm_doc_category(it.get("category"))
+        is_food = cat != "not_food"
+        iid = (
+            None
+            if cat in ("packaged", "cooked_dish", "serving_item", "not_food")
+            else await _catalog_id_for(name_en)
+        )
+        qty, unit = _doc_qty(it.get("qty_guess"), iid)
+        if cat in ("serving_item", "not_food"):
+            nutrition = {"kcal": None, "protein_g": None, "fiber_g": None,
+                         "per_100g": True, "source": cat, "needs_mapping": False}
+        else:
+            nutrition = _ifct_nutrition(iid, cat)
+        kb = None
+        if is_food and (cat in ("packaged", "cooked_dish") or (iid is None and cat != "serving_item")):
+            kb = await _kb_upsert(it, cat)
+        out.append({
+            "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
+            "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
+            "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
+            "price": it.get("price"),
+            "include_default": is_food and cat != "not_food",
+            "kb": {"what": kb.get("what"), "how_used": kb.get("how_used"),
+                   "storage": kb.get("storage"), "dish_links": kb.get("dish_links")} if kb else None,
+        })
+    return out
+
+
 @api_router.post("/scan")
 async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)):
     """S3: ONE scan flow. Classifies physical_item / document_list / not_food,
@@ -3716,36 +3765,7 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
         # S3c: route each extracted line through the SAME pipeline (catalog →
         # IFCT/KB → addable) so a screenshot becomes a batch-add list. Non-food
         # lines come back auto-unticked (include_default=false).
-        doc_items: List[Dict[str, Any]] = []
-        for it in (parsed.get("items") or []):
-            name_en = it.get("name_en") or ""
-            if not name_en:
-                continue
-            cat = _norm_doc_category(it.get("category"))
-            is_food = cat != "not_food"
-            iid = (
-                None
-                if cat in ("packaged", "cooked_dish", "serving_item", "not_food")
-                else await _catalog_id_for(name_en)
-            )
-            qty, unit = _doc_qty(it.get("qty_guess"), iid)
-            if cat in ("serving_item", "not_food"):
-                nutrition = {"kcal": None, "protein_g": None, "fiber_g": None,
-                             "per_100g": True, "source": cat, "needs_mapping": False}
-            else:
-                nutrition = _ifct_nutrition(iid, cat)
-            kb = None
-            if is_food and (cat in ("packaged", "cooked_dish") or (iid is None and cat != "serving_item")):
-                kb = await _kb_upsert(it, cat)
-            doc_items.append({
-                "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
-                "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
-                "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
-                "price": it.get("price"),
-                "include_default": is_food and cat != "not_food",
-                "kb": {"what": kb.get("what"), "how_used": kb.get("how_used"),
-                       "storage": kb.get("storage"), "dish_links": kb.get("dish_links")} if kb else None,
-            })
+        doc_items = await _doc_line_items(parsed.get("items") or [])
         result = {"mode": "document_list", "source_guess": parsed.get("source_guess"),
                   "items": doc_items, "count": len(doc_items),
                   "message": None}

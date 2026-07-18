@@ -28,6 +28,8 @@ import { api } from "@/src/api";
 import { readCache, writeCache } from "@/src/hooks/use-cached-query";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { FoodAvatar } from "@/src/food-visual";
+import { ScanVeggies } from "@/src/components/scan-veggies";
+import { mapScanItems, type ScanItem } from "@/src/pantry-scan";
 
 type GroceryItem = {
   ingredient_id: string;
@@ -417,6 +419,7 @@ function GroceryScreenInner() {
         matches: Record<string, number>;
         unmatched: { name: string; price_inr: number }[];
         total_inr: number | null;
+        items?: any[];
       }>("/api/grocery/scan-bill", {
         image_base64: asset.base64,
         media_type: asset.mimeType ?? "image/jpeg",
@@ -433,6 +436,10 @@ function GroceryScreenInner() {
         setShowItemPrices(true);
       }
       if (out.total_inr != null) setTotalPaid(String(Math.round(out.total_inr)));
+      // What he paid for is now in his kitchen — offer to stock it, so the
+      // pantry → plan → cook chain picks up straight from the bill.
+      const stock = mapScanItems(out.items);
+      if (stock.length > 0) setBillItems(stock);
       const extra = out.unmatched?.length ? ` · ${out.unmatched.length} lines didn't match your list` : "";
       setToast(`Bill read: ${hit} prices filled${out.total_inr != null ? `, total ₹${Math.round(out.total_inr)}` : ""}${extra}`);
       setTimeout(() => setToast(null), 4000);
@@ -545,6 +552,9 @@ function GroceryScreenInner() {
     if (!isNaN(v)) pricesTotal += v;
   }
   const [scanBusy, setScanBusy] = useState(false);
+  // Items the bill scan found — handed to the same confirm sheet the Pantry
+  // uses, so a bill actually stocks the kitchen instead of only filling prices.
+  const [billItems, setBillItems] = useState<ScanItem[] | null>(null);
   const [wizardDone, setWizardDone] = useState<Set<string>>(new Set());
 
   const startWizard = async (vendor: OrderVendor) => {
@@ -1308,6 +1318,20 @@ function GroceryScreenInner() {
         </Pressable>
       </Modal>
       </ScreenErrorBoundary>
+
+      {/* Bill → pantry. Renders no trigger of its own; it opens as soon as the
+          bill scan hands it items, using the same confirm sheet as Pantry. */}
+      <ScanVeggies
+        render={() => null}
+        presetItems={billItems}
+        onPresetHandled={() => setBillItems(null)}
+        onAdded={(n) => {
+          setToast(
+            n > 0 ? `${n} item${n === 1 ? "" : "s"} added to your pantry` : "Nothing added to the pantry",
+          );
+          setTimeout(() => setToast(null), 3000);
+        }}
+      />
 
       {toast ? (
         <View style={[styles.toast, { bottom: insets.bottom + 240 }]} testID="grocery-toast">

@@ -266,8 +266,22 @@ function GroceryScreenInner() {
   };
 
   // Stable id for a pick: catalog id, or a synthetic kb:<name> for AI produce.
-  const pickKey = (it: any): string =>
-    it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
+  // MUST mirror the backend's _norm_name exactly (drop parentheticals, strip
+  // punctuation, collapse spaces) — it mints the id as "kb:" + that. When these
+  // disagreed, "Papaya (raw)" was kb:papaya on the server but kb:papaya_(raw)
+  // here, so its checkbox never matched: it looked unselectable and every tap
+  // re-added it, wiping the other selections via the reload.
+  const kbKey = (name: string): string =>
+    "kb:" +
+    String(name || "")
+      .toLowerCase()
+      .replace(/\([^)]*\)/g, " ")
+      .replace(/[^a-z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/ /g, "_");
+
+  const pickKey = (it: any): string => it.ingredient_id ?? kbKey(it.name);
 
   // Delete a pick (feedback: no way to change/remove a Captain's pick). If it's
   // already in the buy list, remove it there too; otherwise just drop it locally.
@@ -593,9 +607,9 @@ function GroceryScreenInner() {
   // exactly the old addHealthSelected behaviour, but one tap per pick.
   const addCaptainPick = async (it: any) => {
     // KB picks (AI produce outside the catalog) have no ingredient_id — the
-    // backend mints a synthetic `kb:<name>` id and returns it.
-    const id =
-      it.ingredient_id ?? `kb:${String(it.name).toLowerCase().replace(/\s+/g, "_")}`;
+    // backend mints a synthetic `kb:<name>` id and returns it. Use the same
+    // normalization so the optimistic id matches what comes back.
+    const id = pickKey(it);
     setCaptainBusy((prev) => new Set(prev).add(id));
     try {
       const body = it.ingredient_id

@@ -2104,6 +2104,7 @@ async def _ai_grocery_list(
     targets: Dict[str, Any],
     pantry_named: List[str],
     focus_labels: List[str],
+    refresh: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """Capt. Charmer plans 3 days of FRESH food like a mother would: driven by
     the health focus + daily nutrition targets, skipping what's already in the
@@ -2115,7 +2116,8 @@ async def _ai_grocery_list(
         "g": sorted(goals), "d": diet, "h": household,
         "p": sorted(pantry_named), "day": _now().date().isoformat(),
     }, sort_keys=True).encode()).hexdigest()
-    cached = await db.ai_grocery_cache.find_one({"key": key}, {"_id": 0})
+    # refresh=Regenerate: skip the cached picks and ask the AI again.
+    cached = None if refresh else await db.ai_grocery_cache.find_one({"key": key}, {"_id": 0})
     if cached:
         return cached.get("payload")
 
@@ -2152,7 +2154,7 @@ async def _ai_grocery_list(
         )
         client = AsyncAnthropic(api_key=api_key)
         resp = await client.messages.create(
-            model=AI_MODEL, max_tokens=800, temperature=0.2,
+            model=AI_MODEL, max_tokens=800, temperature=0.6 if refresh else 0.2,
             messages=[{"role": "user", "content": prompt}],
         )
         raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
@@ -2225,7 +2227,7 @@ async def _ai_grocery_list(
 
 
 @api_router.get("/grocery/suggest-health")
-async def grocery_suggest_health(current=Depends(get_current_user)):
+async def grocery_suggest_health(refresh: bool = False, current=Depends(get_current_user)):
     """Capt. Charmer's buy list. AI-first: 3 days of FRESH produce chosen from
     the health focus + nutrition targets + what's already in the pantry. Falls
     back to the rule-based favour lists if the AI is unavailable."""
@@ -2250,6 +2252,7 @@ async def grocery_suggest_health(current=Depends(get_current_user)):
         max(1, int(profile.get("household_size", 1))),
         daily_targets(rules_doc, profile), pantry_named,
         [focuses.get(g, {}).get("label", g) for g in goals if g in focuses],
+        refresh=refresh,
     )
     if ai:
         return ai

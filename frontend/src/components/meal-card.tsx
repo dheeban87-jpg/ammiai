@@ -6,6 +6,7 @@ import { FoodAvatar } from "@/src/food-visual";
 
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { useI18n } from "@/src/i18n";
+import { openYoutubeRecipe } from "@/src/youtube-recipe";
 
 export type MealItem = {
   id: string;
@@ -202,6 +203,17 @@ export function MealCard({
                 </TouchableOpacity>
               ) : null}
               <View style={{ flexDirection: "row", gap: 6 }}>
+                {/* Watch how to cook it — opens YouTube on "<dish> tamil recipe",
+                    same deep-link pattern as the Instamart/Zepto search. */}
+                <TouchableOpacity
+                  testID={`${testIDPrefix}-yt-${it.id}`}
+                  style={styles.ytBtn}
+                  onPress={() => openYoutubeRecipe(it.name_en, it.name_ta)}
+                  hitSlop={10}
+                  accessibilityLabel={`Watch ${it.name_en} recipe on YouTube`}
+                >
+                  <Ionicons name="logo-youtube" size={16} color="#E23744" />
+                </TouchableOpacity>
                 <TouchableOpacity
                   testID={`${testIDPrefix}-swap-${it.id}`}
                   style={styles.swapBtn}
@@ -321,6 +333,14 @@ const styles = StyleSheet.create({
   dishMetaGood: { fontSize: 11, color: colors.bananaLeaf, fontWeight: "600" },
   dishMetaMuted: { fontSize: 11, color: colors.textMuted },
   dishMetaWarn: { fontSize: 11, color: colors.turmeric, fontWeight: "600" },
+  ytBtn: {
+    minHeight: 34,
+    paddingHorizontal: 10,
+    borderRadius: radius.pill,
+    backgroundColor: "#E2374414",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   swapBtn: {
     flexDirection: "row",
     alignItems: "center",

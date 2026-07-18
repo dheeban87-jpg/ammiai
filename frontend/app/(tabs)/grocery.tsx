@@ -101,6 +101,7 @@ function GroceryScreenInner() {
   const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
   const [captainBusy, setCaptainBusy] = useState<Set<string>>(new Set());
   const [actionsVisible, setActionsVisible] = useState(false);
+  const [picksBusy, setPicksBusy] = useState(false);
   const [captainExpanded, setCaptainExpanded] = useState(false);
   const [mealsVisible, setMealsVisible] = useState(false);
   const [approvedMeals, setApprovedMeals] = useState<any[]>([]);
@@ -242,6 +243,25 @@ function GroceryScreenInner() {
       setTimeout(() => setToast(null), 2000);
     } catch {
       /* noop */
+    }
+  };
+
+  // Regenerate Captain's picks: re-query the AI (bypasses the per-day cache)
+  // so the suggestions are re-derived from the health focus + current pantry.
+  const regeneratePicks = async () => {
+    setPicksBusy(true);
+    try {
+      const r = await api.get<{ items: any[]; guidance: string[] }>(
+        "/api/grocery/suggest-health?refresh=true",
+      );
+      setHealthItems(Array.isArray(r.items) ? r.items : []);
+      setHealthGuidance(Array.isArray(r.guidance) ? r.guidance : []);
+      setToast("Fresh picks from the Captain ✓");
+    } catch {
+      setToast("Couldn't refresh picks");
+    } finally {
+      setPicksBusy(false);
+      setTimeout(() => setToast(null), 2000);
     }
   };
 
@@ -738,6 +758,22 @@ function GroceryScreenInner() {
                       {healthGuidance[0] ?? "Groceries for your health focus — tap to add."}
                     </Text>
                   </View>
+                  {/* Ask the Captain for a fresh set, re-queried against the
+                      health focus + what's already in the pantry. */}
+                  <TouchableOpacity
+                    onPress={regeneratePicks}
+                    disabled={picksBusy}
+                    style={styles.picksRegenBtn}
+                    hitSlop={10}
+                    testID="captain-picks-regenerate"
+                    accessibilityLabel="Regenerate Captain's picks"
+                  >
+                    {picksBusy ? (
+                      <ActivityIndicator size="small" color={colors.bananaLeaf} />
+                    ) : (
+                      <Ionicons name="refresh" size={16} color={colors.bananaLeaf} />
+                    )}
+                  </TouchableOpacity>
                 </View>
                 {shown.map((it) => {
                   const id = pickId(it);
@@ -1363,6 +1399,14 @@ const styles = StyleSheet.create({
   },
   captainCardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: spacing.s },
   captainCardEmoji: { fontSize: 22 },
+  picksRegenBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: `${colors.bananaLeaf}14`,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   captainCardTitle: { fontFamily: fonts.headingEn, fontSize: 15.5, color: colors.bananaLeafDark },
   captainCardSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 1 },
   captainRow: {

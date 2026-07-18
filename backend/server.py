@@ -4335,6 +4335,7 @@ async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Di
     try:
         from anthropic import AsyncAnthropic
         from ai_planner import AI_MODEL
+        from meal_engine import meal_status
 
         rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
         targets = daily_targets(rules_doc, profile)
@@ -4423,8 +4424,12 @@ async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Di
                 })
             if not items:
                 return None  # incomplete plan -> fall back to the engine
+            # Reuse the engine's meal_status so the card gets the SAME shape it
+            # expects (kcal/protein_g/fiber_g/target_kcal/target_protein_min).
+            # Without these the UI rendered "NaN kcal / NaNg P".
+            status = meal_status(items, "lunch_full" if slot == "lunch" else slot, rules_doc)
             plan[slot] = {"key": slot, "template": f"ai_{slot}", "items": items,
-                          "chip": "balanced", "chip_reason": "Built from your pantry"}
+                          "chip_reason": "Built from your pantry", **status}
 
         day_items = [i for s in ("breakfast", "lunch", "dinner") for i in plan[s]["items"]]
         totals = {

@@ -25,8 +25,12 @@ export type MealItem = {
   };
 };
 
+export type MealOutcome = "cooked" | "made_other" | "ate_out" | "skipped";
+
 export type Meal = {
   key: "breakfast" | "lunch" | "dinner";
+  outcome?: MealOutcome;
+  not_tracked?: boolean;
   template: string;
   items: MealItem[];
   chip: "balanced" | "low_protein" | "heavy";
@@ -67,6 +71,15 @@ export const MEAL_META: Record<Meal["key"], { title: string; ta: string; icon: k
   dinner: { title: "Dinner", ta: "இரவு உணவு", icon: "moon-outline" },
 };
 
+// R4 forgiving log — every option is neutral. No red, no "failure" styling:
+// eating out or skipping is a normal day, not a miss.
+export const MEAL_OUTCOMES: { key: MealOutcome; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "cooked", label: "Cooked this", icon: "checkmark-circle-outline" },
+  { key: "made_other", label: "Made something else", icon: "swap-horizontal" },
+  { key: "ate_out", label: "Ate out", icon: "storefront-outline" },
+  { key: "skipped", label: "Skipped", icon: "play-skip-forward-outline" },
+];
+
 export function MealCard({
   meal,
   onSwap,
@@ -74,6 +87,7 @@ export function MealCard({
   onRemove,
   onAddDish,
   onSuggest,
+  onLogOutcome,
   testIDPrefix,
 }: {
   meal: Meal;
@@ -82,6 +96,7 @@ export function MealCard({
   onRemove?: (item: MealItem) => void;
   onAddDish?: () => void;
   onSuggest?: () => void;
+  onLogOutcome?: (outcome: MealOutcome) => void;
   testIDPrefix: string;
 }) {
   const chip = CHIP_META[meal.chip];
@@ -134,13 +149,16 @@ export function MealCard({
             style={{ marginRight: 10 }}
           />
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-start" }}>
               <Text
                 style={[
                   styles.dishEn,
+                  { flex: 1 },
                   it.cooked && { textDecorationLine: "line-through", color: colors.textMuted },
                 ]}
-                numberOfLines={1}
+                // AI-generated dishes have longer names than catalog ones
+                // ("Bottle Gourd Kadaiyal") — 1 line truncated them mid-word.
+                numberOfLines={2}
               >
                 {it.name_en}
                 {it.qty_g ? <Text style={styles.dishQty}>  {it.qty_g}g</Text> : null}
@@ -153,7 +171,7 @@ export function MealCard({
               ) : null}
             </View>
             {it.name_ta && it.name_ta !== it.name_en ? (
-              <Text style={styles.dishTa} numberOfLines={1}>
+              <Text style={styles.dishTa} numberOfLines={2}>
                 {it.name_ta}
               </Text>
             ) : null}
@@ -238,6 +256,39 @@ export function MealCard({
           )}
         </View>
       ))}
+
+      {/* R4: how did this meal actually go? All four are equal citizens —
+          "Ate out" is not a failure, it just marks the meal not-tracked. */}
+      {!isEmpty && onLogOutcome ? (
+        <View style={styles.outcomeWrap} testID={`${testIDPrefix}-outcome`}>
+          <Text style={styles.outcomeLabel}>
+            {meal.outcome
+              ? MEAL_OUTCOMES.find((o) => o.key === meal.outcome)?.label ?? "Logged"
+              : "How did it go?"}
+          </Text>
+          <View style={styles.outcomeRow}>
+            {MEAL_OUTCOMES.map((o) => {
+              const on = meal.outcome === o.key;
+              return (
+                <TouchableOpacity
+                  key={o.key}
+                  style={[styles.outcomeBtn, on && styles.outcomeBtnOn]}
+                  onPress={() => onLogOutcome(o.key)}
+                  testID={`${testIDPrefix}-outcome-${o.key}`}
+                  hitSlop={6}
+                  accessibilityLabel={o.label}
+                >
+                  <Ionicons
+                    name={o.icon}
+                    size={16}
+                    color={on ? colors.riceWhite : colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
 
       {!isEmpty && onSuggest ? (
         <TouchableOpacity
@@ -389,6 +440,27 @@ const styles = StyleSheet.create({
     backgroundColor: `${colors.bananaLeaf}08`,
   },
   emptyStateText: { color: colors.bananaLeaf, fontWeight: "700", fontSize: 14 },
+  outcomeWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginTop: spacing.s,
+    paddingTop: spacing.s,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  outcomeLabel: { flex: 1, fontSize: 12.5, color: colors.textMuted },
+  outcomeRow: { flexDirection: "row", gap: 6 },
+  outcomeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  outcomeBtnOn: { backgroundColor: colors.bananaLeaf },
   suggestBtn: {
     flexDirection: "row",
     alignItems: "center",

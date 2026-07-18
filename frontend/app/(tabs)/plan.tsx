@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
 import { NutritionRing } from "@/src/components/nutrition-ring";
-import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem } from "@/src/components/meal-card";
+import { CHIP_META, MEAL_META, MealCard, type Meal, type MealItem, type MealOutcome } from "@/src/components/meal-card";
 import { SwapSheet, type Violation } from "@/src/components/swap-sheet";
 import { AddDishSheet } from "@/src/components/add-dish-sheet";
 import { CustomDishSheet } from "@/src/components/custom-dish-sheet";
@@ -211,6 +211,18 @@ export default function PlanScreen() {
     setRefreshing(true);
     if (mode === "today") loadToday();
     else loadWeek();
+  };
+
+  // R4 forgiving log — record how the meal actually went. "cooked" also runs
+  // the normal cook flow (pantry decrement); the rest just mark the outcome.
+  const logOutcome = async (meal: "breakfast" | "lunch" | "dinner", outcome: MealOutcome) => {
+    if (!plan) return;
+    try {
+      await api.post(`/api/plan/${plan.date}/log`, { meal, outcome });
+      await loadToday();
+    } catch {
+      /* non-blocking: logging should never interrupt the user */
+    }
   };
 
   const regenerate = async () => {
@@ -425,6 +437,7 @@ export default function PlanScreen() {
             onRemove={(it) => removeDish("breakfast", it, plan.date)}
             onAddDish={() => openAddDish("breakfast", plan.date)}
             onSuggest={() => openSuggest("breakfast", plan.date)}
+            onLogOutcome={(o) => logOutcome("breakfast", o)}
             testIDPrefix="meal-breakfast"
           />
           <MealCard
@@ -434,6 +447,7 @@ export default function PlanScreen() {
             onRemove={(it) => removeDish("lunch", it, plan.date)}
             onAddDish={() => openAddDish("lunch", plan.date)}
             onSuggest={() => openSuggest("lunch", plan.date)}
+            onLogOutcome={(o) => logOutcome("lunch", o)}
             testIDPrefix="meal-lunch"
           />
           <MealCard
@@ -443,6 +457,7 @@ export default function PlanScreen() {
             onRemove={(it) => removeDish("dinner", it, plan.date)}
             onAddDish={() => openAddDish("dinner", plan.date)}
             onSuggest={() => openSuggest("dinner", plan.date)}
+            onLogOutcome={(o) => logOutcome("dinner", o)}
             testIDPrefix="meal-dinner"
           />
 

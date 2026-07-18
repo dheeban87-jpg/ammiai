@@ -114,6 +114,10 @@ class PlannerContext:
     # (it puts pantry-using dishes first). Scales the bonus so the AI's #1 pick
     # for a slot actually wins it (aval upma over idli).
     ai_rank: Dict[str, int] = field(default_factory=dict)
+    # Per-slot AI plan: slot -> ordered cookable recipe ids (best-first). The
+    # plan applies the matching slot's ranking before building each meal, so the
+    # AI's #1 breakfast dish is scored against OTHER breakfast dishes only.
+    slot_ai: Dict[str, List[str]] = field(default_factory=dict)
 
 
 # --------------------------- Scoring --------------------------- #
@@ -438,6 +442,29 @@ def pick(
 
 
 # --------------------- Meal builders --------------------- #
+def _apply_slot_ai(ctx: PlannerContext, slot: str) -> None:
+    """Make the AI's ranking FOR THIS SLOT active before building the meal, so a
+    breakfast dish is preferred over other breakfast dishes (not all 73)."""
+    ids = ctx.slot_ai.get(slot, [])
+    ctx.ai_cookable = set(ids)
+    ctx.ai_rank = {rid: i for i, rid in enumerate(ids)}
+
+
+def _meal_budget(ctx: PlannerContext) -> int:
+    """Max non-static dishes per meal. A solo cook won't make a 5-dish spread
+    for dinner (owner's E2). Rice/curd bases don't count."""
+    h = int(ctx.profile.get("household_size", 1) or 1)
+    if h <= 1:
+        return 2
+    if h <= 3:
+        return 3
+    return 5
+
+
+def _n_dishes(meal: List[Dict[str, Any]]) -> int:
+    return sum(1 for i in meal if not i.get("static"))
+
+
 def _add_veggie_to_state(recipe: Dict[str, Any], day_state: Dict[str, Any]) -> None:
     v = _dish_veggie(recipe)
     if v:
@@ -473,21 +500,26 @@ def build_lunch(ctx: PlannerContext, day_state: Dict[str, Any]) -> Dict[str, Any
         meal.append(kuz)
         _add_veggie_to_state(kuz, day_state)
 
-    poriyal = pick(ctx, ["poriyal"], meal, day_state)
-    if poriyal:
-        meal.append(poriyal)
-        _add_veggie_to_state(poriyal, day_state)
+    budget = _meal_budget(ctx)
+
+    if _n_dishes(meal) < budget:
+        poriyal = pick(ctx, ["poriyal"], meal, day_state)
+        if poriyal:
+            meal.append(poriyal)
+            _add_veggie_to_state(poriyal, day_state)
 
     # Optional kootu (protein-guard friendly, prefer to include)
-    kootu = pick(ctx, ["kootu"], meal, day_state)
-    if kootu:
-        meal.append(kootu)
-        _add_veggie_to_state(kootu, day_state)
+    if _n_dishes(meal) < budget:
+        kootu = pick(ctx, ["kootu"], meal, day_state)
+        if kootu:
+            meal.append(kootu)
+            _add_veggie_to_state(kootu, day_state)
 
     # Optional rasam
-    rasam = pick(ctx, ["rasam"], meal, day_state)
-    if rasam:
-        meal.append(rasam)
+    if _n_dishes(meal) < budget:
+        rasam = pick(ctx, ["rasam"], meal, day_state)
+        if rasam:
+            meal.append(rasam)
 
     # Curd side (unless day already has fish gravy)
     if not any("nv_meen" in c["id"] or "nv_era" in c["id"] for c in meal):
@@ -521,10 +553,11 @@ def build_dinner(ctx: PlannerContext, day_state: Dict[str, Any]) -> Dict[str, An
         if gravy:
             meal.append(gravy)
             _add_veggie_to_state(gravy, day_state)
-        poriyal = pick(ctx, ["poriyal"], meal, day_state)
-        if poriyal:
-            meal.append(poriyal)
-            _add_veggie_to_state(poriyal, day_state)
+        if _n_dishes(meal) < _meal_budget(ctx):
+            poriyal = pick(ctx, ["poriyal"], meal, day_state)
+            if poriyal:
+                meal.append(poriyal)
+                _add_veggie_to_state(poriyal, day_state)
         template = "dinner_light_rice"
 
     status = meal_status(meal, template, ctx.rules)
@@ -613,8 +646,11 @@ def plan_day(ctx: PlannerContext) -> Dict[str, Any]:
         "week_ids": list(ctx.week_ids),
         "has_curd_side": False,
     }
+    _apply_slot_ai(ctx, "breakfast")
     breakfast = build_breakfast(ctx, day_state)
+    _apply_slot_ai(ctx, "lunch")
     lunch = build_lunch(ctx, day_state)
+    _apply_slot_ai(ctx, "dinner")
     dinner = build_dinner(ctx, day_state)
 
     plan: Dict[str, Any] = {

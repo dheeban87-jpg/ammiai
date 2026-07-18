@@ -813,8 +813,111 @@ async def _ai_cookable_ids(uid: str) -> List[str]:
         return []
 
 
+async def _ai_slot_plan(uid: str) -> Dict[str, List[str]]:
+    """One AI call: for breakfast/lunch/dinner, the dishes cookable NOW from the
+    pantry, best-first (pantry-using, expiring-first). Same focused judgement the
+    dishes page nails — but per slot, so it feeds the plan. Cached per pantry/day;
+    {} on failure (engine falls back to rule scoring)."""
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    diet = profile.get("diet") or "veg"
+    allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
+    pantry_ids: Set[str] = set()
+    pantry_named: List[Dict[str, Any]] = []
+    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+        if p.get("ingredient_id"):
+            pantry_ids.add(p["ingredient_id"])
+        if p.get("maps_to"):
+            pantry_ids.add(p["maps_to"])
+        e = await _enrich_item(dict(p))
+        if e.get("ingredient_name"):
+            pantry_named.append({"name": e["ingredient_name"], "days_left": e.get("days_left")})
+    if not pantry_named:
+        return {}
+
+    key = hashlib.sha1(json.dumps({
+        "p": sorted(x["name"] for x in pantry_named), "d": diet,
+        "day": _now().date().isoformat(),
+    }, sort_keys=True).encode()).hexdigest()
+    cached = await db.ai_slot_plan_cache.find_one({"key": key}, {"_id": 0})
+    if cached:
+        return cached.get("slots", {})
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        return {}
+    try:
+        from anthropic import AsyncAnthropic
+        from ai_planner import AI_MODEL
+
+        recipes = await db.recipes.find({}, {"_id": 0}).to_list(500)
+        assumed = await _assumed_staples(uid)
+        ing_names = {
+            i["ingredient_id"]: i.get("name", i["ingredient_id"])
+            for i in await db.ingredients.find({}, {"_id": 0, "ingredient_id": 1, "name": 1}).to_list(500)
+        }
+        DIET_OK = {"veg": {"veg"}, "egg": {"veg", "egg"}, "eggetarian": {"veg", "egg"},
+                   "nonveg": {"veg", "egg", "nonveg"}}
+        allowed = DIET_OK.get(diet, {"veg"})
+        SLOTS = ["breakfast", "lunch", "dinner"]
+        by_slot: Dict[str, List[str]] = {s: [] for s in SLOTS}
+        valid: Dict[str, Set[str]] = {s: set() for s in SLOTS}
+        for r in recipes:
+            if r.get("diet") not in allowed:
+                continue
+            ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
+            if allergies & set(ing_ids):
+                continue
+            missing = [ing_names.get(i, i) for i in ing_ids if i not in assumed and i not in pantry_ids]
+            line = f'{r["id"]} | {r.get("name_en")} | needs: {", ".join(missing) or "nothing extra"}'
+            for s in (r.get("meal_slots") or []):
+                if s in by_slot:
+                    by_slot[s].append(line)
+                    valid[s].add(r["id"])
+        have_txt = ", ".join(
+            x["name"] + (f' ({x["days_left"]}d)' if x.get("days_left") is not None else "")
+            for x in pantry_named
+        )
+        blocks = "\n\n".join(f"{s.upper()} dishes:\n" + "\n".join(by_slot[s][:60]) for s in SLOTS)
+        prompt = (
+            "You plan a Tamil family's meals for today. For EACH slot, choose the dishes cookable "
+            "RIGHT NOW from their pantry.\n"
+            f"Fresh pantry: {have_txt}.\n"
+            "Assume any Tamil kitchen always stocks: rice, dals, oil, mustard, cumin, turmeric, "
+            "chilli & coriander powder, salt, tamarind, curry leaves, green chilli, garlic, ginger, "
+            "shallots, jaggery. Treat equivalents as the same (coconut = grated coconut; muttai = "
+            "eggs; aval = poha).\n\n" + blocks + "\n\n"
+            "For each slot return the cookable dish ids ORDERED BEST FIRST: dishes that USE the "
+            "pantry items (especially expiring soonest) before generic ones that use none. "
+            "Respond ONLY with JSON, no fences: "
+            '{"breakfast":["id",...],"lunch":[...],"dinner":[...]}'
+        )
+        client = AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=AI_MODEL, max_tokens=900, temperature=0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
+        slots: Dict[str, List[str]] = {}
+        for s in SLOTS:
+            seen: set = set()
+            slots[s] = [
+                i for i in (parsed.get(s) or [])
+                if i in valid[s] and not (i in seen or seen.add(i))
+            ]
+        await db.ai_slot_plan_cache.update_one(
+            {"key": key}, {"$set": {"key": key, "slots": slots, "ts": _now()}}, upsert=True
+        )
+        return slots
+    except Exception:
+        return {}
+
+
 async def _build_context(
-    user_id: str, seed: Optional[int] = None, ai_cookable: Optional[Set[str]] = None
+    user_id: str,
+    seed: Optional[int] = None,
+    ai_cookable: Optional[Set[str]] = None,
+    slot_ai: Optional[Dict[str, List[str]]] = None,
 ) -> PlannerContext:
     profile = await db.profiles.find_one({"user_id": user_id}, {"_id": 0}) or {}
     rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
@@ -845,6 +948,7 @@ async def _build_context(
         week_ids=week_ids,
         seed=seed,
         ai_cookable=ai_cookable or set(),
+        slot_ai=slot_ai or {},
     )
 
 
@@ -888,12 +992,10 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
                 detail="Free plan limit: 4 plan generations per month. Upgrade to premium for unlimited.",
             )
     seed = payload.seed if payload.seed is not None else int(_now().timestamp())
-    # AI-first: bias the plan toward dishes genuinely cookable from the pantry
-    # (aval upma when you have aval, not carrot poriyal). Ordered best-first so
-    # the AI's top pantry-using dish wins its slot. Cached per pantry/day.
-    ai_ordered = await _ai_cookable_ids(current["user_id"])
-    ctx = await _build_context(current["user_id"], seed=seed, ai_cookable=set(ai_ordered))
-    ctx.ai_rank = {rid: i for i, rid in enumerate(ai_ordered)}
+    # AI-first: the plan applies the AI's per-slot pantry ranking before building
+    # each meal, so aval upma (AI #1 for breakfast) wins breakfast — not idli.
+    slot_ai = await _ai_slot_plan(current["user_id"])
+    ctx = await _build_context(current["user_id"], seed=seed, slot_ai=slot_ai)
     plan = engine_plan_day(ctx)
     plan = _sanitize_plan(plan)
     plan["user_id"] = current["user_id"]

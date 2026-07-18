@@ -772,22 +772,6 @@ function GroceryScreenInner() {
                       {healthGuidance[0] ?? "Groceries for your health focus — tap to add."}
                     </Text>
                   </View>
-                  {/* Ask the Captain for a fresh set, re-queried against the
-                      health focus + what's already in the pantry. */}
-                  <TouchableOpacity
-                    onPress={regeneratePicks}
-                    disabled={picksBusy}
-                    style={styles.picksRegenBtn}
-                    hitSlop={10}
-                    testID="captain-picks-regenerate"
-                    accessibilityLabel="Regenerate Captain's picks"
-                  >
-                    {picksBusy ? (
-                      <ActivityIndicator size="small" color={colors.bananaLeaf} />
-                    ) : (
-                      <Ionicons name="refresh" size={16} color={colors.bananaLeaf} />
-                    )}
-                  </TouchableOpacity>
                 </View>
                 {shown.map((it) => {
                   const id = pickId(it);
@@ -856,6 +840,25 @@ function GroceryScreenInner() {
                     />
                   </TouchableOpacity>
                 ) : null}
+                {/* Full-width regenerate, styled like the per-meal buttons on
+                    Plan — asks the AI for a fresh set against the health focus
+                    and what's already in the pantry. */}
+                <TouchableOpacity
+                  style={[styles.picksRegenBtn, picksBusy && { opacity: 0.7 }]}
+                  onPress={regeneratePicks}
+                  disabled={picksBusy}
+                  testID="captain-picks-regenerate"
+                  activeOpacity={0.85}
+                >
+                  {picksBusy ? (
+                    <ActivityIndicator color={colors.riceWhite} />
+                  ) : (
+                    <>
+                      <Ionicons name="refresh" size={17} color={colors.riceWhite} />
+                      <Text style={styles.picksRegenText}>Regenerate picks</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
                 <Text style={styles.captainDisclaimer}>
                   ICMR-NIN 2024 guidance — not medical advice; consult your doctor.
                 </Text>
@@ -1414,13 +1417,16 @@ const styles = StyleSheet.create({
   captainCardHead: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: spacing.s },
   captainCardEmoji: { fontSize: 22 },
   picksRegenBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: `${colors.bananaLeaf}14`,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 8,
+    minHeight: 50,
+    marginTop: spacing.m,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bananaLeaf,
   },
+  picksRegenText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
   captainCardTitle: { fontFamily: fonts.headingEn, fontSize: 15.5, color: colors.bananaLeafDark },
   captainCardSub: { fontSize: 12.5, color: colors.textSecondary, marginTop: 1 },
   captainRow: {

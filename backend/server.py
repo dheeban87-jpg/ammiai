@@ -4236,6 +4236,14 @@ async def health_today(current=Depends(get_current_user)):
     }
 
 
+@api_router.get("/_debug/slot-ai")
+async def _debug_slot_ai(current=Depends(get_current_user)):
+    """TEMP: what the plan's per-slot AI ranking actually returns, with names."""
+    slot_ai = await _ai_slot_plan(current["user_id"])
+    names = {r["id"]: r.get("name_en") for r in await db.recipes.find({}, {"_id": 0, "id": 1, "name_en": 1}).to_list(500)}
+    return {s: [{"id": i, "name": names.get(i)} for i in ids] for s, ids in slot_ai.items()}
+
+
 # ------------------------- Mount ------------------------- #
 app.include_router(api_router)
 

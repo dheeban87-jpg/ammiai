@@ -961,11 +961,15 @@ async def plan_generate(payload: GenerateIn, current=Depends(get_current_user)):
                 detail="Free plan limit: 4 plan generations per month. Upgrade to premium for unlimited.",
             )
     seed = payload.seed if payload.seed is not None else int(_now().timestamp())
-    # AI-first: the plan applies the AI's per-slot pantry ranking before building
-    # each meal, so aval upma (AI #1 for breakfast) wins breakfast — not idli.
-    slot_ai = await _ai_slot_plan(current["user_id"])
-    ctx = await _build_context(current["user_id"], seed=seed, slot_ai=slot_ai)
-    plan = engine_plan_day(ctx)
+    # PRIMARY: the AI builds the day's dishes out of the actual pantry (owner:
+    # "AI build dishes ... then listed in breakfast, lunch or dinner - auto plan").
+    # Not limited to the 73-recipe catalog, so bottle gourd / radish get used.
+    plan = await _ai_generate_plan(current["user_id"], seed=seed if payload.force else None)
+    if not plan:
+        # FALLBACK: the rule engine, still biased by the AI's per-slot pantry ranking.
+        slot_ai = await _ai_slot_plan(current["user_id"])
+        ctx = await _build_context(current["user_id"], seed=seed, slot_ai=slot_ai)
+        plan = engine_plan_day(ctx)
     plan = _sanitize_plan(plan)
     plan["user_id"] = current["user_id"]
     plan["date"] = date
@@ -4249,6 +4253,147 @@ async def health_today(current=Depends(get_current_user)):
         "active_kcal": (doc or {}).get("active_kcal", 0),
         "synced": doc is not None,
     }
+
+
+# ---------------- AI-generated day plan (pantry -> dishes) ---------------- #
+async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """Build the whole day from the PANTRY: the AI invents dishes out of what the
+    user actually has (bottle gourd -> sorakkai kootu, radish -> mullangi sambar),
+    not limited to the 73-recipe catalog. Nutrition is computed SERVER-SIDE from
+    IFCT per-100g data — never AI-generated (same dish -> same numbers).
+    Returns None on any failure so the caller falls back to the rule engine."""
+    profile = await db.profiles.find_one({"user_id": uid}, {"_id": 0}) or {}
+    diet = profile.get("diet") or "veg"
+    allergies = [a for a in ((profile.get("allergies") or []) + (profile.get("custom_avoid") or [])) if a]
+    household = max(1, int(profile.get("household_size", 1) or 1))
+    goals = list((profile.get("health") or {}).get("goals") or []) or ["balanced"]
+
+    pantry: List[Dict[str, Any]] = []
+    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+        e = await _enrich_item(dict(p))
+        if e.get("ingredient_name"):
+            pantry.append({
+                "name": e["ingredient_name"],
+                "qty": f'{e.get("qty")}{e.get("unit") or ""}',
+                "days_left": e.get("days_left"),
+                "category": e.get("category"),
+            })
+    if not pantry:
+        return None
+
+    api_key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not api_key:
+        return None
+    try:
+        from anthropic import AsyncAnthropic
+        from ai_planner import AI_MODEL
+
+        rules_doc = await db.meal_rules.find_one({"key": "default"}, {"_id": 0}) or {}
+        targets = daily_targets(rules_doc, profile)
+        have_txt = "; ".join(
+            f'{x["name"]} ({x["qty"]}'
+            + (f', {x["days_left"]}d left' if x.get("days_left") is not None else "")
+            + ")"
+            for x in pantry
+        )
+        prompt = (
+            "You are Capt. Charmer, a Tamil family cook planning TODAY's meals from what is "
+            "actually in the kitchen. Build real Tamil home dishes out of these pantry items — "
+            "every vegetable should earn its place in a dish before it spoils.\n\n"
+            f"PANTRY: {have_txt}\n"
+            f"Household: {household}. Diet: {diet}. "
+            + (f"Avoid (allergy/dislike): {', '.join(allergies)}. " if allergies else "")
+            + f"Health focus: {', '.join(goals)}. "
+            f"Daily targets: ~{int(targets.get('kcal', 0))} kcal, "
+            f"{int(targets.get('protein_g', 0))}g protein, {int(targets.get('fiber_g', 0))}g fiber.\n\n"
+            "Assume every Tamil kitchen already has: rice, dals, oil, ghee, mustard, cumin, "
+            "turmeric, chilli & coriander powder, salt, tamarind, curry leaves, green chilli, "
+            "garlic, ginger, shallots, jaggery, idli/dosa batter. You do NOT need to list those "
+            "as missing — just use them.\n\n"
+            "Rules:\n"
+            "- Prioritise the items expiring soonest.\n"
+            "- Breakfast = tiffin (light). Lunch = rice-based meal. Dinner = light.\n"
+            f"- A household of {household} cooks few dishes: at most "
+            f"{2 if household <= 2 else 3} dishes per meal.\n"
+            "- Use real Tamil dish names. Invent the dish if it isn't a famous one, as long as it "
+            "genuinely uses the pantry.\n"
+            "- Ingredient amounts in GRAMS per person, using plain lowercase ingredient names.\n"
+            "- Do NOT state calories or nutrition numbers — those are computed separately.\n\n"
+            "Respond ONLY with JSON, no prose, no fences:\n"
+            '{"breakfast":[{"name_en":str,"name_ta":str,"uses":[{"item":str,"grams":number}],'
+            '"steps":[str],"prep_min":number}],"lunch":[...],"dinner":[...]}'
+        )
+        client = AsyncAnthropic(api_key=api_key)
+        resp = await client.messages.create(
+            model=AI_MODEL, max_tokens=2000,
+            temperature=0.4 if seed else 0.2,  # regenerate should vary
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        parsed = json.loads(raw.replace("```json", "").replace("```", "").strip())
+
+        avoid_norm = {_norm_name(a) for a in allergies if a}
+        plan: Dict[str, Any] = {}
+        for slot in ("breakfast", "lunch", "dinner"):
+            items: List[Dict[str, Any]] = []
+            for d in (parsed.get(slot) or [])[:3]:
+                name = (d.get("name_en") or "").strip()
+                if not name:
+                    continue
+                ings, nut = [], {"kcal": 0.0, "protein_g": 0.0, "fiber_g": 0.0}
+                unsafe = False
+                for u in (d.get("uses") or []):
+                    raw_item = str(u.get("item") or "")
+                    if not raw_item:
+                        continue
+                    n = _norm_name(raw_item)
+                    # Deterministic safety: never serve an allergen, whatever the AI said.
+                    if any(a and (a in n or n in a) for a in avoid_norm):
+                        unsafe = True
+                        break
+                    iid = await _catalog_id_for(raw_item)
+                    grams = float(u.get("grams") or 0) or 50.0
+                    per100 = _ifct_nutrition(iid, "vegetable")
+                    for k in ("kcal", "protein_g", "fiber_g"):
+                        if per100.get(k) is not None:
+                            nut[k] += float(per100[k]) * grams / 100.0
+                    ings.append({"ingredient_id": iid or f"kb:{n.replace(' ', '_')}",
+                                 "name": raw_item, "qty": round(grams), "unit": "g"})
+                if unsafe or not ings:
+                    continue
+                items.append({
+                    "id": f"ai_{_norm_name(name).replace(' ', '_')[:40]}",
+                    "name_en": name,
+                    "name_ta": d.get("name_ta") or name,
+                    "category": "ai",
+                    "ingredients": ings,
+                    "steps": [s for s in (d.get("steps") or []) if isinstance(s, str)][:8],
+                    "prep_time_min": int(d.get("prep_min") or 20),
+                    "nutrition": {k: round(v) for k, v in nut.items()},
+                    "ai_generated": True,
+                    "cooked": False,
+                })
+            if not items:
+                return None  # incomplete plan -> fall back to the engine
+            plan[slot] = {"key": slot, "template": f"ai_{slot}", "items": items,
+                          "chip": "balanced", "chip_reason": "Built from your pantry"}
+
+        day_items = [i for s in ("breakfast", "lunch", "dinner") for i in plan[s]["items"]]
+        totals = {
+            k: round(sum(float((i.get("nutrition") or {}).get(k) or 0) for i in day_items))
+            for k in ("kcal", "protein_g", "fiber_g")
+        }
+        plan["day_totals"] = totals
+        plan["day_targets"] = targets
+        plan["rings"] = {
+            k: min(1.0, round(totals[k] / max(1, targets.get(k, 1)), 3))
+            for k in ("kcal", "protein_g", "fiber_g")
+        }
+        plan["generated_by"] = "ai_pantry"
+        plan["ai_reason"] = "Built from what's in your pantry today, soldier."
+        return plan
+    except Exception:
+        return None
 
 
 # ------------------------- Mount ------------------------- #

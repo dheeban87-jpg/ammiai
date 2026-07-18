@@ -133,9 +133,12 @@ function GroceryScreenInner() {
       };
       setData(d);
       writeCache(`grocery.list.${days}`, d); // R1: instant paint next open
-      // No auto-selection — the list starts empty. Users select deliberately,
-      // or tap a Captain's pick (rendered inline as the first group).
-      setChecked(new Set());
+      // No auto-selection — the list starts empty. But a refresh must NOT wipe
+      // what's already ticked: addCaptainPick calls load() before re-selecting,
+      // so clearing here dropped every other pick ("4 selected" -> "1 selected").
+      // Keep selections that still exist in the refreshed list.
+      const liveIds = new Set(d.groups.flatMap((g) => g.items.map((it) => it.ingredient_id)));
+      setChecked((prev) => new Set([...prev].filter((id) => liveIds.has(id))));
       // Captain's health picks — inline first group. Fail silent if not deployed.
       try {
         const r = await api.get<{ items: any[]; guidance: string[] }>(

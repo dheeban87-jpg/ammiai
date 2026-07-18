@@ -864,10 +864,14 @@ async def _ai_slot_plan(uid: str) -> Dict[str, List[str]]:
                 ing_ids = [i["ingredient_id"] for i in r.get("ingredients", [])]
                 if allergies & set(ing_ids):
                     continue
-                missing = [i for i in ing_ids if i not in assumed and i not in pantry_ids]
-                cands.append({"id": r["id"], "name": r.get("name_en"), "missing": missing})
-            # Reuse the SAME focused, proven judgement the dishes page uses — it
-            # correctly ranks Aval Upma #1 for breakfast. One call per slot.
+                non_assumed = [i for i in ing_ids if i not in assumed]
+                missing = [i for i in non_assumed if i not in pantry_ids]
+                used = len(non_assumed) - len(missing)  # how many pantry items it uses
+                cands.append({"id": r["id"], "name": r.get("name_en"), "missing": missing, "_used": used})
+            # Pantry-using dishes FIRST in the prompt (the dishes page does this;
+            # without it, idli/dosa lead the list and the AI fills breakfast with
+            # staple dishes, dropping Aval Upma even though it uses your poha).
+            cands.sort(key=lambda c: -c["_used"])
             picked = await _ai_cookable_dishes(uid, cands, pantry_named, diet, s)
             slots[s] = [d["id"] for d in (picked or []) if d.get("id")]
         await db.ai_slot_plan_cache.update_one(
@@ -1928,7 +1932,9 @@ async def _ai_cookable_dishes(
             "Candidate dishes (id | name | what it still needs beyond the basics):\n"
             + "\n".join(lines) + "\n\n"
             "Pick only dishes they can genuinely cook now with that pantry + the basics. "
-            "Strongly prefer dishes that use the items expiring soonest, and low-effort dishes. "
+            "RANK dishes that actually USE their pantry ingredients ABOVE generic dishes that "
+            "need nothing extra (e.g. prefer aval upma when they have poha over plain idli/dosa). "
+            "Among those, prefer the items expiring soonest and low-effort dishes. "
             "Respond ONLY with JSON, no prose, no fences: "
             '{"dishes":[{"id":"<id from the list>","why":"<one short reason>"}]} — at most 6, best first.'
         )

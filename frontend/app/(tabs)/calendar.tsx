@@ -35,9 +35,16 @@ type Plan = {
  *  rice/curd for any meal where at least one dish was cooked. */
 function consumedNutrition(plan: Plan) {
   let kcal = 0, protein = 0, fiber = 0, cookedCount = 0, balanced = 0, mealsWithFood = 0;
+  let notTracked = 0;
   for (const mk of ["breakfast", "lunch", "dinner"] as const) {
     const meal: any = (plan as any)[mk];
     if (!meal?.items) continue;
+    // R4: "ate out" / "skipped" are not failures — skip them entirely so they
+    // show as a dash rather than dragging the day's totals to zero.
+    if (meal.not_tracked) {
+      notTracked++;
+      continue;
+    }
     const anyCooked = meal.items.some((i: any) => i.cooked && !i.static);
     if (meal.items.some((i: any) => !i.static)) mealsWithFood++;
     if (meal.chip === "balanced") balanced++;
@@ -50,7 +57,7 @@ function consumedNutrition(plan: Plan) {
       if (!it.static) cookedCount++;
     }
   }
-  return { kcal: Math.round(kcal), protein: Math.round(protein), fiber: Math.round(fiber), cookedCount, balanced, mealsWithFood };
+  return { kcal: Math.round(kcal), protein: Math.round(protein), fiber: Math.round(fiber), cookedCount, balanced, mealsWithFood, notTracked };
 }
 
 /** Weekly insight (E5): 7-day averages, cook streak, strongest/weakest nutrient.

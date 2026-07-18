@@ -2532,6 +2532,41 @@ class CookedIn(BaseModel):
     recipe_id: str
 
 
+class MealLogIn(BaseModel):
+    meal: str                 # breakfast | lunch | dinner
+    outcome: str              # cooked | made_other | ate_out | skipped
+    note: Optional[str] = None
+
+
+@api_router.post("/plan/{date}/log")
+async def plan_meal_log(date: str, payload: MealLogIn, current=Depends(get_current_user)):
+    """R4 forgiving log. Every outcome is neutral — 'ate out' and 'skipped' are
+    NOT failures: they mark the meal as not-tracked so day-review and calendar
+    show a dash instead of a zero, and they're excluded from averages."""
+    if payload.outcome not in ("cooked", "made_other", "ate_out", "skipped"):
+        raise HTTPException(status_code=400, detail="Unknown outcome")
+    if payload.meal not in ("breakfast", "lunch", "dinner"):
+        raise HTTPException(status_code=400, detail="Unknown meal")
+    doc = await db.meal_plans.find_one(
+        {"user_id": current["user_id"], "date": date}, {"_id": 0}
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    meal = doc.get(payload.meal) or {}
+    meal["outcome"] = payload.outcome
+    meal["outcome_note"] = payload.note
+    meal["outcome_at"] = _now().isoformat()
+    # not_tracked drives "dash, not zero" downstream (never shown as failure)
+    meal["not_tracked"] = payload.outcome in ("ate_out", "skipped")
+    doc[payload.meal] = meal
+    doc["updated_at"] = _now()
+    await db.meal_plans.replace_one(
+        {"user_id": current["user_id"], "date": date}, doc, upsert=True
+    )
+    return {"ok": True, "meal": payload.meal, "outcome": payload.outcome,
+            "not_tracked": meal["not_tracked"]}
+
+
 @api_router.post("/plan/{date}/cooked")
 async def plan_cooked(date: str, payload: CookedIn, current=Depends(get_current_user)):
     doc = await db.meal_plans.find_one(
@@ -2559,10 +2594,15 @@ async def plan_cooked(date: str, payload: CookedIn, current=Depends(get_current_
         need_base_qty, need_base_unit = _to_base(
             float(ing.get("qty", 0)) * household, ing.get("unit", "g")
         )
-        # Reduce from pantry rows for this ingredient (all rows summed in base)
-        rows = await db.pantry_items.find(
-            {"user_id": current["user_id"], "ingredient_id": iid}, {"_id": 0}
-        ).to_list(20)
+        # Reduce from pantry rows for this ingredient (all rows summed in base).
+        # AI-generated dishes reference non-catalog items as "kb:<name>" — those
+        # pantry rows have no ingredient_id, so match them on kb_norm instead,
+        # else KB items (cooked kala chana, arai keerai) would never decrement.
+        if str(iid).startswith("kb:"):
+            q = {"user_id": current["user_id"], "kb_norm": _norm_name(str(iid)[3:].replace("_", " "))}
+        else:
+            q = {"user_id": current["user_id"], "ingredient_id": iid}
+        rows = await db.pantry_items.find(q, {"_id": 0}).to_list(20)
         remaining = need_base_qty
         for row in rows:
             if remaining <= 0:
@@ -4064,11 +4104,16 @@ async def habits_unlog(habit: str, current=Depends(get_current_user)):
 
 
 def _consumed_kcal(plan: Dict[str, Any]) -> Optional[float]:
-    """Sum kcal of dishes actually cooked in a plan doc; None if nothing cooked."""
+    """Sum kcal of dishes actually cooked in a plan doc; None if nothing cooked.
+    R4: meals logged 'ate out' / 'skipped' are NOT-TRACKED — skipped entirely so
+    they never read as a zero-calorie failure in averages."""
     total = 0.0
     any_cooked = False
     for m in ("breakfast", "lunch", "dinner"):
-        for it in (plan.get(m) or {}).get("items", []):
+        meal = plan.get(m) or {}
+        if meal.get("not_tracked"):
+            continue
+        for it in meal.get("items", []):
             if it.get("cooked"):
                 any_cooked = True
                 total += float((it.get("nutrition") or {}).get("kcal") or 0)

@@ -4,11 +4,17 @@
 // Tamil cooking videos, which is the whole point.
 import { Linking } from "react-native";
 
-/** `"Bottle Gourd Kootu"` -> searches `Bottle Gourd Kootu tamil recipe` */
+// Owner's preferred channel: easy-to-follow, covers most basics. We BIAS the
+// search toward it rather than restricting to it (a channel-scoped URL
+// dead-ends on an empty page when the channel lacks the dish — which happens
+// for AI-invented dishes). Set to "" to go back to plain Tamil search.
+const PREFERRED_CHANNEL = "Madras Samayal";
+
+/** `"Bottle Gourd Kootu"` -> `Bottle Gourd Kootu tamil Madras Samayal recipe` */
 export function youtubeQuery(dishName: string, nameTa?: string): string {
   // Prefer the Tamil name when we have a real one — better search results.
   const base = nameTa && nameTa !== dishName ? `${dishName} ${nameTa}` : dishName;
-  return `${base} tamil recipe`.trim();
+  return `${base} tamil ${PREFERRED_CHANNEL} recipe`.replace(/\s+/g, " ").trim();
 }
 
 export async function openYoutubeRecipe(dishName: string, nameTa?: string): Promise<void> {

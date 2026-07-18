@@ -1453,6 +1453,15 @@ _GROCERY_STAPLES = {
 
 # ---- R2: two-class pantry (staples assumed present; perishables tracked) ----
 STAPLE_CATEGORIES = {"staple", "spice"}
+# Aromatics every Tamil kitchen keeps on hand — the AI already treats these as
+# always-present, but they're miscategorised as "vegetable" in the catalog
+# (the S2 data debt). Assuming them here aligns the engine's "what needs
+# shopping" with the AI's, so a dish like Aval Upma (poha + these) counts as
+# fully cookable instead of "needs green chilli". They also never hit grocery.
+KITCHEN_BASICS = {
+    "green_chilli", "green_chili", "garlic", "ginger", "shallots",
+    "curry_leaves", "coriander_leaves", "tamarind",
+}
 _STAPLE_IDS_CACHE: Optional[Set[str]] = None
 
 
@@ -1466,7 +1475,7 @@ async def _all_staple_ids() -> Set[str]:
             {"category": {"$in": list(STAPLE_CATEGORIES)}},
             {"_id": 0, "ingredient_id": 1},
         ).to_list(500)
-        _STAPLE_IDS_CACHE = {d["ingredient_id"] for d in docs} | set(_SA)
+        _STAPLE_IDS_CACHE = {d["ingredient_id"] for d in docs} | set(_SA) | KITCHEN_BASICS
     return set(_STAPLE_IDS_CACHE)
 
 
@@ -4240,14 +4249,6 @@ async def health_today(current=Depends(get_current_user)):
         "active_kcal": (doc or {}).get("active_kcal", 0),
         "synced": doc is not None,
     }
-
-
-@api_router.get("/_debug/slot-ai")
-async def _debug_slot_ai(current=Depends(get_current_user)):
-    """TEMP: what the plan's per-slot AI ranking actually returns, with names."""
-    slot_ai = await _ai_slot_plan(current["user_id"])
-    names = {r["id"]: r.get("name_en") for r in await db.recipes.find({}, {"_id": 0, "id": 1, "name_en": 1}).to_list(500)}
-    return {s: [{"id": i, "name": names.get(i)} for i in ids] for s, ids in slot_ai.items()}
 
 
 # ------------------------- Mount ------------------------- #

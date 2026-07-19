@@ -165,6 +165,18 @@ export default function PantryScreen() {
     }
   };
 
+  // R5: the user vouches for an item we'd written off — buys it a few days
+  // before we ask again.
+  const onStillHave = async (item: PantryItem) => {
+    setBusy(true);
+    try {
+      await api.post(`/api/pantry/${item.id}/still-have`, {});
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onDiscard = async (item: PantryItem) => {
     setBusy(true);
     try {
@@ -324,7 +336,10 @@ export default function PantryScreen() {
                 <PantryRow
                   key={row.id}
                   item={row}
+                  busy={busy}
                   onPress={() => setActionItem(row)}
+                  onStillHave={() => onStillHave(row)}
+                  onGone={() => onDiscard(row)}
                 />
               ))}
             </View>
@@ -483,7 +498,19 @@ export default function PantryScreen() {
   );
 }
 
-function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void }) {
+function PantryRow({
+  item,
+  onPress,
+  onStillHave,
+  onGone,
+  busy,
+}: {
+  item: PantryItem;
+  onPress: () => void;
+  onStillHave: () => void;
+  onGone: () => void;
+  busy?: boolean;
+}) {
   const dot = FRESHNESS_COLOR[item.freshness];
   const label = FRESHNESS_LABEL[item.freshness];
   const daysText =
@@ -492,6 +519,53 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
       : item.days_left <= 0
         ? "expired"
         : `${item.days_left}d left`;
+
+  // R5: past shelf life and unvouched-for. Rather than keep asserting we have
+  // it, ask. Nothing is deleted behind the user's back.
+  if (item.probably_finished) {
+    return (
+      <View style={styles.rowStale} testID={`pantry-stale-${item.id}`}>
+        <View style={styles.staleTop}>
+          <FoodAvatar
+            kind="ingredient"
+            id={item.ingredient_id}
+            category={item.category}
+            size={38}
+            style={{ marginRight: spacing.m, opacity: 0.45 }}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.staleTitle} numberOfLines={1}>
+              {item.ingredient_name}
+            </Text>
+            <Text style={styles.staleSub}>Probably finished?</Text>
+          </View>
+        </View>
+        <View style={styles.staleBtns}>
+          <TouchableOpacity
+            style={styles.staleKeep}
+            onPress={onStillHave}
+            disabled={busy}
+            testID={`pantry-still-have-${item.id}`}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="checkmark" size={16} color={colors.bananaLeafDark} />
+            <Text style={styles.staleKeepText}>Still have it</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.staleGone}
+            onPress={onGone}
+            disabled={busy}
+            testID={`pantry-gone-${item.id}`}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+            <Text style={styles.staleGoneText}>Gone</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <PressableScale
       style={styles.row}
@@ -526,6 +600,43 @@ function PantryRow({ item, onPress }: { item: PantryItem; onPress: () => void })
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
+  rowStale: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.l,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: "dashed",
+    padding: spacing.m,
+    marginBottom: spacing.s,
+  },
+  staleTop: { flexDirection: "row", alignItems: "center" },
+  staleTitle: { fontSize: 15, fontWeight: "700", color: colors.textSecondary },
+  staleSub: { fontSize: 12.5, color: colors.textMuted, marginTop: 1, fontWeight: "600" },
+  staleBtns: { flexDirection: "row", gap: 8, marginTop: spacing.s },
+  staleKeep: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 42,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.bananaLeaf,
+  },
+  staleKeepText: { fontSize: 13.5, fontWeight: "800", color: colors.bananaLeafDark },
+  staleGone: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    minHeight: 42,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  staleGoneText: { fontSize: 13.5, fontWeight: "700", color: colors.textSecondary },
   toast: {
     position: "absolute",
     left: spacing.m,

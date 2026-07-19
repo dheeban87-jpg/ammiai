@@ -54,6 +54,7 @@ export type PantryItem = {
   alert_before_days: number;
   days_left: number | null;
   freshness: "green" | "yellow" | "red" | "unknown";
+  probably_finished?: boolean;
 };
 
 export type Recipe = {

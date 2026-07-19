@@ -513,6 +513,26 @@ def _freshness(days_left: Optional[int], alert_days: int) -> str:
     return "green"
 
 
+# R5: how long "Still have it" buys an item before we ask again. Deliberately
+# short — the point is an honest question, not a new expiry date to trust.
+_STILL_HAVE_DAYS = 3
+
+
+def _probably_finished(item: Dict[str, Any], days_left: Optional[int]) -> bool:
+    """Past its shelf life and not vouched for recently. The app stops claiming
+    it knows — a three-week-old coriander bunch is a question, not an asset."""
+    if days_left is None or days_left >= 0:
+        return False
+    until = item.get("still_have_until")
+    if until:
+        try:
+            if datetime.fromisoformat(str(until)).date() >= _now().date():
+                return False
+        except Exception:
+            pass
+    return True
+
+
 async def _enrich_item(item: Dict[str, Any]) -> Dict[str, Any]:
     # KB-backed item: no catalog ingredient — resolve from stored fields.
     if item.get("source") == "kb":
@@ -533,6 +553,7 @@ async def _enrich_item(item: Dict[str, Any]) -> Dict[str, Any]:
         item["alert_before_days"] = alert_days
         item["days_left"] = days_left
         item["freshness"] = _freshness(days_left, alert_days)
+        item["probably_finished"] = _probably_finished(item, days_left)
         item["from_kb"] = True
         return item
 
@@ -565,7 +586,22 @@ async def _enrich_item(item: Dict[str, Any]) -> Dict[str, Any]:
     item["alert_before_days"] = alert_days
     item["days_left"] = days_left
     item["freshness"] = freshness
+    item["probably_finished"] = _probably_finished(item, days_left)
     return item
+
+
+async def _cookable_pantry_rows(uid: str, limit: int = 200) -> List[Dict[str, Any]]:
+    """R5: pantry rows the app is still willing to claim it has. Items past
+    shelf life that the user hasn't vouched for are excluded from anything
+    that decides what can be cooked or bought — they still SHOW in the pantry,
+    where they're asked about."""
+    rows = await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(limit)
+    out: List[Dict[str, Any]] = []
+    for p in rows:
+        e = await _enrich_item(dict(p))
+        if not e.get("probably_finished"):
+            out.append(p)
+    return out
 
 
 @api_router.get("/pantry")
@@ -682,6 +718,23 @@ async def delete_pantry(item_id: str, current=Depends(get_current_user)):
     return {"ok": True}
 
 
+@api_router.post("/pantry/{item_id}/still-have")
+async def still_have_pantry(item_id: str, current=Depends(get_current_user)):
+    """R5: the user vouches for an item we'd written off. Buys it a few days
+    before we ask again — we don't invent a new expiry date we can't know."""
+    until = (_now().date() + timedelta(days=_STILL_HAVE_DAYS)).isoformat()
+    res = await db.pantry_items.update_one(
+        {"id": item_id, "user_id": current["user_id"]},
+        {"$set": {"still_have_until": until}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    doc = await db.pantry_items.find_one(
+        {"id": item_id, "user_id": current["user_id"]}, {"_id": 0}
+    )
+    return await _enrich_item(dict(doc or {}))
+
+
 class DiscardIn(BaseModel):
     reason: Optional[str] = "expired"
 
@@ -693,15 +746,16 @@ async def discard_pantry(item_id: str, payload: DiscardIn, current=Depends(get_c
     )
     if not item:
         raise HTTPException(status_code=404, detail="Not found")
-    estimated = _price_for(item["ingredient_id"], item["qty"], item["unit"])
-    ing = await db.ingredients.find_one(
-        {"ingredient_id": item["ingredient_id"]}, {"_id": 0}
-    )
+    # KB items (from a bill/photo scan) have no catalog ingredient — .get, not
+    # [], or discarding one 500s.
+    iid = item.get("ingredient_id") or ""
+    estimated = _price_for(iid, item.get("qty"), item.get("unit")) if iid else None
+    ing = await db.ingredients.find_one({"ingredient_id": iid}, {"_id": 0}) if iid else None
     log_doc = {
         "id": uuid.uuid4().hex,
         "user_id": current["user_id"],
-        "ingredient_id": item["ingredient_id"],
-        "ingredient_name": (ing or {}).get("name", item["ingredient_id"]),
+        "ingredient_id": iid,
+        "ingredient_name": (ing or {}).get("name") or item.get("name_en") or iid or "Item",
         "qty": item["qty"],
         "unit": item["unit"],
         "reason": payload.reason,
@@ -734,7 +788,7 @@ async def _ai_cookable_ids(uid: str) -> List[str]:
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
     pantry_ids: Set[str] = set()
     pantry_named: List[Dict[str, Any]] = []
-    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+    for p in await _cookable_pantry_rows(uid):
         if p.get("ingredient_id"):
             pantry_ids.add(p["ingredient_id"])
         if p.get("maps_to"):
@@ -823,7 +877,7 @@ async def _ai_slot_plan(uid: str) -> Dict[str, List[str]]:
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
     pantry_ids: Set[str] = set()
     pantry_named: List[Dict[str, Any]] = []
-    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+    for p in await _cookable_pantry_rows(uid):
         if p.get("ingredient_id"):
             pantry_ids.add(p["ingredient_id"])
         if p.get("maps_to"):
@@ -895,6 +949,8 @@ async def _build_context(
         {"user_id": user_id}, {"_id": 0}
     ).to_list(1000)
     pantry_items = [await _enrich_item(dict(it)) for it in pantry_raw]
+    # R5: an item we've written off must not make a dish look cookable.
+    pantry_items = [it for it in pantry_items if not it.get("probably_finished")]
     pantry = PantrySnapshot.from_items(
         pantry_items, assumed=await _assumed_staples(user_id)
     )
@@ -1821,9 +1877,7 @@ async def dishes_from_pantry(slot: Optional[str] = None, current=Depends(get_cur
     allergies = set((profile.get("allergies") or []) + (profile.get("custom_avoid") or []))
     pantry: Set[str] = set()
     pantry_named: List[Dict[str, Any]] = []  # names for the AI (ids mean nothing to it)
-    for p in await db.pantry_items.find(
-        {"user_id": current["user_id"]}, {"_id": 0}
-    ).to_list(200):
+    for p in await _cookable_pantry_rows(current["user_id"]):
         if p.get("ingredient_id"):
             pantry.add(p["ingredient_id"])
         if p.get("maps_to"):  # KB item that resolves to a catalog ingredient
@@ -2242,7 +2296,7 @@ async def grocery_suggest_health(refresh: bool = False, current=Depends(get_curr
 
     # --- AI-first path -------------------------------------------------
     pantry_named = []
-    for p in await db.pantry_items.find({"user_id": current["user_id"]}, {"_id": 0}).to_list(200):
+    for p in await _cookable_pantry_rows(current["user_id"]):
         e = await _enrich_item(dict(p))
         if e.get("ingredient_name"):
             pantry_named.append(e["ingredient_name"])
@@ -2829,7 +2883,7 @@ async def nudge_dinner(current=Depends(get_current_user)):
 
     # Expiry urgency — only mentioned when something really is about to go.
     expiring: List[str] = []
-    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+    for p in await _cookable_pantry_rows(uid):
         e = await _enrich_item(dict(p))
         dl = e.get("days_left")
         if dl is not None and dl <= 1 and e.get("ingredient_name"):
@@ -4003,6 +4057,8 @@ async def ai_plan_week(current=Depends(get_current_user)):
         {"user_id": uid}, {"_id": 0}
     ).to_list(1000)
     pantry_items = [await _enrich_item(dict(it)) for it in pantry_raw]
+    # R5: an item we've written off must not make a dish look cookable.
+    pantry_items = [it for it in pantry_items if not it.get("probably_finished")]
 
     # 3 candidates per day
     candidates = await _build_week_candidates(uid)
@@ -4446,7 +4502,7 @@ async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Di
     goals = list((profile.get("health") or {}).get("goals") or []) or ["balanced"]
 
     pantry: List[Dict[str, Any]] = []
-    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+    for p in await _cookable_pantry_rows(uid):
         e = await _enrich_item(dict(p))
         if e.get("ingredient_name"):
             pantry.append({

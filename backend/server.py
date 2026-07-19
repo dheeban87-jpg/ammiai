@@ -1513,29 +1513,31 @@ _GROCERY_STAPLES = {
 
 # ---- R2: two-class pantry (staples assumed present; perishables tracked) ----
 STAPLE_CATEGORIES = {"staple", "spice"}
-# Aromatics every Tamil kitchen keeps on hand — the AI already treats these as
-# always-present, but they're miscategorised as "vegetable" in the catalog
-# (the S2 data debt). Assuming them here aligns the engine's "what needs
-# shopping" with the AI's, so a dish like Aval Upma (poha + these) counts as
-# fully cookable instead of "needs green chilli". They also never hit grocery.
-KITCHEN_BASICS = {
-    "green_chilli", "green_chili", "garlic", "ginger", "shallots",
-    "curry_leaves", "coriander_leaves", "tamarind",
-}
 _STAPLE_IDS_CACHE: Optional[Set[str]] = None
 
 
 async def _all_staple_ids() -> Set[str]:
-    """The full staple CLASS: staple/spice-category ingredients ∪ the engine's
-    STAPLE_ALWAYS. Cached (reference data doesn't change at runtime)."""
+    """The full staple CLASS: staple/spice-category ingredients, anything the
+    catalog flags `assume_stocked`, and the engine's STAPLE_ALWAYS. Cached
+    (reference data doesn't change at runtime).
+
+    `assume_stocked` is how aromatics get in — green chilli, garlic, ginger,
+    shallots, curry/coriander leaves. They are genuinely vegetables and are
+    categorised as such (so the pantry groups and expiry dates stay right), but
+    a Tamil kitchen always has them. Without this, Aval Upma reads as "needs
+    green chilli" and loses to Idli. This used to be a hardcoded Python set;
+    it now lives in shelf_life.json where the rest of the food data lives."""
     global _STAPLE_IDS_CACHE
     if _STAPLE_IDS_CACHE is None:
         from meal_engine import STAPLE_ALWAYS as _SA
         docs = await db.ingredients.find(
-            {"category": {"$in": list(STAPLE_CATEGORIES)}},
+            {"$or": [
+                {"category": {"$in": list(STAPLE_CATEGORIES)}},
+                {"assume_stocked": True},
+            ]},
             {"_id": 0, "ingredient_id": 1},
         ).to_list(500)
-        _STAPLE_IDS_CACHE = {d["ingredient_id"] for d in docs} | set(_SA) | KITCHEN_BASICS
+        _STAPLE_IDS_CACHE = {d["ingredient_id"] for d in docs} | set(_SA)
     return set(_STAPLE_IDS_CACHE)
 
 

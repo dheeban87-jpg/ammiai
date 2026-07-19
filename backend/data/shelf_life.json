@@ -1,786 +1,793 @@
 [
- {
-  "ingredient_id": "spinach_palak",
-  "name": "Spinach (Palak)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "coriander_leaves",
-  "name": "Coriander Leaves",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 4,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "curry_leaves",
-  "name": "Curry Leaves",
-  "category": "leafy_green",
-  "pantry_days": 2,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "mint_leaves",
-  "name": "Mint Leaves",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 4,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "methi_leaves",
-  "name": "Fenugreek Leaves (Methi)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "amaranth_keerai",
-  "name": "Amaranth (Keerai)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 2,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "tomato",
-  "name": "Tomato",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 8,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "brinjal",
-  "name": "Brinjal (Eggplant)",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "ladies_finger",
-  "name": "Ladies Finger (Okra)",
-  "category": "vegetable",
-  "pantry_days": 2,
-  "fridge_days": 5,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "green_beans",
-  "name": "Green Beans",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "carrot",
-  "name": "Carrot",
-  "category": "vegetable",
-  "pantry_days": 7,
-  "fridge_days": 21,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "beetroot",
-  "name": "Beetroot",
-  "category": "vegetable",
-  "pantry_days": 7,
-  "fridge_days": 21,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "cabbage",
-  "name": "Cabbage",
-  "category": "vegetable",
-  "pantry_days": 5,
-  "fridge_days": 14,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "cauliflower",
-  "name": "Cauliflower",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "capsicum",
-  "name": "Capsicum",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 10,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "bottle_gourd",
-  "name": "Bottle Gourd (Lauki/Sorakkai)",
-  "category": "vegetable",
-  "pantry_days": 5,
-  "fridge_days": 10,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "ridge_gourd",
-  "name": "Ridge Gourd (Peerkangai)",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 8,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "snake_gourd",
-  "name": "Snake Gourd (Pudalangai)",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "bitter_gourd",
-  "name": "Bitter Gourd (Pavakkai/Karela)",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "ash_gourd",
-  "name": "Ash Gourd (Poosanikai)",
-  "category": "vegetable",
-  "pantry_days": 10,
-  "fridge_days": 21,
-  "alert_before_days": 4
- },
- {
-  "ingredient_id": "pumpkin",
-  "name": "Pumpkin",
-  "category": "vegetable",
-  "pantry_days": 10,
-  "fridge_days": 21,
-  "alert_before_days": 4
- },
- {
-  "ingredient_id": "drumstick",
-  "name": "Drumstick (Murungakkai)",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "raw_banana",
-  "name": "Raw Banana (Vazhakkai)",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "cucumber",
-  "name": "Cucumber",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "green_peas",
-  "name": "Green Peas (fresh)",
-  "category": "vegetable",
-  "pantry_days": 2,
-  "fridge_days": 5,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "green_chilli",
-  "name": "Green Chilli",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 10,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "ginger",
-  "name": "Ginger",
-  "category": "vegetable",
-  "pantry_days": 14,
-  "fridge_days": 30,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "garlic",
-  "name": "Garlic",
-  "category": "vegetable",
-  "pantry_days": 60,
-  "fridge_days": 90,
-  "alert_before_days": 10
- },
- {
-  "ingredient_id": "onion",
-  "name": "Onion",
-  "category": "vegetable",
-  "pantry_days": 30,
-  "fridge_days": 45,
-  "alert_before_days": 7
- },
- {
-  "ingredient_id": "shallots",
-  "name": "Shallots (Small Onion)",
-  "category": "vegetable",
-  "pantry_days": 21,
-  "fridge_days": 30,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "potato",
-  "name": "Potato",
-  "category": "vegetable",
-  "pantry_days": 21,
-  "fridge_days": 30,
-  "alert_before_days": 7
- },
- {
-  "ingredient_id": "sweet_potato",
-  "name": "Sweet Potato",
-  "category": "vegetable",
-  "pantry_days": 14,
-  "fridge_days": 21,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "lemon",
-  "name": "Lemon",
-  "category": "vegetable",
-  "pantry_days": 7,
-  "fridge_days": 21,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "mango_raw",
-  "name": "Raw Mango",
-  "category": "vegetable",
-  "pantry_days": 5,
-  "fridge_days": 14,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "coconut",
-  "name": "Coconut (whole)",
-  "category": "vegetable",
-  "pantry_days": 14,
-  "fridge_days": 30,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "coconut_grated",
-  "name": "Coconut (grated)",
-  "category": "vegetable",
-  "pantry_days": 0,
-  "fridge_days": 4,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "milk",
-  "name": "Milk (pasteurized)",
-  "category": "dairy",
-  "pantry_days": 0,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "curd",
-  "name": "Curd (Yogurt)",
-  "category": "dairy",
-  "pantry_days": 0,
-  "fridge_days": 5,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "paneer",
-  "name": "Paneer",
-  "category": "dairy",
-  "pantry_days": 0,
-  "fridge_days": 4,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "butter",
-  "name": "Butter",
-  "category": "dairy",
-  "pantry_days": 2,
-  "fridge_days": 30,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "ghee",
-  "name": "Ghee",
-  "category": "dairy",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "cheese",
-  "name": "Cheese (processed)",
-  "category": "dairy",
-  "pantry_days": 0,
-  "fridge_days": 21,
-  "alert_before_days": 4
- },
- {
-  "ingredient_id": "eggs",
-  "name": "Eggs",
-  "category": "protein",
-  "pantry_days": 14,
-  "fridge_days": 30,
-  "alert_before_days": 5
- },
- {
-  "ingredient_id": "chicken",
-  "name": "Chicken (raw)",
-  "category": "protein",
-  "pantry_days": 0,
-  "fridge_days": 2,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "mutton",
-  "name": "Mutton (raw)",
-  "category": "protein",
-  "pantry_days": 0,
-  "fridge_days": 2,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "fish",
-  "name": "Fish (fresh)",
-  "category": "protein",
-  "pantry_days": 0,
-  "fridge_days": 1,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "prawns",
-  "name": "Prawns (fresh)",
-  "category": "protein",
-  "pantry_days": 0,
-  "fridge_days": 1,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "rice",
-  "name": "Rice",
-  "category": "staple",
-  "pantry_days": 365,
-  "fridge_days": 365,
-  "alert_before_days": 30
- },
- {
-  "ingredient_id": "idli_rice",
-  "name": "Idli Rice (parboiled)",
-  "category": "staple",
-  "pantry_days": 365,
-  "fridge_days": 365,
-  "alert_before_days": 30
- },
- {
-  "ingredient_id": "toor_dal",
-  "name": "Toor Dal",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "moong_dal",
-  "name": "Moong Dal",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "chana_dal",
-  "name": "Chana Dal",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "urad_dal",
-  "name": "Urad Dal",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "masoor_dal",
-  "name": "Masoor Dal",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "chickpeas",
-  "name": "Chickpeas (Kabuli Chana)",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "rajma",
-  "name": "Rajma (Kidney Beans)",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "wheat_flour",
-  "name": "Wheat Flour (Atta)",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "rava",
-  "name": "Rava (Semolina/Sooji)",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "besan",
-  "name": "Besan (Gram Flour)",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "rice_flour",
-  "name": "Rice Flour",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 180,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "poha",
-  "name": "Poha (Flattened Rice)",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 180,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "vermicelli",
-  "name": "Vermicelli (Semiya)",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "oats",
-  "name": "Oats",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "millet_ragi",
-  "name": "Ragi (Finger Millet)",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "cooking_oil",
-  "name": "Cooking Oil",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 240,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "tamarind",
-  "name": "Tamarind",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "jaggery",
-  "name": "Jaggery",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "sugar",
-  "name": "Sugar",
-  "category": "staple",
-  "pantry_days": 365,
-  "fridge_days": 365,
-  "alert_before_days": 30
- },
- {
-  "ingredient_id": "bread",
-  "name": "Bread",
-  "category": "staple",
-  "pantry_days": 3,
-  "fridge_days": 6,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "moringa_leaves",
-  "name": "Moringa Leaves (Murungai Keerai)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "sundakkai",
-  "name": "Turkey Berry (Sundakkai)",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 8,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "kovakkai",
-  "name": "Ivy Gourd (Kovakkai)",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 7,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "banana_stem",
-  "name": "Banana Stem (Vazhaithandu)",
-  "category": "vegetable",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "banana_flower",
-  "name": "Banana Flower (Vazhaipoo)",
-  "category": "vegetable",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "taro_seppankizhangu",
-  "name": "Taro (Seppankizhangu)",
-  "category": "vegetable",
-  "pantry_days": 7,
-  "fridge_days": 14,
-  "alert_before_days": 3
- },
- {
-  "ingredient_id": "elephant_yam",
-  "name": "Elephant Yam (Senai)",
-  "category": "vegetable",
-  "pantry_days": 10,
-  "fridge_days": 21,
-  "alert_before_days": 4
- },
- {
-  "ingredient_id": "broad_beans_avarai",
-  "name": "Broad Beans (Avarakkai)",
-  "category": "vegetable",
-  "pantry_days": 3,
-  "fridge_days": 6,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "raw_papaya",
-  "name": "Raw Papaya",
-  "category": "vegetable",
-  "pantry_days": 4,
-  "fridge_days": 8,
-  "alert_before_days": 2
- },
- {
-  "ingredient_id": "cumin_seeds",
-  "name": "Cumin Seeds (Jeeragam)",
-  "category": "spice",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "mustard_seeds",
-  "name": "Mustard Seeds (Kadugu)",
-  "category": "spice",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "turmeric_powder",
-  "name": "Turmeric Powder",
-  "category": "spice",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "red_chilli_powder",
-  "name": "Red Chilli Powder",
-  "category": "spice",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "sesame_seeds",
-  "name": "Sesame Seeds (Ellu)",
-  "category": "spice",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "peanuts",
-  "name": "Peanuts (Verkadalai)",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 10
- },
- {
-  "ingredient_id": "millet_foxtail",
-  "name": "Foxtail Millet (Thinai)",
-  "category": "staple",
-  "pantry_days": 180,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "dates",
-  "name": "Dates (Pericham)",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "dried_figs",
-  "name": "Dried Figs (Athipazham)",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "raisins",
-  "name": "Raisins (Ular Dhraakshai)",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "cashew_nuts",
-  "name": "Cashew Nuts (Mundhiri)",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 10
- },
- {
-  "ingredient_id": "almonds",
-  "name": "Almonds (Badam)",
-  "category": "staple",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "walnuts",
-  "name": "Walnuts",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 10
- },
- {
-  "ingredient_id": "pistachios",
-  "name": "Pistachios",
-  "category": "staple",
-  "pantry_days": 90,
-  "fridge_days": 180,
-  "alert_before_days": 10
- },
- {
-  "ingredient_id": "nutmeg",
-  "name": "Nutmeg (Jathikai)",
-  "category": "spice",
-  "pantry_days": 365,
-  "fridge_days": 365,
-  "alert_before_days": 30
- },
- {
-  "ingredient_id": "mulaikeerai",
-  "name": "Sprouted Greens (Mulaikeerai)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "vallarai",
-  "name": "Vallarai Keerai (Brahmi)",
-  "category": "leafy_green",
-  "pantry_days": 1,
-  "fridge_days": 3,
-  "alert_before_days": 1
- },
- {
-  "ingredient_id": "moong_whole",
-  "name": "Whole Green Moong",
-  "category": "staple",
-  "pantry_days": 240,
-  "fridge_days": 365,
-  "alert_before_days": 20
- },
- {
-  "ingredient_id": "sambar_powder",
-  "name": "Sambar Powder",
-  "category": "spice",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- },
- {
-  "ingredient_id": "rasam_powder",
-  "name": "Rasam Powder",
-  "category": "spice",
-  "pantry_days": 120,
-  "fridge_days": 240,
-  "alert_before_days": 15
- }
+  {
+    "ingredient_id": "spinach_palak",
+    "name": "Spinach (Palak)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "coriander_leaves",
+    "name": "Coriander Leaves",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 4,
+    "alert_before_days": 1,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "curry_leaves",
+    "name": "Curry Leaves",
+    "category": "leafy_green",
+    "pantry_days": 2,
+    "fridge_days": 7,
+    "alert_before_days": 2,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "mint_leaves",
+    "name": "Mint Leaves",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 4,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "methi_leaves",
+    "name": "Fenugreek Leaves (Methi)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "amaranth_keerai",
+    "name": "Amaranth (Keerai)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 2,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "tomato",
+    "name": "Tomato",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 8,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "brinjal",
+    "name": "Brinjal (Eggplant)",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "ladies_finger",
+    "name": "Ladies Finger (Okra)",
+    "category": "vegetable",
+    "pantry_days": 2,
+    "fridge_days": 5,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "green_beans",
+    "name": "Green Beans",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "carrot",
+    "name": "Carrot",
+    "category": "vegetable",
+    "pantry_days": 7,
+    "fridge_days": 21,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "beetroot",
+    "name": "Beetroot",
+    "category": "vegetable",
+    "pantry_days": 7,
+    "fridge_days": 21,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "cabbage",
+    "name": "Cabbage",
+    "category": "vegetable",
+    "pantry_days": 5,
+    "fridge_days": 14,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "cauliflower",
+    "name": "Cauliflower",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "capsicum",
+    "name": "Capsicum",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 10,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "bottle_gourd",
+    "name": "Bottle Gourd (Lauki/Sorakkai)",
+    "category": "vegetable",
+    "pantry_days": 5,
+    "fridge_days": 10,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "ridge_gourd",
+    "name": "Ridge Gourd (Peerkangai)",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 8,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "snake_gourd",
+    "name": "Snake Gourd (Pudalangai)",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "bitter_gourd",
+    "name": "Bitter Gourd (Pavakkai/Karela)",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "ash_gourd",
+    "name": "Ash Gourd (Poosanikai)",
+    "category": "vegetable",
+    "pantry_days": 10,
+    "fridge_days": 21,
+    "alert_before_days": 4
+  },
+  {
+    "ingredient_id": "pumpkin",
+    "name": "Pumpkin",
+    "category": "vegetable",
+    "pantry_days": 10,
+    "fridge_days": 21,
+    "alert_before_days": 4
+  },
+  {
+    "ingredient_id": "drumstick",
+    "name": "Drumstick (Murungakkai)",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "raw_banana",
+    "name": "Raw Banana (Vazhakkai)",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "cucumber",
+    "name": "Cucumber",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "green_peas",
+    "name": "Green Peas (fresh)",
+    "category": "vegetable",
+    "pantry_days": 2,
+    "fridge_days": 5,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "green_chilli",
+    "name": "Green Chilli",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 10,
+    "alert_before_days": 2,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "ginger",
+    "name": "Ginger",
+    "category": "vegetable",
+    "pantry_days": 14,
+    "fridge_days": 30,
+    "alert_before_days": 5,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "garlic",
+    "name": "Garlic",
+    "category": "vegetable",
+    "pantry_days": 60,
+    "fridge_days": 90,
+    "alert_before_days": 10,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "onion",
+    "name": "Onion",
+    "category": "vegetable",
+    "pantry_days": 30,
+    "fridge_days": 45,
+    "alert_before_days": 7
+  },
+  {
+    "ingredient_id": "shallots",
+    "name": "Shallots (Small Onion)",
+    "category": "vegetable",
+    "pantry_days": 21,
+    "fridge_days": 30,
+    "alert_before_days": 5,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "potato",
+    "name": "Potato",
+    "category": "vegetable",
+    "pantry_days": 21,
+    "fridge_days": 30,
+    "alert_before_days": 7
+  },
+  {
+    "ingredient_id": "sweet_potato",
+    "name": "Sweet Potato",
+    "category": "vegetable",
+    "pantry_days": 14,
+    "fridge_days": 21,
+    "alert_before_days": 5
+  },
+  {
+    "ingredient_id": "lemon",
+    "name": "Lemon",
+    "category": "vegetable",
+    "pantry_days": 7,
+    "fridge_days": 21,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "mango_raw",
+    "name": "Raw Mango",
+    "category": "vegetable",
+    "pantry_days": 5,
+    "fridge_days": 14,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "coconut",
+    "name": "Coconut (whole)",
+    "category": "vegetable",
+    "pantry_days": 14,
+    "fridge_days": 30,
+    "alert_before_days": 5
+  },
+  {
+    "ingredient_id": "coconut_grated",
+    "name": "Coconut (grated)",
+    "category": "vegetable",
+    "pantry_days": 0,
+    "fridge_days": 4,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "milk",
+    "name": "Milk (pasteurized)",
+    "category": "dairy",
+    "pantry_days": 0,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "curd",
+    "name": "Curd (Yogurt)",
+    "category": "dairy",
+    "pantry_days": 0,
+    "fridge_days": 5,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "paneer",
+    "name": "Paneer",
+    "category": "dairy",
+    "pantry_days": 0,
+    "fridge_days": 4,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "butter",
+    "name": "Butter",
+    "category": "dairy",
+    "pantry_days": 2,
+    "fridge_days": 30,
+    "alert_before_days": 5
+  },
+  {
+    "ingredient_id": "ghee",
+    "name": "Ghee",
+    "category": "dairy",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "cheese",
+    "name": "Cheese (processed)",
+    "category": "dairy",
+    "pantry_days": 0,
+    "fridge_days": 21,
+    "alert_before_days": 4
+  },
+  {
+    "ingredient_id": "eggs",
+    "name": "Eggs",
+    "category": "protein",
+    "pantry_days": 14,
+    "fridge_days": 30,
+    "alert_before_days": 5
+  },
+  {
+    "ingredient_id": "chicken",
+    "name": "Chicken (raw)",
+    "category": "protein",
+    "pantry_days": 0,
+    "fridge_days": 2,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "mutton",
+    "name": "Mutton (raw)",
+    "category": "protein",
+    "pantry_days": 0,
+    "fridge_days": 2,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "fish",
+    "name": "Fish (fresh)",
+    "category": "protein",
+    "pantry_days": 0,
+    "fridge_days": 1,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "prawns",
+    "name": "Prawns (fresh)",
+    "category": "protein",
+    "pantry_days": 0,
+    "fridge_days": 1,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "rice",
+    "name": "Rice",
+    "category": "staple",
+    "pantry_days": 365,
+    "fridge_days": 365,
+    "alert_before_days": 30
+  },
+  {
+    "ingredient_id": "idli_rice",
+    "name": "Idli Rice (parboiled)",
+    "category": "staple",
+    "pantry_days": 365,
+    "fridge_days": 365,
+    "alert_before_days": 30
+  },
+  {
+    "ingredient_id": "toor_dal",
+    "name": "Toor Dal",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "moong_dal",
+    "name": "Moong Dal",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "chana_dal",
+    "name": "Chana Dal",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "urad_dal",
+    "name": "Urad Dal",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "masoor_dal",
+    "name": "Masoor Dal",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "chickpeas",
+    "name": "Chickpeas (Kabuli Chana)",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "rajma",
+    "name": "Rajma (Kidney Beans)",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "wheat_flour",
+    "name": "Wheat Flour (Atta)",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "rava",
+    "name": "Rava (Semolina/Sooji)",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "besan",
+    "name": "Besan (Gram Flour)",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "rice_flour",
+    "name": "Rice Flour",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 180,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "poha",
+    "name": "Poha (Flattened Rice)",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 180,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "vermicelli",
+    "name": "Vermicelli (Semiya)",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "oats",
+    "name": "Oats",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "millet_ragi",
+    "name": "Ragi (Finger Millet)",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "cooking_oil",
+    "name": "Cooking Oil",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 240,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "tamarind",
+    "name": "Tamarind",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20,
+    "assume_stocked": true
+  },
+  {
+    "ingredient_id": "jaggery",
+    "name": "Jaggery",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "sugar",
+    "name": "Sugar",
+    "category": "staple",
+    "pantry_days": 365,
+    "fridge_days": 365,
+    "alert_before_days": 30
+  },
+  {
+    "ingredient_id": "bread",
+    "name": "Bread",
+    "category": "staple",
+    "pantry_days": 3,
+    "fridge_days": 6,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "moringa_leaves",
+    "name": "Moringa Leaves (Murungai Keerai)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "sundakkai",
+    "name": "Turkey Berry (Sundakkai)",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 8,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "kovakkai",
+    "name": "Ivy Gourd (Kovakkai)",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 7,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "banana_stem",
+    "name": "Banana Stem (Vazhaithandu)",
+    "category": "vegetable",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "banana_flower",
+    "name": "Banana Flower (Vazhaipoo)",
+    "category": "vegetable",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "taro_seppankizhangu",
+    "name": "Taro (Seppankizhangu)",
+    "category": "vegetable",
+    "pantry_days": 7,
+    "fridge_days": 14,
+    "alert_before_days": 3
+  },
+  {
+    "ingredient_id": "elephant_yam",
+    "name": "Elephant Yam (Senai)",
+    "category": "vegetable",
+    "pantry_days": 10,
+    "fridge_days": 21,
+    "alert_before_days": 4
+  },
+  {
+    "ingredient_id": "broad_beans_avarai",
+    "name": "Broad Beans (Avarakkai)",
+    "category": "vegetable",
+    "pantry_days": 3,
+    "fridge_days": 6,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "raw_papaya",
+    "name": "Raw Papaya",
+    "category": "vegetable",
+    "pantry_days": 4,
+    "fridge_days": 8,
+    "alert_before_days": 2
+  },
+  {
+    "ingredient_id": "cumin_seeds",
+    "name": "Cumin Seeds (Jeeragam)",
+    "category": "spice",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "mustard_seeds",
+    "name": "Mustard Seeds (Kadugu)",
+    "category": "spice",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "turmeric_powder",
+    "name": "Turmeric Powder",
+    "category": "spice",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "red_chilli_powder",
+    "name": "Red Chilli Powder",
+    "category": "spice",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "sesame_seeds",
+    "name": "Sesame Seeds (Ellu)",
+    "category": "spice",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "peanuts",
+    "name": "Peanuts (Verkadalai)",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 10
+  },
+  {
+    "ingredient_id": "millet_foxtail",
+    "name": "Foxtail Millet (Thinai)",
+    "category": "staple",
+    "pantry_days": 180,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "dates",
+    "name": "Dates (Pericham)",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "dried_figs",
+    "name": "Dried Figs (Athipazham)",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "raisins",
+    "name": "Raisins (Ular Dhraakshai)",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "cashew_nuts",
+    "name": "Cashew Nuts (Mundhiri)",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 10
+  },
+  {
+    "ingredient_id": "almonds",
+    "name": "Almonds (Badam)",
+    "category": "staple",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "walnuts",
+    "name": "Walnuts",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 10
+  },
+  {
+    "ingredient_id": "pistachios",
+    "name": "Pistachios",
+    "category": "staple",
+    "pantry_days": 90,
+    "fridge_days": 180,
+    "alert_before_days": 10
+  },
+  {
+    "ingredient_id": "nutmeg",
+    "name": "Nutmeg (Jathikai)",
+    "category": "spice",
+    "pantry_days": 365,
+    "fridge_days": 365,
+    "alert_before_days": 30
+  },
+  {
+    "ingredient_id": "mulaikeerai",
+    "name": "Sprouted Greens (Mulaikeerai)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "vallarai",
+    "name": "Vallarai Keerai (Brahmi)",
+    "category": "leafy_green",
+    "pantry_days": 1,
+    "fridge_days": 3,
+    "alert_before_days": 1
+  },
+  {
+    "ingredient_id": "moong_whole",
+    "name": "Whole Green Moong",
+    "category": "staple",
+    "pantry_days": 240,
+    "fridge_days": 365,
+    "alert_before_days": 20
+  },
+  {
+    "ingredient_id": "sambar_powder",
+    "name": "Sambar Powder",
+    "category": "spice",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  },
+  {
+    "ingredient_id": "rasam_powder",
+    "name": "Rasam Powder",
+    "category": "spice",
+    "pantry_days": 120,
+    "fridge_days": 240,
+    "alert_before_days": 15
+  }
 ]

@@ -2600,8 +2600,20 @@ async def plan_regenerate_meal(date: str, meal: str, current=Depends(get_current
     )
     if not doc:
         raise HTTPException(status_code=404, detail="Plan not found")
-    # seed varies -> higher temperature, so the same pantry yields a different meal
-    fresh = await _ai_generate_plan(current["user_id"], seed=int(_now().timestamp()))
+    # Ask for THIS meal only (3x less to generate), and name the dishes already
+    # on screen so the AI is forced to move — an identical prompt at a slightly
+    # higher temperature kept returning the same dishes.
+    current_names = [
+        str(i.get("name_en") or i.get("name") or "")
+        for i in (doc.get(meal) or {}).get("items", [])
+        if (i.get("name_en") or i.get("name")) and i.get("category") != "staple"
+    ]
+    fresh = await _ai_generate_plan(
+        current["user_id"],
+        seed=int(_now().timestamp()),
+        only_meal=meal,
+        avoid_dishes=current_names or None,
+    )
     if not fresh or not fresh.get(meal):
         raise HTTPException(status_code=503, detail="Couldn't rebuild that meal — try again")
     doc[meal] = fresh[meal]
@@ -3396,9 +3408,10 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     from ai_planner import AI_MODEL
 
     client = AsyncAnthropic(api_key=key)
-    resp = await client.messages.create(
+    try:
+        resp = await client.messages.create(
         model=AI_MODEL,
-        max_tokens=1200,
+        max_tokens=2200,
         messages=[{
             "role": "user",
             "content": [
@@ -3420,12 +3433,18 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
                 )},
             ],
         }],
-    )
+        )
+    except Exception as exc:
+        # Was a silent 500 before: an oversized image or an API hiccup both
+        # surfaced to the user as "couldn't read that bill".
+        logger.warning("scan-bill vision call failed: %s", exc)
+        raise HTTPException(status_code=422, detail="Couldn't read the bill — try a clearer photo")
     raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
     raw = raw.replace("```json", "").replace("```", "").strip()
     try:
         parsed = json.loads(raw)
     except Exception:
+        logger.warning("scan-bill JSON parse failed; first 300 chars: %s", raw[:300])
         raise HTTPException(status_code=422, detail="Couldn't read the bill — try a clearer photo")
 
     bill_items = parsed.get("items") or []
@@ -4491,7 +4510,12 @@ async def health_today(current=Depends(get_current_user)):
 
 
 # ---------------- AI-generated day plan (pantry -> dishes) ---------------- #
-async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Dict[str, Any]]:
+async def _ai_generate_plan(
+    uid: str,
+    seed: Optional[int] = None,
+    only_meal: Optional[str] = None,
+    avoid_dishes: Optional[List[str]] = None,
+) -> Optional[Dict[str, Any]]:
     """Build the whole day from the PANTRY: the AI invents dishes out of what the
     user actually has (bottle gourd -> sorakkai kootu, radish -> mullangi sambar),
     not limited to the 73-recipe catalog. Nutrition is computed SERVER-SIDE from
@@ -4566,14 +4590,28 @@ async def _ai_generate_plan(uid: str, seed: Optional[int] = None) -> Optional[Di
             "genuinely uses the pantry.\n"
             "- Ingredient amounts in GRAMS per person, using plain lowercase ingredient names.\n"
             "- Do NOT state calories or nutrition numbers — those are computed separately.\n\n"
-            "Respond ONLY with JSON, no prose, no fences:\n"
+            # Regenerating ONE meal: ask for that slot only. A third of the
+            # output tokens, and the user waits for one meal, not three.
+            + (
+                f"Plan ONLY the {only_meal}. Leave the other slots as empty lists.\n"
+                if only_meal else ""
+            )
+            + (
+                "The cook has ALREADY seen and rejected these dishes — do not "
+                f"return them or close variants: {', '.join(avoid_dishes)}.\n"
+                if avoid_dishes else ""
+            )
+            + "Respond ONLY with JSON, no prose, no fences:\n"
             '{"breakfast":[{"name_en":str,"name_ta":str,"uses":[{"item":str,"grams":number}],'
             '"steps":[str],"prep_min":number}],"lunch":[...],"dinner":[...]}'
         )
         client = AsyncAnthropic(api_key=api_key)
         resp = await client.messages.create(
-            model=AI_MODEL, max_tokens=2000,
-            temperature=0.4 if seed else 0.2,  # regenerate should vary
+            model=AI_MODEL,
+            max_tokens=900 if only_meal else 2000,
+            # A rejected dish means "give me something else" — temperature alone
+            # on an identical prompt kept returning the same answer.
+            temperature=0.8 if avoid_dishes else (0.4 if seed else 0.2),
             messages=[{"role": "user", "content": prompt}],
         )
         raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))

@@ -1,12 +1,12 @@
 // Batch 11: Capt. Charmer's real brain. Opens from the floating Captain.
 // Every reply comes from Claude with the user's live kitchen context
 // (today's plan, pantry, expiries, profile) — no hardcoded lines.
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
-  KeyboardAvoidingView,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +48,26 @@ export function CaptainChat({
   const [busy, setBusy] = useState(false);
   const listRef = useRef<FlatList<Msg>>(null);
   const sentInitial = useRef(false);
+
+  // The app runs edge-to-edge, which stops Android's adjustResize from ever
+  // reaching a Modal — so KeyboardAvoidingView did nothing here and the input
+  // sat behind the keyboard. Measure the keyboard and size the sheet to fit.
+  const { height: winH } = useWindowDimensions();
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvt, (e) =>
+      setKbHeight(e.endCoordinates?.height ?? 0),
+    );
+    const onHide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
+  // Leave a finger's breadth above the keyboard; never taller than 82%.
+  const sheetHeight = Math.min(winH * 0.82, winH - kbHeight - 48);
 
   React.useEffect(() => {
     if (visible && initialMessage && !sentInitial.current && msgs.length === 0 && !busy) {
@@ -92,7 +113,14 @@ export function CaptainChat({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable
-          style={[styles.sheet, { paddingBottom: insets.bottom + spacing.s }]}
+          style={[
+            styles.sheet,
+            {
+              height: sheetHeight,
+              marginBottom: kbHeight,
+              paddingBottom: kbHeight > 0 ? spacing.s : insets.bottom + spacing.s,
+            },
+          ]}
           onPress={(e) => e.stopPropagation()}
           testID="captain-chat"
         >
@@ -107,13 +135,7 @@ export function CaptainChat({
             </TouchableOpacity>
           </View>
 
-          {/* Android needs "height" + the keyboard listener too — with
-              behavior=undefined the input sat *behind* the keyboard and the
-              message list couldn't be reached. */}
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={{ flex: 1 }}
-          >
+          <View style={{ flex: 1 }}>
             {msgs.length === 0 ? (
               <View style={styles.starters}>
                 <Text style={styles.startersHint}>Ask me anything about your kitchen:</Text>
@@ -130,6 +152,7 @@ export function CaptainChat({
                 keyExtractor={(_, i) => String(i)}
                 style={{ flex: 1 }}
                 keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
                 contentContainerStyle={{ padding: spacing.m, gap: 10 }}
                 renderItem={({ item }) => (
                   <View
@@ -175,7 +198,7 @@ export function CaptainChat({
                 <Ionicons name="arrow-up" size={20} color={colors.riceWhite} />
               </TouchableOpacity>
             </View>
-          </KeyboardAvoidingView>
+          </View>
         </Pressable>
       </Pressable>
     </Modal>
@@ -185,7 +208,6 @@ export function CaptainChat({
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   sheet: {
-    height: "82%",
     backgroundColor: colors.riceWhite,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,

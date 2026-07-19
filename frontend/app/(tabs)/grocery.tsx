@@ -29,7 +29,7 @@ import { readCache, writeCache } from "@/src/hooks/use-cached-query";
 import { colors, fonts, radius, shadow, spacing } from "@/src/theme";
 import { FoodAvatar } from "@/src/food-visual";
 import { ScanVeggies } from "@/src/components/scan-veggies";
-import { mapScanItems, type ScanItem } from "@/src/pantry-scan";
+import { mapScanItems, resizeToJpegBase64, type ScanItem } from "@/src/pantry-scan";
 
 type GroceryItem = {
   ingredient_id: string;
@@ -390,19 +390,21 @@ function GroceryScreenInner() {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.7,
-        base64: true,
       });
-      if (res.canceled || !res.assets?.[0]?.base64) return;
+      if (res.canceled || !res.assets?.[0]?.uri) return;
       setScanBusy(true);
-      const asset = res.assets[0];
+      // A raw phone screenshot is 1080x2400+ and megabytes of base64 — the
+      // vision call fails on it. Same 1280px downscale the pantry scan uses.
+      const shrunk = await resizeToJpegBase64(res.assets[0].uri);
+      if (!shrunk) throw new Error("process");
       const out = await api.post<{
         matches: Record<string, number>;
         unmatched: { name: string; price_inr: number }[];
         total_inr: number | null;
         items?: any[];
       }>("/api/grocery/scan-bill", {
-        image_base64: asset.base64,
-        media_type: asset.mimeType ?? "image/jpeg",
+        image_base64: shrunk,
+        media_type: "image/jpeg",
         list_items: selected.map((it) => ({ ingredient_id: it.ingredient_id, name: it.name })),
       });
       const filled: Record<string, string> = {};

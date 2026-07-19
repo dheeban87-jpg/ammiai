@@ -21,7 +21,7 @@ export type ScanItem = {
 export type ScanResult = { items: ScanItem[]; count: number; note?: string };
 export type ScanSource = "camera" | "gallery";
 
-async function resizeToJpegBase64(uri: string): Promise<string> {
+export async function resizeToJpegBase64(uri: string): Promise<string> {
   const out = await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: 1280 } }],

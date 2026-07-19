@@ -16,6 +16,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { AppHeader } from "@/src/components/app-header";
 import { HealthConnectCard } from "@/src/components/health-connect-card";
+
+// Kill switch for the Health Connect card. Off until the on-device crash is
+// reproduced and fixed — see the note at its render site.
+const HEALTH_CONNECT_ENABLED = false;
 import { NutritionRing } from "@/src/components/nutrition-ring";
 import { PressableScale } from "@/src/components/pressable-scale";
 import { api } from "@/src/api";
@@ -402,8 +406,12 @@ export default function HomeScreen() {
           </View>
         </PressableScale>
 
-        {/* S4 — Health Connect auto-activity (fails soft to manual habits below) */}
-        <HealthConnectCard onActiveKcal={setHcKcal} />
+        {/* S4 — Health Connect auto-activity. HIDDEN (owner, 2026-07-19):
+            tapping "Captain wants to track" hard-crashes the app on device,
+            even after the manifest <queries> fix. Rather than ship a crash we
+            show nothing; the manual habit row below already covers activity.
+            Flip back on only after it's verified on a real device. */}
+        {HEALTH_CONNECT_ENABLED ? <HealthConnectCard onActiveKcal={setHcKcal} /> : null}
 
         {/* A3 — Habit builder row */}
         {habitsLive && habits ? (

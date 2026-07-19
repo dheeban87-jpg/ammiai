@@ -3436,9 +3436,18 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
         )
     except Exception as exc:
         # Was a silent 500 before: an oversized image or an API hiccup both
-        # surfaced to the user as "couldn't read that bill".
-        logger.warning("scan-bill vision call failed: %s", exc)
-        raise HTTPException(status_code=422, detail="Couldn't read the bill — try a clearer photo")
+        # surfaced to the user as "couldn't read that bill". Name the failure
+        # class in the response — the app shows it, so one screenshot of the
+        # toast identifies the cause instead of another round of guessing.
+        logger.warning(
+            "scan-bill vision call failed (%s, image %d KB b64): %s",
+            type(exc).__name__, len(payload.image_base64) // 1024, exc,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=f"Vision call failed: {type(exc).__name__} "
+                   f"(image {len(payload.image_base64) // 1024}KB)",
+        )
     raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
     raw = raw.replace("```json", "").replace("```", "").strip()
     try:

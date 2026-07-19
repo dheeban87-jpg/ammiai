@@ -426,13 +426,20 @@ function GroceryScreenInner() {
       setToast(`Bill read: ${hit} prices filled${out.total_inr != null ? `, total ₹${Math.round(out.total_inr)}` : ""}${extra}`);
       setTimeout(() => setToast(null), 4000);
     } catch (e: any) {
-      const msg = String(e?.message ?? "");
+      // Every failure used to read "couldn't read that bill", which hid
+      // whether it was a timeout, a 500, or the model genuinely not reading
+      // the image. Surface the status + server detail so a screenshot of the
+      // toast is enough to diagnose it.
+      const status = e?.status;
+      const detail = String(e?.message ?? "").slice(0, 90);
       setToast(
-        msg.includes("503") || msg.includes("404")
+        status === 503 || status === 404
           ? "Bill scan activates after the next backend update"
-          : "Couldn't read that bill — try a clearer photo",
+          : status === 0
+            ? "No answer from the server — check your connection and retry"
+            : `Bill scan failed (${status ?? "?"}): ${detail}`,
       );
-      setTimeout(() => setToast(null), 3500);
+      setTimeout(() => setToast(null), 6000);
     } finally {
       setScanBusy(false);
     }

@@ -2744,6 +2744,10 @@ DEFAULT_NOTIF_PREFS = {
     "weekly_report_enabled": True,
     "weekly_report_dow": 6,  # 0=Mon .. 6=Sun
     "weekly_report_time": "18:00",
+    # R4: the one nudge that decides whether tonight gets cooked. Early enough
+    # to still buy or thaw something, unlike the 20:00 "dinner time" ping.
+    "dinner_nudge_enabled": True,
+    "dinner_nudge_time": "17:30",
 }
 
 FREE_LIMITS = {"pantry_max": 25, "plan_generations_per_month": 4}
@@ -2771,6 +2775,8 @@ class NotifPrefsIn(BaseModel):
     weekly_report_enabled: Optional[bool] = None
     weekly_report_dow: Optional[int] = None
     weekly_report_time: Optional[str] = None
+    dinner_nudge_enabled: Optional[bool] = None
+    dinner_nudge_time: Optional[str] = None
 
 
 @api_router.put("/settings/notifications")
@@ -2783,6 +2789,71 @@ async def notif_put(payload: NotifPrefsIn, current=Depends(get_current_user)):
     )
     doc = await db.notif_prefs.find_one({"user_id": current["user_id"]}, {"_id": 0})
     return doc
+
+
+@api_router.get("/nudge/dinner")
+async def nudge_dinner(current=Depends(get_current_user)):
+    """R4: the text for tonight's dinner nudge. The app schedules the actual
+    notification LOCALLY (no push infrastructure) and refreshes this copy on
+    every open — so the nudge is only as fresh as the last time the app ran.
+
+    Content comes from real state, in priority order: tonight's planned dinner,
+    else the best pantry-ready dish, else a plain open-the-app line. Expiry
+    urgency is appended only when it is actually true."""
+    uid = current["user_id"]
+    date = _now().date().isoformat()
+
+    dishes: List[str] = []
+    plan = await db.meal_plans.find_one({"user_id": uid, "date": date}, {"_id": 0})
+    if plan:
+        dinner = plan.get("dinner") or {}
+        # Staples ("Plain rice") aren't the news — lead with the real dish.
+        for it in (dinner.get("items") or []):
+            if it.get("category") == "staple":
+                continue
+            nm = it.get("name_en") or it.get("name")
+            if nm:
+                dishes.append(str(nm))
+    source = "plan"
+
+    if not dishes:
+        try:
+            ready = await dishes_from_pantry(slot="dinner", current=current)
+            for d in (ready.get("dishes") or [])[:1]:
+                nm = d.get("name_en") or d.get("name")
+                if nm:
+                    dishes.append(str(nm))
+            source = "pantry"
+        except Exception as exc:  # never let the nudge break the app open
+            logger.warning("dinner nudge pantry fallback failed: %s", exc)
+
+    # Expiry urgency — only mentioned when something really is about to go.
+    expiring: List[str] = []
+    for p in await db.pantry_items.find({"user_id": uid}, {"_id": 0}).to_list(200):
+        e = await _enrich_item(dict(p))
+        dl = e.get("days_left")
+        if dl is not None and dl <= 1 and e.get("ingredient_name"):
+            expiring.append(str(e["ingredient_name"]))
+
+    if dishes:
+        body = " + ".join(dishes[:2])
+        if expiring:
+            first = expiring[0].lower()
+            body += f" — your {first} {'expire' if len(expiring) > 1 else 'expires'} tomorrow."
+        else:
+            body += "."
+        title = "Tonight, soldier 🌙"
+    elif expiring:
+        body = f"Your {expiring[0].lower()} won't last another day. Open up and I'll find it a dish."
+        title = "Rescue mission, soldier 🌿"
+        source = "expiry"
+    else:
+        body = "No plan for tonight yet. Tell me what's in the kitchen and I'll sort it."
+        title = "Dinner call, soldier 🌙"
+        source = "empty"
+
+    return {"title": title, "body": _health_safe(body) or body,
+            "source": source, "route": "/(tabs)/plan"}
 
 
 @api_router.get("/premium/status")

@@ -369,6 +369,14 @@ export default function Settings() {
               onTest={() => fireTest("pantry")}
             />
             <NotifRow
+              testID="notif-dinner-nudge"
+              label="Dinner nudge"
+              hint={`${prefs.dinner_nudge_time} · tonight's dish + what's expiring`}
+              value={prefs.dinner_nudge_enabled}
+              onChange={(v) => updatePref({ dinner_nudge_enabled: v })}
+              onTest={() => fireTest("dinner_nudge")}
+            />
+            <NotifRow
               testID="notif-meal"
               label="Meal-time reminders"
               hint={`${prefs.breakfast_time} · ${prefs.lunch_time} · ${prefs.dinner_time}`}

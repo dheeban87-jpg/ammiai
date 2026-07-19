@@ -25,7 +25,12 @@ export type NotifPrefs = {
   weekly_report_enabled: boolean;
   weekly_report_dow: number; // 0=Mon .. 6=Sun
   weekly_report_time: string;
+  dinner_nudge_enabled: boolean;
+  dinner_nudge_time: string;
 };
+
+/** Copy for the R4 dinner nudge, fetched from the backend on app open. */
+export type DinnerNudge = { title: string; body: string };
 
 const isExpoGo = Constants.executionEnvironment === "storeClient";
 const notifDisabled = Platform.OS === "web" || isExpoGo;
@@ -81,7 +86,7 @@ export async function cancelAllAmmiai(): Promise<void> {
   await N.cancelAllScheduledNotificationsAsync();
 }
 
-export async function scheduleAll(prefs: NotifPrefs): Promise<number> {
+export async function scheduleAll(prefs: NotifPrefs, nudge?: DinnerNudge | null): Promise<number> {
   const N = getNotif();
   if (!N) return 0;
   await cancelAllAmmiai();
@@ -113,6 +118,13 @@ export async function scheduleAll(prefs: NotifPrefs): Promise<number> {
     await daily(prefs.lunch_time, "Lunch time 🍛", "Time to cook today's lunch.", "meal_lunch");
     await daily(prefs.dinner_time, "Dinner time 🌙", "Time to cook today's dinner.", "meal_dinner");
   }
+  // R4: the dinner nudge. Its body is real state (tonight's dish, expiring
+  // greens) fetched on app open — a local notification's text is frozen when
+  // it's scheduled, so this is only as fresh as the last time the app ran.
+  // Without that copy we say nothing rather than send a hollow ping.
+  if (prefs.dinner_nudge_enabled && nudge?.body) {
+    await daily(prefs.dinner_nudge_time, nudge.title, nudge.body, "dinner_nudge");
+  }
   if (prefs.cook_check_enabled) {
     await daily(
       prefs.cook_check_time,
@@ -143,12 +155,39 @@ export async function scheduleAll(prefs: NotifPrefs): Promise<number> {
   return scheduled;
 }
 
-export async function fireTest(kind: "pantry" | "meal" | "cook" | "weekly"): Promise<void> {
+/** R4: called on app open. Pulls the user's notification prefs and tonight's
+ *  nudge copy, then reschedules everything so the 5:30pm ping reflects today's
+ *  plan and pantry. Silent no-op without permission or on an unsupported
+ *  runtime — this must never block or break app start. */
+export async function refreshDinnerNudge(
+  apiGet: <T>(path: string) => Promise<T>,
+): Promise<boolean> {
+  if (!notificationsSupported()) return false;
+  const N = getNotif();
+  if (!N) return false;
+  // Don't PROMPT here — app open is the wrong moment to ask. We only schedule
+  // if the user already granted permission (Settings does the asking).
+  const perm = await N.getPermissionsAsync();
+  if (!perm.granted) return false;
+  try {
+    const [prefs, nudge] = await Promise.all([
+      apiGet<NotifPrefs>("/api/settings/notifications"),
+      apiGet<DinnerNudge>("/api/nudge/dinner"),
+    ]);
+    await scheduleAll(prefs, nudge);
+    return true;
+  } catch {
+    return false; // offline / cold backend — keep yesterday's schedule
+  }
+}
+
+export async function fireTest(kind: "pantry" | "meal" | "cook" | "weekly" | "dinner_nudge"): Promise<void> {
   const copy = {
     pantry: ["Pantry needs attention 🌿", "2 items need attention — 3 dish ideas for your keerai."],
     meal: ["Lunch time 🍛", "Time to cook today's lunch."],
     cook: ["Did you cook tonight's plan? 🍽", "Mark dishes as cooked to update pantry & streak."],
     weekly: ["Your weekly AmmiAI report 📊", "See waste, balance, streak."],
+    dinner_nudge: ["Tonight, soldier 🌙", "Keerai kootu + rice — your spinach expires tomorrow."],
   } as const;
 
   if (Platform.OS === "web") {

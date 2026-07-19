@@ -17,6 +17,7 @@ import { AuthProvider, useAuth } from "@/src/auth-context";
 import { LanguageProvider } from "@/src/i18n";
 import { CrashGate } from "@/src/crash-guard";
 import { IntroGate } from "@/src/components/intro-gate";
+import { refreshDinnerNudge } from "@/src/notifications";
 import { colors } from "@/src/theme";
 
 LogBox.ignoreAllLogs(true);
@@ -58,10 +59,23 @@ function RouteGuard() {
   return null;
 }
 
+/** R4: reschedule the 5:30pm dinner nudge with tonight's real content each
+ *  time the app opens (local notifications freeze their text at schedule
+ *  time). Fire-and-forget — never blocks or breaks start-up. */
+function DinnerNudgeScheduler() {
+  const { status } = useAuth();
+  useEffect(() => {
+    if (status !== "authed") return;
+    refreshDinnerNudge((path) => api.get(path)).catch(() => {});
+  }, [status]);
+  return null;
+}
+
 function RootStack() {
   return (
     <>
       <RouteGuard />
+      <DinnerNudgeScheduler />
       <StatusBar style="light" backgroundColor={colors.bananaLeafDark} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.riceWhite } }} />
     </>

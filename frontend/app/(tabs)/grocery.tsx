@@ -102,7 +102,6 @@ function GroceryScreenInner() {
   const [healthItems, setHealthItems] = useState<any[]>([]);
   const [healthGuidance, setHealthGuidance] = useState<string[]>([]);
   const [captainBusy, setCaptainBusy] = useState<Set<string>>(new Set());
-  const [actionsVisible, setActionsVisible] = useState(false);
   const [picksBusy, setPicksBusy] = useState(false);
   const [captainExpanded, setCaptainExpanded] = useState(false);
   const [mealsVisible, setMealsVisible] = useState(false);
@@ -349,16 +348,6 @@ function GroceryScreenInner() {
     return lines.join("\n");
   }, [data, selected, checked, selectedCost]);
 
-  const copyList = async () => {
-    try {
-      await Clipboard.setStringAsync(listAsText);
-      setToast("List copied to clipboard");
-      setTimeout(() => setToast(null), 2500);
-    } catch {
-      setToast("Couldn't copy");
-    }
-  };
-
   const shareWhatsapp = async () => {
     const encoded = encodeURIComponent(listAsText);
     const url = `https://wa.me/?text=${encoded}`;
@@ -384,15 +373,6 @@ function GroceryScreenInner() {
     setTotalPaid("");
     setShowItemPrices(false);
     setConfirmVisible(true);
-  };
-
-  const boughtLocalShop = () => {
-    if (selected.length === 0) {
-      setToast("Select at least one item first");
-      setTimeout(() => setToast(null), 2200);
-      return;
-    }
-    openConfirmWithPrices("local_shop");
   };
 
   const scanBill = async () => {
@@ -715,7 +695,7 @@ function GroceryScreenInner() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 110 }]}
+          contentContainerStyle={[styles.body, { paddingBottom: insets.bottom + 32 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.bananaLeaf} />}
           showsVerticalScrollIndicator={false}
         >
@@ -878,120 +858,87 @@ function GroceryScreenInner() {
 
           {/* Category groups (Vegetables / Leafy & Herbs / ...) removed:
               the Captain's AI picks above ARE the list now. Items still live
-              in data.groups under the hood, which is what `selected`, Order /
-              Share and the vendor wizard read — we just don't render the wall. */}
+              in data.groups under the hood, which is what `selected` and the
+              vendor wizard read — we just don't render the wall. */}
+
+          {/* Where the list goes next. These were buried behind an
+              "Order / Share" sheet; now they're right under the picks, one tap
+              each. Copy-list and Local-shop removed (owner, 2026-07-19). */}
+          {!empty && data ? (
+            <View style={styles.actionsCard} testID="grocery-actions">
+              <Text style={styles.actionsTitle}>Order your list</Text>
+              <View style={styles.actionsRow}>
+                {(Object.keys(VENDOR_META) as OrderVendor[]).map((v) => (
+                  <TouchableOpacity
+                    key={v}
+                    style={[styles.actionBtn, { borderColor: VENDOR_META[v].color }]}
+                    onPress={() => {
+                      if (selected.length === 0) {
+                        setToast("Select items first to order");
+                        setTimeout(() => setToast(null), 2200);
+                        return;
+                      }
+                      openOrder(v);
+                    }}
+                    testID={`grocery-order-${v}`}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name={VENDOR_META[v].icon} size={20} color={VENDOR_META[v].color} />
+                    <Text style={[styles.actionBtnText, { color: VENDOR_META[v].color }]}>
+                      {VENDOR_META[v].label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity
+                  style={[styles.actionBtn, { borderColor: "#25D366" }]}
+                  onPress={shareWhatsapp}
+                  testID="grocery-whatsapp"
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                  <Text style={[styles.actionBtnText, { color: "#128C7E" }]}>WhatsApp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionBtn, { borderColor: "#E23744" }]}
+                  onPress={openApprovedMeals}
+                  testID="grocery-zomato-meals"
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="restaurant-outline" size={20} color="#E23744" />
+                  <Text style={[styles.actionBtnText, { color: "#E23744" }]}>Zomato meals</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Bill → pantry. Screenshot the Instamart/Zepto order, check what
+                  the Captain read, then stock the kitchen in one tap. */}
+              <TouchableOpacity
+                style={[styles.uploadBillBtn, scanBusy && { opacity: 0.7 }]}
+                onPress={scanBill}
+                disabled={scanBusy}
+                testID="grocery-upload-bill"
+                activeOpacity={0.85}
+              >
+                {scanBusy ? (
+                  <ActivityIndicator color={colors.riceWhite} />
+                ) : (
+                  <>
+                    <Ionicons name="receipt-outline" size={19} color={colors.riceWhite} />
+                    <Text style={styles.uploadBillText}>Upload bill → add to pantry</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.uploadBillHint}>
+                Screenshot your Instamart/Zepto order or snap a shop bill. You check the
+                list before anything is added.
+              </Text>
+            </View>
+          ) : null}
 
         </ScrollView>
       )}
 
-      {/* Compact action bar — one slim row; all actions live in the sheet.
-          Show whenever there's a list to act on (picks or added items), not the
-          hidden plan-driven total. */}
-      {!loading && !empty && data ? (
-        <View style={[styles.slimBar, { paddingBottom: insets.bottom + spacing.s }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.slimCount} testID="grocery-selected-count">
-              {selected.length} selected{selected.length ? ` · ₹${Math.round(selectedCost)}` : ""}
-            </Text>
-            <Text style={styles.slimHint}>
-              {selected.length ? "Ready to order or share" : "Select items to order"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.slimPrimary}
-            onPress={() => setActionsVisible(true)}
-            testID="grocery-open-actions"
-            activeOpacity={0.85}
-          >
-            <Ionicons name="bag-handle-outline" size={18} color={colors.riceWhite} />
-            <Text style={styles.slimPrimaryText}>Order / Share</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      {/* Actions sheet — Copy / WhatsApp / vendors / local shop / Zomato / ONDC */}
-      <Modal
-        visible={actionsVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setActionsVisible(false)}
-      >
-        <Pressable style={styles.modalBackdrop} onPress={() => setActionsVisible(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.sheetHandle} />
-            <Text style={styles.sheetTitle}>Order or share</Text>
-            <Text style={styles.actionsSub}>
-              {selected.length} item{selected.length !== 1 ? "s" : ""} selected · est. ₹
-              {Math.round(selectedCost)}
-            </Text>
-            <View style={styles.actionsGrid}>
-              <ActionTile
-                icon="copy-outline"
-                label="Copy list"
-                onPress={() => {
-                  setActionsVisible(false);
-                  copyList();
-                }}
-              />
-              <ActionTile
-                icon="logo-whatsapp"
-                label="WhatsApp"
-                onPress={() => {
-                  setActionsVisible(false);
-                  shareWhatsapp();
-                }}
-              />
-              {(Object.keys(VENDOR_META) as OrderVendor[]).map((v) => (
-                <ActionTile
-                  key={v}
-                  icon={VENDOR_META[v].icon}
-                  label={VENDOR_META[v].label}
-                  tint={VENDOR_META[v].color}
-                  onPress={() => {
-                    if (selected.length === 0) {
-                      setToast("Select items first to order");
-                      setTimeout(() => setToast(null), 2200);
-                      return;
-                    }
-                    setActionsVisible(false);
-                    openOrder(v);
-                  }}
-                />
-              ))}
-              <ActionTile
-                icon="storefront-outline"
-                label="Local shop"
-                onPress={() => {
-                  if (selected.length === 0) {
-                    setToast("Select items first");
-                    setTimeout(() => setToast(null), 2200);
-                    return;
-                  }
-                  setActionsVisible(false);
-                  boughtLocalShop();
-                }}
-              />
-              <ActionTile
-                icon="restaurant-outline"
-                label="Zomato meals"
-                onPress={() => {
-                  setActionsVisible(false);
-                  openApprovedMeals();
-                }}
-              />
-            </View>
-            <View style={styles.ondcRow}>
-              <Ionicons name="globe-outline" size={15} color={colors.textMuted} />
-              <Text style={styles.ondcText}>
-                Order via ONDC (open network, live kirana prices) — coming after launch
-              </Text>
-            </View>
-            {selected.length === 0 ? (
-              <Text style={styles.selectHint}>Select items in the list to enable ordering.</Text>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      </Modal>
+      {/* The slim "Order / Share" bar and its actions sheet are gone — those
+          actions are visible buttons under the Captain's picks now. */}
 
       {/* Order vendor modal */}
 
@@ -1350,36 +1297,6 @@ function GroceryScreenInner() {
   );
 }
 
-function ActionTile({
-  icon,
-  label,
-  onPress,
-  disabled,
-  tint,
-}: {
-  icon: any;
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  tint?: string;
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.actionTile, disabled && { opacity: 0.4 }]}
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.8}
-    >
-      <View style={[styles.actionTileIcon, tint ? { backgroundColor: tint } : null]}>
-        <Ionicons name={icon} size={20} color={tint ? "#111" : colors.bananaLeaf} />
-      </View>
-      <Text style={styles.actionTileLabel} numberOfLines={1}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.riceWhite },
   // Compact action bar
@@ -1411,7 +1328,53 @@ const styles = StyleSheet.create({
   },
   slimPrimaryText: { color: colors.riceWhite, fontWeight: "800", fontSize: 14.5 },
   actionsSub: { fontSize: 13, color: colors.textMuted, marginBottom: spacing.m },
-  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
+  actionsCard: {
+    marginTop: spacing.m,
+    padding: spacing.m,
+    borderRadius: radius.l,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionsTitle: {
+    fontFamily: fonts.headingEn,
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: spacing.s,
+  },
+  actionsRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.s },
+  actionBtn: {
+    flexGrow: 1,
+    flexBasis: "47%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 50,
+    paddingHorizontal: spacing.s,
+    borderRadius: radius.m,
+    borderWidth: 1.5,
+    backgroundColor: colors.riceWhite,
+  },
+  actionBtnText: { fontWeight: "800", fontSize: 14 },
+  uploadBillBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    minHeight: 52,
+    marginTop: spacing.m,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bananaLeafDark,
+  },
+  uploadBillText: { color: colors.riceWhite, fontWeight: "800", fontSize: 15 },
+  uploadBillHint: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    color: colors.textMuted,
+    marginTop: 6,
+    textAlign: "center",
+  },
   actionTile: {
     width: "31%",
     alignItems: "center",

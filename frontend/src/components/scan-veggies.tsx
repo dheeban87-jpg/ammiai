@@ -145,6 +145,9 @@ export function ScanVeggies({
   };
 
   const includedCount = rows.filter((r) => r.include).length;
+  const includedTotal = rows
+    .filter((r) => r.include && typeof r.price === "number")
+    .reduce((sum, r) => sum + (r.price as number), 0);
 
   return (
     <>
@@ -218,9 +221,19 @@ export function ScanVeggies({
                         color={r.include ? colors.bananaLeaf : colors.textMuted}
                       />
                       <FoodAvatar kind="ingredient" id={r.ingredient_id} category={r.category} size={34} style={{ marginHorizontal: 8 }} />
-                      <Text style={[styles.rowName, !r.include && { color: colors.textMuted }]} numberOfLines={1}>
-                        {r.name}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[styles.rowName, !r.include && { color: colors.textMuted }]}
+                          numberOfLines={1}
+                        >
+                          {r.name}
+                        </Text>
+                        {/* What the bill charged — shown so the user can check
+                            the read against the receipt before adding. */}
+                        {typeof r.price === "number" ? (
+                          <Text style={styles.rowPrice}>₹{Math.round(r.price)}</Text>
+                        ) : null}
+                      </View>
                     </TouchableOpacity>
                     <View style={styles.stepper}>
                       <TouchableOpacity onPress={() => step(r.ingredient_id, -1)} style={styles.stepBtn} hitSlop={6}>
@@ -272,7 +285,10 @@ export function ScanVeggies({
               {busy ? (
                 <ActivityIndicator color={colors.riceWhite} />
               ) : (
-                <Text style={styles.addBtnText}>{t("scan.add_n", { n: includedCount })}</Text>
+                <Text style={styles.addBtnText}>
+                  {t("scan.add_n", { n: includedCount })}
+                  {includedTotal > 0 ? ` · ₹${Math.round(includedTotal)}` : ""}
+                </Text>
               )}
             </TouchableOpacity>
           </Pressable>
@@ -351,6 +367,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   rowLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
+  rowPrice: { fontSize: 12.5, fontWeight: "700", color: colors.bananaLeaf, marginTop: 1 },
   rowName: { fontSize: 15, fontWeight: "600", color: colors.textPrimary, flex: 1 },
   stepper: { flexDirection: "row", alignItems: "center", gap: 8 },
   stepBtn: {

@@ -3820,14 +3820,20 @@ def _norm_doc_category(c: Optional[str]) -> str:
 
 
 def _doc_qty(q: Optional[str], iid: Optional[str]) -> tuple[int, str]:
-    """Parse a receipt qty. Only a REAL weight/volume unit is trusted ('250g',
-    '1 kg', '500 ml'); a bare count like '1 x' is NOT grams — it maps to a
-    sensible default the user edits, never '1g'."""
+    """Parse a receipt qty. Real weight/volume wins ('250g', '1 kg', '500 ml');
+    an explicit piece count is honoured ('2 Pieces' means 2, not the default 4);
+    a multi-pack multiplies ('200 g x 2' = 400 g). Anything unreadable falls
+    back to a sensible default the user edits — never '1g'."""
     is_count = (iid or "") in _COUNT_ITEMS
-    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|ltr|l)\b", (q or "").lower())
+    text = (q or "").lower()
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(kg|gm|g|ml|ltr|l)\b", text)
     if m:
         n = float(m.group(1))
         u = m.group(2)
+        # "200 g x 2" — a pack count AFTER the weight multiplies it.
+        mult = re.search(r"\b(?:x|\*)\s*(\d+)\b", text[m.end():])
+        if mult:
+            n *= int(mult.group(1))
         if u == "kg":
             return int(n * 1000), "g"
         if u in ("g", "gm"):
@@ -3835,6 +3841,10 @@ def _doc_qty(q: Optional[str], iid: Optional[str]) -> tuple[int, str]:
         if u in ("l", "ltr"):
             return int(n * 1000), "ml"
         return int(n), "ml"
+    # Explicit piece counts: "2 Pieces", "4 pcs", "6 nos", "3 x".
+    c = re.search(r"(\d+)\s*(?:pieces?|pcs?|nos?|units?|x)\b", text)
+    if c:
+        return int(c.group(1)), "pc"
     return (_SCAN_QTY_PC["medium"], "pc") if is_count else (_SCAN_QTY_G["medium"], "g")
 
 
@@ -3906,7 +3916,8 @@ def _log_vision_cost(tag: str, model: str, resp: Any, image_b64_len: int, cache_
 
 _SCAN_QTY_G = {"small": 150, "medium": 300, "large": 500}
 _SCAN_QTY_PC = {"small": 2, "medium": 4, "large": 6}
-_COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "coconut", "apple", "orange"}
+_COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "raw_banana", "plantain",
+                "coconut", "apple", "orange"}
 
 
 async def _doc_line_items(raw_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:

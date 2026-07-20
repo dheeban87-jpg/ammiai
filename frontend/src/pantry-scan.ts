@@ -16,6 +16,7 @@ export type ScanItem = {
   qty: number;
   unit: string;
   kb?: boolean; // true → non-catalog, written to the pantry via the KB path
+  price?: number | null; // what the bill charged for this line, if it was a bill
 };
 
 export type ScanResult = { items: ScanItem[]; count: number; note?: string };
@@ -65,6 +66,7 @@ type ScanApiItem = {
   addable: boolean;
   needs_mapping?: boolean;
   include_default?: boolean;
+  price?: number | null;
 };
 /** Map raw /api/scan (or /grocery/scan-bill) lines into confirm-sheet rows.
  *  Catalog items keep their id; everything else gets a synthetic "kb:" key and
@@ -83,6 +85,7 @@ export function mapScanItems(apiItems: ScanApiItem[] | undefined): ScanItem[] {
         qty: i.qty,
         unit: i.unit,
         kb: !isCatalog,
+        price: i.price ?? null,
       };
     });
 }

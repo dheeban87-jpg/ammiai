@@ -106,13 +106,17 @@ export function MealCard({
   const chip = CHIP_META[meal.chip];
   const meta = MEAL_META[meal.key];
   const { t, lang } = useI18n();
-  const isEmpty = meal.items.length === 0 || meal.items.every((it) => it.static);
+  // B4: a meal whose dishes were all deleted lost its add path entirely.
+  // `items` is normalised here because a slot can come back from the API with
+  // items missing (not just empty), which made every downstream read throw.
+  const items = Array.isArray(meal.items) ? meal.items : [];
+  const isEmpty = items.length === 0 || items.every((it) => it.static);
 
   // Robust meal total: prefer the server value, else sum the dishes, else "—".
   const mealTotal = (k: "kcal" | "protein_g" | "fiber_g", suffix = "") => {
     let v = (meal as any)[k];
     if (typeof v !== "number" || !isFinite(v)) {
-      v = meal.items.reduce((sum, it) => sum + Number((it.nutrition as any)?.[k] ?? 0), 0);
+      v = items.reduce((sum, it) => sum + Number((it.nutrition as any)?.[k] ?? 0), 0);
     }
     if (!isFinite(v) || v <= 0) return "—";
     return `${Math.round(v)}${suffix}`;
@@ -146,7 +150,7 @@ export function MealCard({
         </TouchableOpacity>
       ) : null}
 
-      {meal.items.map((it, idx) => (
+      {items.map((it, idx) => (
         <View
           key={`${it.id}-${idx}`}
           style={[
@@ -328,7 +332,8 @@ export function MealCard({
         </TouchableOpacity>
       ) : null}
 
-      {!isEmpty && onAddDish ? (
+      {/* Always available — an empty slot needs this MORE, not less. */}
+      {onAddDish ? (
         <TouchableOpacity
           style={styles.addDishBtn}
           onPress={onAddDish}

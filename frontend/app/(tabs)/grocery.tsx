@@ -146,8 +146,21 @@ function GroceryScreenInner() {
         const r = await api.get<{ items: any[]; guidance: string[] }>(
           "/api/grocery/suggest-health",
         );
-        setHealthItems(Array.isArray(r.items) ? r.items : []);
+        const picks = Array.isArray(r.items) ? r.items : [];
+        setHealthItems(picks);
         setHealthGuidance(Array.isArray(r.guidance) ? r.guidance : []);
+        // B5: the Captain's own recommendations arrive TICKED. Requiring
+        // "Select all" first meant the header read ₹0 next to five picks —
+        // the app appeared to disagree with its own advice. Unticking is the
+        // user's call; "Clear" still does it in bulk.
+        setChecked((prev) => {
+          const next = new Set(prev);
+          for (const p of picks) {
+            const id = p?.ingredient_id ?? kbKey(p?.name ?? "");
+            if (id) next.add(id);
+          }
+          return next;
+        });
       } catch {
         setHealthItems([]);
         setHealthGuidance([]);
@@ -383,8 +396,7 @@ function GroceryScreenInner() {
       try {
         ImagePicker = await import("expo-image-picker");
       } catch {
-        setToast("Bill scan needs the latest app build — rebuild the APK");
-        setTimeout(() => setToast(null), 3500);
+        showError("Bill scan needs the latest app build — rebuild the APK", 3500);
         return;
       }
       const res = await ImagePicker.launchImageLibraryAsync({
@@ -395,8 +407,14 @@ function GroceryScreenInner() {
       setScanBusy(true);
       // A raw phone screenshot is 1080x2400+ and megabytes of base64 — the
       // vision call fails on it. Same 1280px downscale the pantry scan uses.
-      const shrunk = await resizeToJpegBase64(res.assets[0].uri);
+      // Bills use the "document" profile — 1600px, higher quality. Squashing a
+      // receipt to produce-sized pixels throws away the digits.
+      const a0 = res.assets[0];
+      const { base64: shrunk, sentKB } = await resizeToJpegBase64(
+        a0.uri, "document", a0.width, a0.height,
+      );
       if (!shrunk) throw new Error("process");
+      console.log(`[scan] bill ${a0.width}x${a0.height} -> 1600px, ${sentKB}KB sent`);
       const out = await api.post<{
         matches: Record<string, number>;
         unmatched: { name: string; price_inr: number }[];
@@ -423,6 +441,7 @@ function GroceryScreenInner() {
       const stock = mapScanItems(out.items);
       if (stock.length > 0) setBillItems(stock);
       const extra = out.unmatched?.length ? ` · ${out.unmatched.length} lines didn't match your list` : "";
+      setToastTone("ok");
       setToast(`Bill read: ${hit} prices filled${out.total_inr != null ? `, total ₹${Math.round(out.total_inr)}` : ""}${extra}`);
       setTimeout(() => setToast(null), 4000);
     } catch (e: any) {
@@ -432,14 +451,13 @@ function GroceryScreenInner() {
       // toast is enough to diagnose it.
       const status = e?.status;
       const detail = String(e?.message ?? "").slice(0, 90);
-      setToast(
+      showError(
         status === 503 || status === 404
           ? "Bill scan activates after the next backend update"
           : status === 0
             ? "No answer from the server — check your connection and retry"
             : `Bill scan failed (${status ?? "?"}): ${detail}`,
       );
-      setTimeout(() => setToast(null), 6000);
     } finally {
       setScanBusy(false);
     }
@@ -541,6 +559,14 @@ function GroceryScreenInner() {
     if (!isNaN(v)) pricesTotal += v;
   }
   const [scanBusy, setScanBusy] = useState(false);
+  const [toastTone, setToastTone] = useState<"ok" | "error">("ok");
+  // Every failure used the success toast (green ✓). Route failures through
+  // this so the tone always matches the message.
+  const showError = (msg: string, ms = 6000) => {
+    setToastTone("error");
+    setToast(msg);
+    setTimeout(() => setToast(null), ms);
+  };
   // Items the bill scan found — handed to the same confirm sheet the Pantry
   // uses, so a bill actually stocks the kitchen instead of only filling prices.
   const [billItems, setBillItems] = useState<ScanItem[] | null>(null);
@@ -1290,9 +1316,22 @@ function GroceryScreenInner() {
       />
 
       {toast ? (
-        <View style={[styles.toast, { bottom: insets.bottom + 240 }]} testID="grocery-toast">
-          <Ionicons name="checkmark-circle" size={18} color={colors.bananaLeaf} />
-          <Text style={styles.toastText}>{toast}</Text>
+        <View
+          style={[
+            styles.toast,
+            { bottom: insets.bottom + 240 },
+            toastTone === "error" && styles.toastError,
+          ]}
+          testID="grocery-toast"
+        >
+          <Ionicons
+            name={toastTone === "error" ? "warning" : "checkmark-circle"}
+            size={18}
+            color={toastTone === "error" ? colors.chili : colors.bananaLeaf}
+          />
+          <Text style={[styles.toastText, toastTone === "error" && styles.toastErrorText]}>
+            {toast}
+          </Text>
         </View>
       ) : null}
 
@@ -1972,6 +2011,8 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   toastText: { color: colors.riceWhite, flex: 1, fontSize: 13, fontWeight: "600" },
+  toastError: { backgroundColor: "#FBECE4", borderWidth: 1, borderColor: colors.chili },
+  toastErrorText: { color: colors.chili },
 });
 
 

@@ -21,13 +21,37 @@ export type ScanItem = {
 export type ScanResult = { items: ScanItem[]; count: number; note?: string };
 export type ScanSource = "camera" | "gallery";
 
-export async function resizeToJpegBase64(uri: string): Promise<string> {
+// C1: vision cost scales with pixels, so shrink before upload — but text and
+// produce need different budgets. A bill squashed to 1024px loses the digits
+// that are the entire point of scanning it.
+export const SCAN_PROFILES = {
+  /** produce, packets, cooked dishes — shape and colour survive 1024px fine */
+  item: { edge: 1024, quality: 0.8 },
+  /** bills & order screenshots — small print must stay legible */
+  document: { edge: 1600, quality: 0.85 },
+} as const;
+export type ScanProfile = keyof typeof SCAN_PROFILES;
+
+/** Downscale so the LONGEST edge hits the profile's target, then JPEG-encode.
+ *  Returns base64 plus the byte counts, so callers can log what they saved. */
+export async function resizeToJpegBase64(
+  uri: string,
+  profile: ScanProfile = "item",
+  srcWidth?: number,
+  srcHeight?: number,
+): Promise<{ base64: string; sentKB: number }> {
+  const { edge, quality } = SCAN_PROFILES[profile];
+  // Resize the longest edge; portrait screenshots are taller than they are
+  // wide, so constraining width alone would leave them oversized.
+  const portrait = !!srcWidth && !!srcHeight && srcHeight > srcWidth;
+  const resize = portrait ? { height: edge } : { width: edge };
   const out = await ImageManipulator.manipulateAsync(
     uri,
-    [{ resize: { width: 1280 } }],
-    { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+    [{ resize }],
+    { compress: quality, format: ImageManipulator.SaveFormat.JPEG, base64: true },
   );
-  return out.base64 ?? "";
+  const base64 = out.base64 ?? "";
+  return { base64, sentKB: Math.round((base64.length * 3) / 4 / 1024) };
 }
 
 // Shape returned by the unified S3 /api/scan endpoint.
@@ -98,8 +122,10 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
       ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
       : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
   if (res.canceled || !res.assets?.[0]?.uri) return null;
-  const base64 = await resizeToJpegBase64(res.assets[0].uri);
+  const a = res.assets[0];
+  const { base64, sentKB } = await resizeToJpegBase64(a.uri, "item", a.width, a.height);
   if (!base64) throw new Error("process");
+  console.log(`[scan] item ${a.width}x${a.height} -> ${SCAN_PROFILES.item.edge}px, ${sentKB}KB sent`);
 
   const out = await api.post<ScanApiResult>("/api/scan", {
     image_base64: base64,

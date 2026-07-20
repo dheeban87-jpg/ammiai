@@ -89,6 +89,10 @@ async def _ensure_indexes() -> None:
     await db.users.create_index("phone", unique=True, sparse=True)
     await db.user_sessions.create_index("session_token", unique=True)
     await db.user_sessions.create_index("user_id")
+    # C3/C5: image-hash cache and the per-day scan counter. Unique keys so
+    # concurrent scans can't create duplicate rows and undercount the cap.
+    await db.scan_cache.create_index("hash", unique=True)
+    await db.scan_quota.create_index([("user_id", 1), ("day", 1)], unique=True)
     await db.user_sessions.create_index("expires_at", expireAfterSeconds=0)
     await db.pantry_items.create_index("user_id")
     await db.waste_log.create_index("user_id")
@@ -3404,13 +3408,18 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         raise HTTPException(status_code=503, detail="AI not configured")
+    _guard_image(payload.image_base64)
+    if not await _scan_quota_ok(current["user_id"]):
+        raise HTTPException(
+            status_code=429,
+            detail=f"That's {SCAN_DAILY_CAP_FREE} scans today, soldier. Back tomorrow.",
+        )
     from anthropic import AsyncAnthropic
-    from ai_planner import AI_MODEL
 
     client = AsyncAnthropic(api_key=key)
     try:
         resp = await client.messages.create(
-        model=AI_MODEL,
+        model=VISION_MODEL_CHEAP,
         max_tokens=2200,
         messages=[{
             "role": "user",
@@ -3460,8 +3469,18 @@ async def grocery_scan_bill(payload: ScanBillIn, current=Depends(get_current_use
     # Fuzzy-match bill lines to the user's current list (sent by the app,
     # since the grocery list is computed, not stored) + known ingredients.
     glist = payload.list_items
-    ingredients = await db.ingredients.find({}, {"_id": 0, "id": 1, "name_en": 1}).to_list(1000)
-    ing_names = {i["id"]: (i.get("name_en") or "").lower() for i in ingredients}
+    # The catalog's fields are ingredient_id/name. This projected id/name_en —
+    # fields that do not exist — so every doc came back EMPTY and i["id"] threw
+    # KeyError, 500ing the endpoint after the vision call had already succeeded.
+    # That is the whole "couldn't read that bill" bug: the bill was read fine.
+    ingredients = await db.ingredients.find(
+        {}, {"_id": 0, "ingredient_id": 1, "name": 1}
+    ).to_list(1000)
+    ing_names = {
+        i["ingredient_id"]: (i.get("name") or "").lower()
+        for i in ingredients
+        if i.get("ingredient_id")
+    }
 
     # Token-based matcher: real store names ("WOW! Coco Fresh Grated Coconut",
     # "Sambar Onion Peeled (Chinna Vengayam)", "Lady Finger (Vendikaai)")
@@ -3814,6 +3833,67 @@ class UnifiedScanIn(BaseModel):
     media_type: str = "image/jpeg"
 
 
+# ---- C2/C5: vision model tiering, guardrails and cost telemetry ----
+# Haiku handles "what is in this picture" well and costs ~5x less than Sonnet.
+# Escalation to Sonnet is deliberate and logged (see _vision_model).
+VISION_MODEL_CHEAP = os.environ.get("VISION_MODEL_CHEAP", "claude-haiku-4-5-20251001")
+VISION_MODEL_SMART = os.environ.get("VISION_MODEL_SMART", "claude-sonnet-4-5")
+VISION_ENABLED = (os.environ.get("VISION_ENABLED", "1") or "1").lower() not in ("0", "false", "no")
+# A client that resized correctly never sends this much; anything bigger means
+# the resize failed and we'd be paying for pixels nobody asked for.
+MAX_IMAGE_B64_BYTES = 2 * 1024 * 1024
+SCAN_DAILY_CAP_FREE = 20
+
+# $ per million tokens, for the cost line in the logs only.
+_VISION_PRICES = {
+    VISION_MODEL_CHEAP: (1.0, 5.0),
+    VISION_MODEL_SMART: (3.0, 15.0),
+}
+
+
+def _guard_image(b64: str) -> None:
+    """C5: refuse oversized uploads instead of silently paying for them."""
+    if not VISION_ENABLED:
+        raise HTTPException(status_code=503, detail="Photo scanning is temporarily off")
+    n = len(b64 or "")
+    if n > MAX_IMAGE_B64_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"That image is too large ({n // 1024}KB). Retake it — "
+                   "the app should be shrinking photos before upload.",
+        )
+
+
+async def _scan_quota_ok(uid: str) -> bool:
+    """Soft daily cap so one user can't run up the vision bill."""
+    day = _now().date().isoformat()
+    doc = await db.scan_quota.find_one_and_update(
+        {"user_id": uid, "day": day},
+        {"$inc": {"count": 1}, "$setOnInsert": {"user_id": uid, "day": day}},
+        upsert=True, return_document=True,
+    )
+    return int((doc or {}).get("count", 1)) <= SCAN_DAILY_CAP_FREE
+
+
+def _log_vision_cost(tag: str, model: str, resp: Any, image_b64_len: int, cache_hit: bool = False) -> None:
+    """One line per vision call: model, tokens, image size, estimated cost."""
+    try:
+        u = getattr(resp, "usage", None)
+        tin = int(getattr(u, "input_tokens", 0) or 0)
+        tout = int(getattr(u, "output_tokens", 0) or 0)
+        cached = int(getattr(u, "cache_read_input_tokens", 0) or 0)
+        pin, pout = _VISION_PRICES.get(model, (3.0, 15.0))
+        # Cached input bills at ~10% of the normal rate.
+        cost = ((tin - cached) * pin + cached * pin * 0.1 + tout * pout) / 1_000_000
+        logger.info(
+            "[vision] tag=%s model=%s in=%d cached_in=%d out=%d image=%dKB "
+            "cache_hit=%s est_cost=$%.5f",
+            tag, model, tin, cached, tout, image_b64_len // 1024, cache_hit, cost,
+        )
+    except Exception:
+        pass  # telemetry must never break a request
+
+
 _SCAN_QTY_G = {"small": 150, "medium": 300, "large": 500}
 _SCAN_QTY_PC = {"small": 2, "medium": 4, "large": 6}
 _COUNT_ITEMS = {"eggs", "lemon", "drumstick", "banana", "coconut", "apple", "orange"}
@@ -3866,15 +3946,23 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
     key = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
     if not key:
         raise HTTPException(status_code=503, detail="AI not configured")
+    _guard_image(payload.image_base64)
 
+    # C3: the cache is checked BEFORE any spend — a repeat image costs nothing.
     img_hash = hashlib.sha256(payload.image_base64.encode()).hexdigest()
     cached = await db.scan_cache.find_one({"hash": img_hash}, {"_id": 0})
     if cached:
         await db.scan_cache.update_one({"hash": img_hash}, {"$inc": {"hits": 1}})
+        logger.info("[vision] tag=scan cache_hit=True est_cost=$0.00000")
         return {**cached["result"], "cache_hit": True}
 
+    if not await _scan_quota_ok(current["user_id"]):
+        raise HTTPException(
+            status_code=429,
+            detail=f"That's {SCAN_DAILY_CAP_FREE} scans today, soldier. Back tomorrow.",
+        )
+
     from anthropic import AsyncAnthropic
-    from ai_planner import AI_MODEL
 
     prompt = (
         "You are the kitchen-inventory eye for a Tamil home cooking app. Look at this image and respond "
@@ -3899,19 +3987,42 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
         "Never invent items you cannot see or read. Tamil names in Tamil script."
     )
     client = AsyncAnthropic(api_key=key)
-    resp = await client.messages.create(
-        model=AI_MODEL, max_tokens=1000, temperature=0,
-        messages=[{"role": "user", "content": [
-            {"type": "image", "source": {"type": "base64", "media_type": payload.media_type, "data": payload.image_base64}},
-            {"type": "text", "text": prompt},
-        ]}],
-    )
+
+    async def _call(model: str):
+        return await client.messages.create(
+            model=model, max_tokens=1000, temperature=0,
+            messages=[{"role": "user", "content": [
+                {"type": "image", "source": {"type": "base64", "media_type": payload.media_type, "data": payload.image_base64}},
+                # C4: the instructions are identical on every scan, so mark them
+                # cacheable — repeat callers pay ~10% on this block.
+                {"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}},
+            ]}],
+        )
+
+    # C2: Haiku first. It reads produce and receipts well at a fraction of the
+    # price; Sonnet is the fallback, not the default.
+    model_used = VISION_MODEL_CHEAP
+    resp = await _call(model_used)
+    _log_vision_cost("scan", model_used, resp, len(payload.image_base64))
     raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
     raw = raw.replace("```json", "").replace("```", "").strip()
     try:
         parsed = json.loads(raw)
     except Exception:
-        raise HTTPException(status_code=422, detail="Couldn't read that image — try a clearer, closer shot")
+        parsed = None
+    # Escalate only on a real failure — unparseable output, or nothing found in
+    # a picture the user believed had food in it.
+    if parsed is None or (parsed.get("mode") == "physical_item" and not parsed.get("items")):
+        logger.info("[vision] escalating scan to %s", VISION_MODEL_SMART)
+        model_used = VISION_MODEL_SMART
+        resp = await _call(model_used)
+        _log_vision_cost("scan-escalated", model_used, resp, len(payload.image_base64))
+        raw = "".join(getattr(b, "text", "") or "" for b in (resp.content or []))
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        try:
+            parsed = json.loads(raw)
+        except Exception:
+            raise HTTPException(status_code=422, detail="Couldn't read that image — try a clearer, closer shot")
 
     mode = parsed.get("mode")
     if mode == "not_food":

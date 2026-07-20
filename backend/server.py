@@ -3950,7 +3950,10 @@ async def _doc_line_items(raw_items: List[Dict[str, Any]]) -> List[Dict[str, Any
             "ingredient_id": iid, "name_en": name_en, "name_ta": it.get("name_ta"),
             "category": cat, "qty": qty, "unit": unit, "nutrition": nutrition,
             "addable": iid is not None, "needs_mapping": nutrition.get("needs_mapping", False),
-            "price": it.get("price"),
+            # /scan's prompt calls this "price"; scan-bill's calls it
+            # "price_inr". Reading only one meant bill prices arrived as null
+            # and the confirm sheet had nothing to show.
+            "price": it.get("price") if it.get("price") is not None else it.get("price_inr"),
             "include_default": is_food and cat != "not_food",
             "kb": {"what": kb.get("what"), "how_used": kb.get("how_used"),
                    "storage": kb.get("storage"), "dish_links": kb.get("dish_links")} if kb else None,
@@ -4769,6 +4772,11 @@ async def _ai_generate_plan(
 
         avoid_norm = {_norm_name(a) for a in allergies if a}
         plan: Dict[str, Any] = {}
+        # When regenerating ONE meal we deliberately ask for that slot only, so
+        # the other two come back empty by design. The completeness check below
+        # must not read that as a failed generation — doing so returned None and
+        # made the regenerate button do nothing at all.
+        wanted = (only_meal,) if only_meal else ("breakfast", "lunch", "dinner")
         for slot in ("breakfast", "lunch", "dinner"):
             items: List[Dict[str, Any]] = []
             for d in (parsed.get(slot) or [])[:3]:
@@ -4809,7 +4817,9 @@ async def _ai_generate_plan(
                     "cooked": False,
                 })
             if not items:
-                return None  # incomplete plan -> fall back to the engine
+                if slot in wanted:
+                    return None  # genuinely incomplete -> fall back to the engine
+                continue  # single-meal regenerate: this slot was never requested
             # Reuse the engine's meal_status so the card gets the SAME shape it
             # expects (kcal/protein_g/fiber_g/target_kcal/target_protein_min).
             # Without these the UI rendered "NaN kcal / NaNg P".

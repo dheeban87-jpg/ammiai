@@ -67,7 +67,9 @@ export function CaptainChat({
     };
   }, []);
   // Leave a finger's breadth above the keyboard; never taller than 82%.
-  const sheetHeight = Math.min(winH * 0.82, winH - kbHeight - 48);
+  // Clear the keyboard by a comfortable margin — 48 left the input
+  // sitting right on top of the keys.
+  const sheetHeight = Math.min(winH * 0.82, winH - kbHeight - 96);
 
   React.useEffect(() => {
     if (visible && initialMessage && !sentInitial.current && msgs.length === 0 && !busy) {
@@ -111,8 +113,12 @@ export function CaptainChat({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
+      <View style={styles.backdrop}>
+        {/* Tap-to-dismiss lives on its own layer. When the sheet itself was a
+            Pressable it captured the vertical drag and the message list could
+            not be scrolled at all. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View
           style={[
             styles.sheet,
             {
@@ -121,7 +127,6 @@ export function CaptainChat({
               paddingBottom: kbHeight > 0 ? spacing.s : insets.bottom + spacing.s,
             },
           ]}
-          onPress={(e) => e.stopPropagation()}
           testID="captain-chat"
         >
           <View style={styles.header}>
@@ -166,7 +171,6 @@ export function CaptainChat({
                     </Text>
                   </View>
                 )}
-                onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
               />
             )}
 
@@ -199,8 +203,8 @@ export function CaptainChat({
               </TouchableOpacity>
             </View>
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </Modal>
   );
 }

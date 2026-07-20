@@ -140,31 +140,32 @@ function GroceryScreenInner() {
       // so clearing here dropped every other pick ("4 selected" -> "1 selected").
       // Keep selections that still exist in the refreshed list.
       const liveIds = new Set(d.groups.flatMap((g) => g.items.map((it) => it.ingredient_id)));
-      setChecked((prev) => new Set([...prev].filter((id) => liveIds.has(id))));
       // Captain's health picks — inline first group. Fail silent if not deployed.
+      let picks: any[] = [];
       try {
         const r = await api.get<{ items: any[]; guidance: string[] }>(
           "/api/grocery/suggest-health",
         );
-        const picks = Array.isArray(r.items) ? r.items : [];
+        picks = Array.isArray(r.items) ? r.items : [];
         setHealthItems(picks);
         setHealthGuidance(Array.isArray(r.guidance) ? r.guidance : []);
-        // B5: the Captain's own recommendations arrive TICKED. Requiring
-        // "Select all" first meant the header read ₹0 next to five picks —
-        // the app appeared to disagree with its own advice. Unticking is the
-        // user's call; "Clear" still does it in bulk.
-        setChecked((prev) => {
-          const next = new Set(prev);
-          for (const p of picks) {
-            const id = p?.ingredient_id ?? kbKey(p?.name ?? "");
-            if (id) next.add(id);
-          }
-          return next;
-        });
       } catch {
         setHealthItems([]);
         setHealthGuidance([]);
       }
+      // B5: the Captain's recommendations arrive TICKED, and STAY ticked.
+      // The old filter dropped any selection missing from d.groups — but a pick
+      // the user hasn't tapped yet was never in d.groups, so pre-ticking it was
+      // instantly undone and those rows fell back to "+" (Pomfret, Cucumber).
+      // Pick ids are therefore valid selections in their own right.
+      const pickIds = picks
+        .map((p) => p?.ingredient_id ?? kbKey(p?.name ?? ""))
+        .filter(Boolean) as string[];
+      setChecked((prev) => {
+        const next = new Set([...prev].filter((id) => liveIds.has(id) || pickIds.includes(id)));
+        for (const id of pickIds) next.add(id);
+        return next;
+      });
     } catch (e: any) {
       // Deploy-lag / offline: a not-yet-live endpoint or a network blip should
       // fail gracefully, not throw a red "404" toast for something that will
@@ -807,9 +808,10 @@ function GroceryScreenInner() {
                     <TouchableOpacity
                       key={id}
                       style={styles.captainRow}
-                      // Not in the list yet -> add it (which also selects it).
-                      // Already there -> just tick/untick for ordering.
-                      onPress={() => (inList.has(id) ? toggle(id) : addCaptainPick(it))}
+                      // Ticked (incl. pre-ticked picks) or already on the list ->
+                      // tap means untick. Only an untouched, unticked pick means
+                      // "add me" — otherwise tapping a ticked row re-added it.
+                      onPress={() => (on || inList.has(id) ? toggle(id) : addCaptainPick(it))}
                       disabled={busy}
                       testID={`captain-pick-${id}`}
                       activeOpacity={0.7}

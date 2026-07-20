@@ -183,7 +183,17 @@ async def _create_session(user_id: str, token: Optional[str] = None) -> str:
 # ------------------------- Public read endpoints ------------------------- #
 @api_router.get("/")
 async def root():
-    return {"app": "AmmiAI", "status": "ok"}
+    """Unauthenticated. Reports the commit actually running so a deploy can be
+    verified from outside — "the push succeeded" is not the same as "the new
+    code is live", and every batch so far has had to guess at the difference.
+    Render injects RENDER_GIT_COMMIT; empty locally."""
+    return {
+        "app": "AmmiAI",
+        "status": "ok",
+        "commit": (os.environ.get("RENDER_GIT_COMMIT") or "")[:7] or "local",
+        "vision_enabled": VISION_ENABLED,
+        "vision_model": VISION_MODEL_CHEAP,
+    }
 
 
 @api_router.get("/stats")

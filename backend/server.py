@@ -4020,9 +4020,18 @@ async def unified_scan(payload: UnifiedScanIn, current=Depends(get_current_user)
         parsed = json.loads(raw)
     except Exception:
         parsed = None
-    # Escalate only on a real failure — unparseable output, or nothing found in
-    # a picture the user believed had food in it.
-    if parsed is None or (parsed.get("mode") == "physical_item" and not parsed.get("items")):
+    # C2 escalation. Low confidence counts as a failure: those items used to be
+    # silently DROPPED, so a hesitant read looked like an empty shelf. Ask the
+    # stronger model rather than throwing the answer away.
+    def _unsure(p: Optional[Dict[str, Any]]) -> bool:
+        if not p or p.get("mode") != "physical_item":
+            return False
+        items = p.get("items") or []
+        if not items:
+            return True
+        return any(float(i.get("confidence") or 0) < 0.6 for i in items)
+
+    if parsed is None or _unsure(parsed):
         logger.info("[vision] escalating scan to %s", VISION_MODEL_SMART)
         model_used = VISION_MODEL_SMART
         resp = await _call(model_used)

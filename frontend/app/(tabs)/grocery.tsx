@@ -402,6 +402,7 @@ function GroceryScreenInner() {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
         quality: 0.7,
+        exif: false, // no need for it, and it keeps the payload smaller
       });
       if (res.canceled || !res.assets?.[0]?.uri) return;
       setScanBusy(true);

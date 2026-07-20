@@ -117,10 +117,15 @@ export async function captureAndScan(source: ScanSource): Promise<ScanResult | n
       throw e;
     }
   }
+  // Android kills a backgrounded app while the camera Activity is in front if
+  // memory runs short — that is the "app restarted after I took a photo" bug.
+  // We can't stop the OS reclaiming memory, but we can stop being the reason:
+  // capture compressed (a 12MP JPEG decodes to ~48MB as a bitmap) and never
+  // ask the picker for base64, which would hold a second copy in memory.
   const res =
     source === "camera"
-      ? await ImagePicker.launchCameraAsync({ quality: 0.7 })
-      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
+      ? await ImagePicker.launchCameraAsync({ quality: 0.5, exif: false })
+      : await ImagePicker.launchImageLibraryAsync({ quality: 0.7, exif: false });
   if (res.canceled || !res.assets?.[0]?.uri) return null;
   const a = res.assets[0];
   const { base64, sentKB } = await resizeToJpegBase64(a.uri, "item", a.width, a.height);
